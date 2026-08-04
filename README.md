@@ -1,11 +1,19 @@
 # Quiltwright
 
+[![Python](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/)
+[![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](LICENSE)
+[![PyPI](https://img.shields.io/pypi/v/quiltwright.svg)](https://pypi.org/project/quiltwright/)
+[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/suchanek/quiltwright/releases)
+[![Tests](https://github.com/suchanek/quiltwright/actions/workflows/tests.yml/badge.svg)](https://github.com/suchanek/quiltwright/actions/workflows/tests.yml)
+[![DOI](https://zenodo.org/badge/1323414722.svg)](https://zenodo.org/badge/latestdoi/1323414722)
+
 **Holographic output for Looking Glass displays.**
 
 *Eric G. Suchanek, PhD — Flux-Frontiers*
 
 Quiltwright turns a rendered scene into a **quilt** — the tiled multi-view
-image that lenticular light-field displays fuse into real, glasses-free depth.
+image that [Looking Glass](https://lookingglassfactory.com) lenticular
+light-field displays fuse into real, glasses-free depth.
 It renders from [PyVista](https://pyvista.org)/VTK scenes or from
 [POV-Ray](https://www.povray.org) ray-traced scenes, manages the depth budget
 that decides whether a hologram fuses or ghosts, and drives Looking Glass
@@ -50,6 +58,9 @@ package:
 brew install povray                  # macOS
 ```
 
+For the complete stack — renderers, ffmpeg, Looking Glass Bridge, pdb2pov —
+see the [installation guide](docs/install.md).
+
 ---
 
 ## Quick start
@@ -77,9 +88,15 @@ from quiltwright import QUILT_PRESETS, PovCamera, render_pov_quilt, save_quilt
 
 camera = PovCamera(location=(15, 20, 6), look_at=(44, 19.2, 45.1), fov=53.13)
 spec = QUILT_PRESETS["16-landscape"]
-quilt = render_pov_quilt("museum.pov", spec, camera, include_paths=["../myinclude"])
+quilt = render_pov_quilt("pov-scenes/museum/museum.pov", spec, camera,
+                         include_paths=["pov-scenes/myinclude", "pov-scenes"])
 save_quilt(quilt, "museum", spec)
 ```
+
+The museum scene above ships in [pov-scenes/](pov-scenes/), and
+[scripts/render_museum_hologram.py](scripts/render_museum_hologram.py) renders
+it end-to-end with a measured depth budget — it is the worked case study in
+[docs/povray.md](docs/povray.md).
 
 ### Send it to the display
 
@@ -144,6 +161,7 @@ QUILT_PRESETS["16-landscape"]      # 8x6 views, 7680x4320, aspect 1.7778
 
 | Document | Contents |
 |----------|----------|
+| [docs/install.md](docs/install.md) | Installing the full stack: package extras, POV-Ray, ffmpeg, Bridge, pdb2pov |
 | [docs/lfd.md](docs/lfd.md) | Light-field output, Bridge/Studio setup, device presets, the PyVista path |
 | [docs/povray.md](docs/povray.md) | The POV-Ray backend: off-axis camera derivation, depth budget, sweep clearance, a worked case study |
 | [docs/pdb2pov.md](docs/pdb2pov.md) | Rendering molecular structures from PDB files as holograms |
@@ -178,6 +196,23 @@ tests skip when no `povray` binary is present. Under a headless CI runner, use
   analysis and rendering.
 - [pdb2pov](https://github.com/suchanek/pdb2pov) — PDB to POV-Ray converter,
   1993, still feeds this pipeline.
+
+## Citation
+
+If you use Quiltwright in your work, please cite it. Citation metadata is in
+[CITATION.cff](CITATION.cff); GitHub's "Cite this repository" button generates
+BibTeX/APA from it, and the DOI badge above resolves to the archived release
+on Zenodo.
+
+```bibtex
+@software{suchanek_quiltwright,
+  author  = {Suchanek, Eric G.},
+  title   = {Quiltwright: Holographic Output for Looking Glass Displays},
+  url     = {https://github.com/suchanek/quiltwright},
+  version = {0.1.0},
+  year    = {2026}
+}
+```
 
 ## License
 

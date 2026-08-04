@@ -1,0 +1,790 @@
+//
+// PDB2POV (DOS) atom input prepared by pdb2pov 03/14/97 19:50:19
+// Author: Eric G. Suchanek, Ph.D.
+// Mac port: Richard G. Rothwell, Ph.D.
+//	Atoms:  758
+//	Extent:	Xmin: -12.918 Xmax: 14.083,
+//		Ymin: -15.254, Ymax: 16.351
+//		Zmin: -25.288 Zmax: 23.391
+//	Enclosing Sphere: 26.271
+
+#version 3.0
+#declare BDNA_Full_Inc_Temp = version
+
+#include "atoms_vdw.inc"
+#include "atoms2.inc"
+#include "bonds.inc"
+#include "bell_jar.inc"
+
+#declare ATM_SCL = 1.00
+
+#declare bdna_full_obj = union {
+object {Atom_O scale ATM_SCL * .8 translate <4.352, 13.122, -16.358> }
+object {Atom_C scale ATM_SCL * .8 translate <5.271, 12.920, -15.271> }
+object {Atom_C scale ATM_SCL * .8 translate <5.518, 11.438, -15.136> }
+object {Atom_O scale ATM_SCL translate <4.590, 10.607, -15.978> }
+object {Atom_C scale ATM_SCL * .8 translate <5.540, 10.876, -13.721> }
+object {Atom_O scale ATM_SCL translate <6.616, 9.953, -13.608> }
+object {Atom_C scale ATM_SCL * .8 translate <4.224, 10.120, -13.789> }
+object {Atom_C scale ATM_SCL * .8 translate <4.480, 9.456, -15.134> }
+object {Atom_N scale ATM_SCL translate <3.311, 8.660, -15.591> }
+object {Atom_C scale ATM_SCL * .8 translate <3.450, 7.445, -16.215> }
+object {Atom_O scale ATM_SCL translate <4.580, 6.976, -16.383> }
+object {Atom_N scale ATM_SCL translate <2.362, 6.776, -16.597> }
+object {Atom_C scale ATM_SCL * .8 translate <1.142, 7.272, -16.373> }
+object {Atom_N scale ATM_SCL translate <0.043, 6.547, -16.718> }
+object {Atom_C scale ATM_SCL * .8 translate <0.958, 8.497, -15.737> }
+object {Atom_C scale ATM_SCL * .8 translate <2.090, 9.201, -15.345> }
+object {Atom_H scale ATM_SCL translate <4.182, 14.051, -16.461> }
+object {Atom_H scale ATM_SCL translate <4.838, 13.313, -14.339> }
+object {Atom_H scale ATM_SCL translate <6.218, 13.439, -15.482> }
+object {Atom_H scale ATM_SCL translate <6.530, 11.280, -15.537> }
+object {Atom_H scale ATM_SCL translate <5.576, 11.642, -12.933> }
+object {Atom_H scale ATM_SCL translate <3.351, 10.790, -13.807> }
+object {Atom_H scale ATM_SCL translate <4.111, 9.392, -12.972> }
+object {Atom_H scale ATM_SCL translate <5.391, 8.840, -15.126> }
+object {Atom_H scale ATM_SCL translate <-0.899, 6.927, -16.547> }
+object {Atom_H scale ATM_SCL translate <0.153, 5.619, -17.151> }
+object {Atom_H scale ATM_SCL translate <-0.041, 8.891, -15.553> }
+object {Atom_H scale ATM_SCL translate <2.000, 10.167, -14.851> }
+object {Atom_P scale ATM_SCL translate <7.827, 10.246, -12.705> }
+object {Atom_O scale ATM_SCL translate <7.391, 10.430, -11.306> }
+object {Atom_O scale ATM_SCL translate <8.564, 11.349, -13.339> }
+object {Atom_O scale ATM_SCL translate <8.717, 8.924, -12.638> }
+object {Atom_C scale ATM_SCL * .8 translate <8.752, 8.153, -13.794> }
+object {Atom_C scale ATM_SCL * .8 translate <8.572, 6.710, -13.423> }
+object {Atom_O scale ATM_SCL translate <7.337, 6.211, -13.818> }
+object {Atom_C scale ATM_SCL * .8 translate <8.777, 6.360, -11.944> }
+object {Atom_O scale ATM_SCL translate <9.854, 5.410, -11.765> }
+object {Atom_C scale ATM_SCL * .8 translate <7.377, 5.857, -11.557> }
+object {Atom_C scale ATM_SCL * .8 translate <6.848, 5.267, -12.863> }
+object {Atom_N scale ATM_SCL translate <5.366, 5.433, -12.954> }
+object {Atom_C scale ATM_SCL * .8 translate <4.647, 6.545, -12.613> }
+object {Atom_N scale ATM_SCL translate <3.333, 6.416, -12.846> }
+object {Atom_C scale ATM_SCL * .8 translate <3.219, 5.175, -13.358> }
+object {Atom_C scale ATM_SCL * .8 translate <2.049, 4.488, -13.786> }
+object {Atom_O scale ATM_SCL translate <0.883, 4.878, -13.780> }
+object {Atom_N scale ATM_SCL translate <2.352, 3.244, -14.276> }
+object {Atom_C scale ATM_SCL * .8 translate <3.592, 2.684, -14.374> }
+object {Atom_N scale ATM_SCL translate <3.677, 1.424, -14.889> }
+object {Atom_N scale ATM_SCL translate <4.687, 3.326, -13.965> }
+object {Atom_C scale ATM_SCL translate <4.429, 4.558, -13.469> }
+object {Atom_H scale ATM_SCL translate <9.721, 8.287, -14.298> }
+object {Atom_H scale ATM_SCL translate <7.942, 8.464, -14.470> }
+object {Atom_H scale ATM_SCL translate <9.341, 6.160, -13.984> }
+object {Atom_H scale ATM_SCL translate <9.023, 7.261, -11.363> }
+object {Atom_H scale ATM_SCL translate <6.741, 6.686, -11.212> }
+object {Atom_H scale ATM_SCL translate <7.436, 5.089, -10.772> }
+object {Atom_H scale ATM_SCL translate <7.172, 4.230, -13.032> }
+object {Atom_H scale ATM_SCL translate <5.096, 7.445, -12.195> }
+object {Atom_H scale ATM_SCL translate <1.583, 2.689, -14.595> }
+object {Atom_H scale ATM_SCL translate <4.595, 0.966, -14.980> }
+object {Atom_H scale ATM_SCL translate <2.823, 0.931, -15.187> }
+object {Atom_P scale ATM_SCL translate <10.342, 4.657, -10.494> }
+object {Atom_O scale ATM_SCL translate <9.997, 5.433, -9.289> }
+object {Atom_O scale ATM_SCL translate <11.783, 4.418, -10.702> }
+object {Atom_O scale ATM_SCL translate <9.603, 3.246, -10.433> }
+object {Atom_C scale ATM_SCL * .8 translate <9.713, 2.293, -11.436> }
+object {Atom_C scale ATM_SCL * .8 translate <8.619, 1.274, -11.381> }
+object {Atom_O scale ATM_SCL translate <7.381, 1.819, -11.634> }
+object {Atom_C scale ATM_SCL * .8 translate <8.505, 0.548, -10.067> }
+object {Atom_O scale ATM_SCL translate <9.207, -0.697, -10.130> }
+object {Atom_C scale ATM_SCL * .8 translate <7.009, 0.383, -9.849> }
+object {Atom_C scale ATM_SCL * .8 translate <6.371, 0.979, -11.087> }
+object {Atom_N scale ATM_SCL translate <5.332, 1.944, -10.683> }
+object {Atom_C scale ATM_SCL * .8 translate <4.030, 1.693, -10.964> }
+object {Atom_O scale ATM_SCL translate <3.756, 0.633, -11.532> }
+object {Atom_N scale ATM_SCL translate <3.096, 2.594, -10.637> }
+object {Atom_C scale ATM_SCL * .8 translate <3.432, 3.735, -10.031> }
+object {Atom_N scale ATM_SCL translate <2.477, 4.669, -9.749> }
+object {Atom_C scale ATM_SCL * .8 translate <4.758, 4.021, -9.720> }
+object {Atom_C scale ATM_SCL * .8 translate <5.728, 3.085, -10.061> }
+object {Atom_H scale ATM_SCL translate <10.679, 1.779, -11.330> }
+object {Atom_H scale ATM_SCL translate <9.673, 2.801, -12.411> }
+object {Atom_H scale ATM_SCL translate <8.837, 0.531, -12.162> }
+object {Atom_H scale ATM_SCL translate <8.934, 1.154, -9.256> }
+object {Atom_H scale ATM_SCL translate <6.686, 0.925, -8.948> }
+object {Atom_H scale ATM_SCL translate <6.746, -0.680, -9.751> }
+object {Atom_H scale ATM_SCL translate <5.999, 0.213, -11.783> }
+object {Atom_H scale ATM_SCL translate <2.739, 5.549, -9.281> }
+object {Atom_H scale ATM_SCL translate <1.494, 4.494, -10.004> }
+object {Atom_H scale ATM_SCL translate <5.028, 4.952, -9.224> }
+object {Atom_H scale ATM_SCL translate <6.778, 3.262, -9.835> }
+object {Atom_P scale ATM_SCL translate <9.432, -1.583, -8.862> }
+object {Atom_O scale ATM_SCL translate <9.323, -0.698, -7.691> }
+object {Atom_O scale ATM_SCL translate <10.661, -2.379, -8.999> }
+object {Atom_O scale ATM_SCL translate <8.177, -2.547, -8.917> }
+object {Atom_C scale ATM_SCL * .8 translate <7.985, -3.357, -10.060> }
+object {Atom_C scale ATM_SCL * .8 translate <6.671, -4.006, -9.736> }
+object {Atom_O scale ATM_SCL translate <5.653, -2.986, -9.696> }
+object {Atom_C scale ATM_SCL * .8 translate <6.603, -4.716, -8.392> }
+object {Atom_O scale ATM_SCL translate <5.627, -5.737, -8.395> }
+object {Atom_C scale ATM_SCL * .8 translate <6.165, -3.565, -7.502> }
+object {Atom_C scale ATM_SCL * .8 translate <5.055, -3.044, -8.400> }
+object {Atom_N scale ATM_SCL translate <4.640, -1.668, -8.039> }
+object {Atom_C scale ATM_SCL * .8 translate <5.352, -0.686, -7.403> }
+object {Atom_N scale ATM_SCL translate <4.643, 0.440, -7.234> }
+object {Atom_C scale ATM_SCL * .8 translate <3.447, 0.142, -7.783> }
+object {Atom_C scale ATM_SCL * .8 translate <2.274, 0.940, -7.881> }
+object {Atom_O scale ATM_SCL translate <2.088, 2.090, -7.491> }
+object {Atom_N scale ATM_SCL translate <1.252, 0.249, -8.479> }
+object {Atom_C scale ATM_SCL * .8 translate <1.294, -1.033, -8.950> }
+object {Atom_N scale ATM_SCL translate <0.152, -1.549, -9.480> }
+object {Atom_N scale ATM_SCL translate <2.395, -1.777, -8.866> }
+object {Atom_C scale ATM_SCL translate <3.413, -1.129, -8.276> }
+object {Atom_H scale ATM_SCL translate <8.787, -4.101, -10.167> }
+object {Atom_H scale ATM_SCL translate <7.921, -2.752, -10.977> }
+object {Atom_H scale ATM_SCL translate <6.444, -4.733, -10.529> }
+object {Atom_H scale ATM_SCL translate <7.578, -5.127, -8.092> }
+object {Atom_H scale ATM_SCL translate <6.964, -2.824, -7.349> }
+object {Atom_H scale ATM_SCL translate <5.790, -3.907, -6.526> }
+object {Atom_H scale ATM_SCL translate <4.187, -3.719, -8.380> }
+object {Atom_H scale ATM_SCL translate <6.382, -0.806, -7.071> }
+object {Atom_H scale ATM_SCL translate <0.384, 0.735, -8.581> }
+object {Atom_H scale ATM_SCL translate <0.143, -2.512, -9.846> }
+object {Atom_H scale ATM_SCL translate <-0.704, -0.976, -9.516> }
+object {Atom_P scale ATM_SCL translate <5.729, -6.902, -7.276> }
+object {Atom_O scale ATM_SCL translate <6.181, -6.359, -5.964> }
+object {Atom_O scale ATM_SCL translate <6.554, -7.959, -7.875> }
+object {Atom_O scale ATM_SCL translate <4.211, -7.383, -7.167> }
+object {Atom_C scale ATM_SCL * .8 translate <3.428, -7.361, -8.392> }
+object {Atom_C scale ATM_SCL * .8 translate <2.046, -6.882, -8.077> }
+object {Atom_O scale ATM_SCL translate <2.019, -5.511, -7.740> }
+object {Atom_C scale ATM_SCL * .8 translate <1.343, -7.585, -6.918> }
+object {Atom_O scale ATM_SCL translate <0.089, -8.155, -7.325> }
+object {Atom_C scale ATM_SCL * .8 translate <1.258, -6.495, -5.835> }
+object {Atom_C scale ATM_SCL * .8 translate <1.079, -5.258, -6.690> }
+object {Atom_N scale ATM_SCL translate <1.629, -4.065, -6.010> }
+object {Atom_C scale ATM_SCL * .8 translate <2.901, -3.878, -5.537> }
+object {Atom_N scale ATM_SCL translate <3.115, -2.629, -5.087> }
+object {Atom_C scale ATM_SCL * .8 translate <1.926, -2.020, -5.272> }
+object {Atom_C scale ATM_SCL * .8 translate <1.490, -0.689, -5.007> }
+object {Atom_N scale ATM_SCL translate <2.314, 0.259, -4.476> }
+object {Atom_N scale ATM_SCL translate <0.225, -0.388, -5.300> }
+object {Atom_C scale ATM_SCL * .8 translate <-0.571, -1.318, -5.830> }
+object {Atom_N scale ATM_SCL translate <-0.293, -2.584, -6.131> }
+object {Atom_C scale ATM_SCL translate <0.995, -2.866, -5.815> }
+object {Atom_H scale ATM_SCL translate <3.379, -8.374, -8.817> }
+object {Atom_H scale ATM_SCL translate <3.898, -6.681, -9.118> }
+object {Atom_H scale ATM_SCL translate <1.444, -7.036, -8.985> }
+object {Atom_H scale ATM_SCL translate <1.972, -8.407, -6.547> }
+object {Atom_H scale ATM_SCL translate <2.181, -6.444, -5.238> }
+object {Atom_H scale ATM_SCL translate <0.398, -6.653, -5.168> }
+object {Atom_H scale ATM_SCL translate <0.042, -5.112, -7.027> }
+object {Atom_H scale ATM_SCL translate <3.659, -4.659, -5.527> }
+object {Atom_H scale ATM_SCL translate <3.291, 0.024, -4.251> }
+object {Atom_H scale ATM_SCL translate <1.959, 1.210, -4.301> }
+object {Atom_H scale ATM_SCL translate <-1.584, -0.998, -6.045> }
+object {Atom_P scale ATM_SCL translate <-0.858, -8.931, -6.352> }
+object {Atom_O scale ATM_SCL translate <0.076, -9.610, -5.433> }
+object {Atom_O scale ATM_SCL translate <-1.817, -9.760, -7.109> }
+object {Atom_O scale ATM_SCL translate <-1.720, -7.879, -5.524> }
+object {Atom_C scale ATM_SCL * .8 translate <-2.878, -7.440, -6.361> }
+object {Atom_C scale ATM_SCL * .8 translate <-3.610, -6.399, -5.586> }
+object {Atom_O scale ATM_SCL translate <-2.543, -5.464, -5.123> }
+object {Atom_C scale ATM_SCL * .8 translate <-4.299, -6.862, -4.307> }
+object {Atom_O scale ATM_SCL translate <-5.681, -6.453, -4.257> }
+object {Atom_C scale ATM_SCL * .8 translate <-3.391, -6.294, -3.219> }
+object {Atom_C scale ATM_SCL * .8 translate <-2.966, -4.989, -3.855> }
+object {Atom_N scale ATM_SCL translate <-1.738, -4.438, -3.234> }
+object {Atom_C scale ATM_SCL * .8 translate <-0.535, -5.063, -3.051> }
+object {Atom_N scale ATM_SCL translate <0.407, -4.249, -2.551> }
+object {Atom_C scale ATM_SCL * .8 translate <-0.226, -3.065, -2.422> }
+object {Atom_C scale ATM_SCL * .8 translate <0.235, -1.780, -1.992> }
+object {Atom_N scale ATM_SCL translate <1.530, -1.548, -1.627> }
+object {Atom_N scale ATM_SCL translate <-0.641, -0.778, -2.007> }
+object {Atom_C scale ATM_SCL * .8 translate <-1.894, -1.006, -2.406> }
+object {Atom_N scale ATM_SCL translate <-2.443, -2.144, -2.828> }
+object {Atom_C scale ATM_SCL translate <-1.534, -3.143, -2.810> }
+object {Atom_H scale ATM_SCL translate <-3.541, -8.293, -6.565> }
+object {Atom_H scale ATM_SCL translate <-2.518, -7.019, -7.312> }
+object {Atom_H scale ATM_SCL translate <-4.342, -5.900, -6.238> }
+object {Atom_H scale ATM_SCL translate <-4.283, -7.960, -4.250> }
+object {Atom_H scale ATM_SCL translate <-2.529, -6.950, -3.028> }
+object {Atom_H scale ATM_SCL translate <-3.940, -6.127, -2.281> }
+object {Atom_H scale ATM_SCL translate <-3.777, -4.246, -3.892> }
+object {Atom_H scale ATM_SCL translate <-0.360, -6.111, -3.287> }
+object {Atom_H scale ATM_SCL translate <2.208, -2.323, -1.615> }
+object {Atom_H scale ATM_SCL translate <1.828, -0.598, -1.364> }
+object {Atom_H scale ATM_SCL translate <-2.556, -0.147, -2.384> }
+object {Atom_P scale ATM_SCL translate <-6.689, -6.977, -3.142> }
+object {Atom_O scale ATM_SCL translate <-6.219, -8.150, -2.359> }
+object {Atom_O scale ATM_SCL translate <-8.060, -7.072, -3.688> }
+object {Atom_O scale ATM_SCL translate <-6.622, -5.665, -2.253> }
+object {Atom_C scale ATM_SCL * .8 translate <-6.818, -4.444, -2.889> }
+object {Atom_C scale ATM_SCL * .8 translate <-6.588, -3.463, -1.784> }
+object {Atom_O scale ATM_SCL translate <-5.177, -3.372, -1.462> }
+object {Atom_C scale ATM_SCL * .8 translate <-7.284, -3.843, -0.491> }
+object {Atom_O scale ATM_SCL translate <-8.417, -3.002, -0.262> }
+object {Atom_C scale ATM_SCL * .8 translate <-6.170, -3.780, 0.563> }
+object {Atom_C scale ATM_SCL * .8 translate <-5.116, -2.915, -0.127> }
+object {Atom_N scale ATM_SCL translate <-3.717, -3.176, 0.288> }
+object {Atom_C scale ATM_SCL * .8 translate <-2.932, -2.129, 0.633> }
+object {Atom_O scale ATM_SCL translate <-3.401, -0.986, 0.660> }
+object {Atom_N scale ATM_SCL translate <-1.618, -2.371, 0.919> }
+object {Atom_C scale ATM_SCL * .8 translate <-1.071, -3.626, 0.894> }
+object {Atom_O scale ATM_SCL translate <0.137, -3.739, 1.122> }
+object {Atom_C scale ATM_SCL * .8 translate <-1.906, -4.701, 0.587> }
+object {Atom_C scale ATM_SCL * .8 translate <-1.380, -6.110, 0.594> }
+object {Atom_C scale ATM_SCL * .8 translate <-3.240, -4.452, 0.266> }
+object {Atom_H scale ATM_SCL translate <-7.841, -4.362, -3.287> }
+object {Atom_H scale ATM_SCL translate <-6.095, -4.300, -3.705> }
+object {Atom_H scale ATM_SCL translate <-6.956, -2.480, -2.116> }
+object {Atom_H scale ATM_SCL translate <-7.650, -4.878, -0.555> }
+object {Atom_H scale ATM_SCL translate <-5.778, -4.782, 0.788> }
+object {Atom_H scale ATM_SCL translate <-6.526, -3.309, 1.491> }
+object {Atom_H scale ATM_SCL translate <-5.356, -1.846, -0.024> }
+object {Atom_H scale ATM_SCL translate <-1.030, -1.598, 1.157> }
+object {Atom_H scale ATM_SCL translate <-2.190, -6.805, 0.327> }
+object {Atom_H scale ATM_SCL translate <-0.564, -6.200, -0.138> }
+object {Atom_H scale ATM_SCL translate <-1.002, -6.355, 1.597> }
+object {Atom_H scale ATM_SCL translate <-3.900, -5.276, -0.002> }
+object {Atom_P scale ATM_SCL translate <-9.312, -3.046, 1.004> }
+object {Atom_O scale ATM_SCL translate <-9.364, -4.335, 1.734> }
+object {Atom_O scale ATM_SCL translate <-10.618, -2.516, 0.563> }
+object {Atom_O scale ATM_SCL translate <-8.569, -1.926, 1.877> }
+object {Atom_C scale ATM_SCL * .8 translate <-8.588, -0.542, 1.479> }
+object {Atom_C scale ATM_SCL * .8 translate <-7.760, 0.240, 2.451> }
+object {Atom_O scale ATM_SCL translate <-6.421, -0.376, 2.602> }
+object {Atom_C scale ATM_SCL * .8 translate <-8.312, 0.292, 3.874> }
+object {Atom_O scale ATM_SCL translate <-8.640, 1.634, 4.307> }
+object {Atom_C scale ATM_SCL * .8 translate <-7.266, -0.477, 4.699> }
+object {Atom_C scale ATM_SCL * .8 translate <-5.989, -0.156, 3.938> }
+object {Atom_N scale ATM_SCL translate <-4.876, -1.121, 4.149> }
+object {Atom_C scale ATM_SCL * .8 translate <-3.614, -0.665, 4.393> }
+object {Atom_O scale ATM_SCL translate <-3.396, 0.535, 4.531> }
+object {Atom_N scale ATM_SCL translate <-2.587, -1.561, 4.417> }
+object {Atom_C scale ATM_SCL * .8 translate <-2.784, -2.902, 4.239> }
+object {Atom_O scale ATM_SCL translate <-1.788, -3.628, 4.234> }
+object {Atom_C scale ATM_SCL * .8 translate <-4.088, -3.370, 4.047> }
+object {Atom_C scale ATM_SCL * .8 translate <-4.372, -4.842, 3.874> }
+object {Atom_C scale ATM_SCL * .8 translate <-5.133, -2.449, 3.967> }
+object {Atom_H scale ATM_SCL translate <-9.622, -0.167, 1.486> }
+object {Atom_H scale ATM_SCL translate <-8.168, -0.440, 0.467> }
+object {Atom_H scale ATM_SCL translate <-7.663, 1.266, 2.065> }
+object {Atom_H scale ATM_SCL translate <-9.253, -0.277, 3.908> }
+object {Atom_H scale ATM_SCL translate <-7.472, -1.557, 4.702> }
+object {Atom_H scale ATM_SCL translate <-7.221, -0.109, 5.734> }
+object {Atom_H scale ATM_SCL translate <-5.652, 0.874, 4.129> }
+object {Atom_H scale ATM_SCL translate <-1.658, -1.225, 4.570> }
+object {Atom_H scale ATM_SCL translate <-5.453, -4.993, 3.737> }
+object {Atom_H scale ATM_SCL translate <-3.835, -5.217, 2.991> }
+object {Atom_H scale ATM_SCL translate <-4.036, -5.388, 4.768> }
+object {Atom_H scale ATM_SCL translate <-6.147, -2.787, 3.761> }
+object {Atom_P scale ATM_SCL translate <-9.179, 2.129, 5.690> }
+object {Atom_O scale ATM_SCL translate <-9.651, 1.052, 6.581> }
+object {Atom_O scale ATM_SCL translate <-10.156, 3.182, 5.375> }
+object {Atom_O scale ATM_SCL translate <-7.884, 2.834, 6.285> }
+object {Atom_C scale ATM_SCL * .8 translate <-6.893, 3.465, 5.443> }
+object {Atom_C scale ATM_SCL * .8 translate <-5.756, 3.823, 6.364> }
+object {Atom_O scale ATM_SCL translate <-4.796, 2.696, 6.482> }
+object {Atom_C scale ATM_SCL * .8 translate <-6.123, 4.107, 7.811> }
+object {Atom_O scale ATM_SCL translate <-5.394, 5.227, 8.330> }
+object {Atom_C scale ATM_SCL * .8 translate <-5.850, 2.767, 8.502> }
+object {Atom_C scale ATM_SCL * .8 translate <-4.527, 2.409, 7.860> }
+object {Atom_N scale ATM_SCL translate <-4.228, 0.945, 7.905> }
+object {Atom_C scale ATM_SCL * .8 translate <-2.927, 0.528, 7.978> }
+object {Atom_O scale ATM_SCL translate <-2.046, 1.370, 8.139> }
+object {Atom_N scale ATM_SCL translate <-2.631, -0.772, 7.858> }
+object {Atom_C scale ATM_SCL * .8 translate <-3.599, -1.672, 7.697> }
+object {Atom_N scale ATM_SCL translate <-3.275, -2.985, 7.565> }
+object {Atom_C scale ATM_SCL * .8 translate <-4.945, -1.297, 7.670> }
+object {Atom_C scale ATM_SCL * .8 translate <-5.255, 0.056, 7.771> }
+object {Atom_H scale ATM_SCL translate <-7.307, 4.369, 4.973> }
+object {Atom_H scale ATM_SCL translate <-6.552, 2.769, 4.662> }
+object {Atom_H scale ATM_SCL translate <-5.254, 4.706, 5.942> }
+object {Atom_H scale ATM_SCL translate <-7.195, 4.344, 7.889> }
+object {Atom_H scale ATM_SCL translate <-6.629, 2.024, 8.275> }
+object {Atom_H scale ATM_SCL translate <-5.758, 2.881, 9.592> }
+object {Atom_H scale ATM_SCL translate <-3.696, 2.997, 8.278> }
+object {Atom_H scale ATM_SCL translate <-4.017, -3.688, 7.440> }
+object {Atom_H scale ATM_SCL translate <-2.288, -3.276, 7.590> }
+object {Atom_H scale ATM_SCL translate <-5.731, -2.044, 7.572> }
+object {Atom_H scale ATM_SCL translate <-6.289, 0.397, 7.744> }
+object {Atom_P scale ATM_SCL translate <-5.720, 6.373, 9.386> }
+object {Atom_O scale ATM_SCL translate <-7.168, 6.514, 9.689> }
+object {Atom_O scale ATM_SCL translate <-4.981, 7.556, 8.866> }
+object {Atom_O scale ATM_SCL translate <-4.998, 5.852, 10.710> }
+object {Atom_C scale ATM_SCL * .8 translate <-3.450, 5.492, 10.314> }
+object {Atom_C scale ATM_SCL * .8 translate <-2.703, 5.056, 11.536> }
+object {Atom_O scale ATM_SCL translate <-2.669, 3.569, 11.360> }
+object {Atom_C scale ATM_SCL * .8 translate <-3.440, 5.150, 12.875> }
+object {Atom_O scale ATM_SCL translate <-2.532, 5.031, 13.966> }
+object {Atom_C scale ATM_SCL * .8 translate <-4.383, 3.959, 12.798> }
+object {Atom_C scale ATM_SCL * .8 translate <-3.311, 2.956, 12.469> }
+object {Atom_N scale ATM_SCL translate <-3.822, 1.642, 12.041> }
+object {Atom_C scale ATM_SCL * .8 translate <-5.086, 1.226, 11.733> }
+object {Atom_N scale ATM_SCL translate <-5.133, -0.072, 11.397> }
+object {Atom_C scale ATM_SCL * .8 translate <-3.847, -0.470, 11.498> }
+object {Atom_C scale ATM_SCL * .8 translate <-3.262, -1.747, 11.256> }
+object {Atom_O scale ATM_SCL translate <-3.802, -2.788, 10.892> }
+object {Atom_N scale ATM_SCL translate <-1.911, -1.719, 11.474> }
+object {Atom_C scale ATM_SCL * .8 translate <-1.165, -0.648, 11.871> }
+object {Atom_N scale ATM_SCL translate <0.173, -0.822, 12.027> }
+object {Atom_N scale ATM_SCL translate <-1.708, 0.543, 12.088> }
+object {Atom_C scale ATM_SCL translate <-3.033, 0.550, 11.875> }
+object {Atom_H scale ATM_SCL translate <-2.966, 6.383, 9.888> }
+object {Atom_H scale ATM_SCL translate <-3.442, 4.680, 9.572> }
+object {Atom_H scale ATM_SCL translate <-1.715, 5.536, 11.587> }
+object {Atom_H scale ATM_SCL translate <-3.997, 6.095, 12.962> }
+object {Atom_H scale ATM_SCL translate <-5.135, 4.059, 12.001> }
+object {Atom_H scale ATM_SCL translate <-4.887, 3.750, 13.753> }
+object {Atom_H scale ATM_SCL translate <-2.627, 2.824, 13.320> }
+object {Atom_H scale ATM_SCL translate <-5.959, 1.876, 11.757> }
+object {Atom_H scale ATM_SCL translate <-1.418, -2.576, 11.326> }
+object {Atom_H scale ATM_SCL translate <0.763, -0.032, 12.326> }
+object {Atom_H scale ATM_SCL translate <0.597, -1.743, 11.846> }
+object {Atom_P scale ATM_SCL translate <-2.033, 6.315, 14.788> }
+object {Atom_O scale ATM_SCL translate <-2.970, 6.514, 15.914> }
+object {Atom_O scale ATM_SCL translate <-1.832, 7.460, 13.872> }
+object {Atom_O scale ATM_SCL translate <-0.590, 5.839, 15.269> }
+object {Atom_C scale ATM_SCL * .8 translate <0.379, 5.995, 14.122> }
+object {Atom_C scale ATM_SCL * .8 translate <1.400, 4.900, 14.325> }
+object {Atom_O scale ATM_SCL translate <0.733, 3.586, 14.190> }
+object {Atom_C scale ATM_SCL * .8 translate <2.065, 4.791, 15.692> }
+object {Atom_O scale ATM_SCL translate <3.452, 4.410, 15.606> }
+object {Atom_C scale ATM_SCL * .8 translate <1.169, 3.792, 16.421> }
+object {Atom_C scale ATM_SCL * .8 translate <1.029, 2.762, 15.321> }
+object {Atom_N scale ATM_SCL translate <-0.177, 1.919, 15.490> }
+object {Atom_C scale ATM_SCL * .8 translate <-0.071, 0.573, 15.340> }
+object {Atom_O scale ATM_SCL translate <1.046, 0.108, 15.135> }
+object {Atom_N scale ATM_SCL translate <-1.168, -0.192, 15.389> }
+object {Atom_C scale ATM_SCL * .8 translate <-2.370, 0.356, 15.590> }
+object {Atom_N scale ATM_SCL translate <-3.492, -0.420, 15.575> }
+object {Atom_C scale ATM_SCL * .8 translate <-2.512, 1.726, 15.773> }
+object {Atom_C scale ATM_SCL * .8 translate <-1.372, 2.519, 15.716> }
+object {Atom_H scale ATM_SCL translate <0.860, 6.984, 14.153> }
+object {Atom_H scale ATM_SCL translate <-0.138, 5.869, 13.159> }
+object {Atom_H scale ATM_SCL translate <2.179, 5.023, 13.558> }
+object {Atom_H scale ATM_SCL translate <2.021, 5.763, 16.206> }
+object {Atom_H scale ATM_SCL translate <0.200, 4.233, 16.700> }
+object {Atom_H scale ATM_SCL translate <1.655, 3.378, 17.316> }
+object {Atom_H scale ATM_SCL translate <1.937, 2.153, 15.203> }
+object {Atom_H scale ATM_SCL translate <-4.416, 0.008, 15.730> }
+object {Atom_H scale ATM_SCL translate <-3.415, -1.433, 15.408> }
+object {Atom_H scale ATM_SCL translate <-3.491, 2.167, 15.956> }
+object {Atom_H scale ATM_SCL translate <-1.437, 3.598, 15.850> }
+object {Atom_P scale ATM_SCL translate <4.611, 4.785, 16.582> }
+object {Atom_O scale ATM_SCL translate <4.127, 5.917, 17.396> }
+object {Atom_O scale ATM_SCL translate <5.920, 4.950, 15.910> }
+object {Atom_O scale ATM_SCL translate <4.680, 3.483, 17.509> }
+object {Atom_C scale ATM_SCL * .8 translate <5.267, 2.230, 16.907> }
+object {Atom_C scale ATM_SCL * .8 translate <4.921, 1.201, 17.948> }
+object {Atom_O scale ATM_SCL translate <3.643, 0.826, 17.892> }
+object {Atom_C scale ATM_SCL * .8 translate <5.177, 1.546, 19.431> }
+object {Atom_O scale ATM_SCL translate <6.294, 0.842, 20.001> }
+object {Atom_C scale ATM_SCL * .8 translate <3.836, 1.215, 20.101> }
+object {Atom_C scale ATM_SCL * .8 translate <3.248, 0.222, 19.114> }
+object {Atom_N scale ATM_SCL translate <1.777, 0.268, 19.110> }
+object {Atom_C scale ATM_SCL * .8 translate <0.965, 1.350, 19.330> }
+object {Atom_N scale ATM_SCL translate <-0.336, 1.043, 19.237> }
+object {Atom_C scale ATM_SCL * .8 translate <-0.338, -0.273, 18.938> }
+object {Atom_C scale ATM_SCL * .8 translate <-1.440, -1.150, 18.683> }
+object {Atom_O scale ATM_SCL translate <-2.646, -0.904, 18.683> }
+object {Atom_N scale ATM_SCL translate <-1.014, -2.432, 18.441> }
+object {Atom_C scale ATM_SCL * .8 translate <0.271, -2.877, 18.420> }
+object {Atom_N scale ATM_SCL translate <0.465, -4.206, 18.209> }
+object {Atom_N scale ATM_SCL translate <1.305, -2.054, 18.615> }
+object {Atom_C scale ATM_SCL translate <0.925, -0.779, 18.860> }
+object {Atom_H scale ATM_SCL translate <6.356, 2.320, 16.778> }
+object {Atom_H scale ATM_SCL translate <4.801, 1.994, 15.939> }
+object {Atom_H scale ATM_SCL translate <5.543, 0.325, 17.712> }
+object {Atom_H scale ATM_SCL translate <5.380, 2.623, 19.528> }
+object {Atom_H scale ATM_SCL translate <6.398, 1.097, 20.910> }
+object {Atom_H scale ATM_SCL translate <3.203, 2.110, 20.198> }
+object {Atom_H scale ATM_SCL translate <3.982, 0.760, 21.091> }
+object {Atom_H scale ATM_SCL translate <3.626, -0.800, 19.257> }
+object {Atom_H scale ATM_SCL translate <1.336, 2.349, 19.555> }
+object {Atom_H scale ATM_SCL translate <-1.725, -3.112, 18.261> }
+object {Atom_H scale ATM_SCL translate <1.420, -4.589, 18.185> }
+object {Atom_H scale ATM_SCL translate <-0.344, -4.829, 18.073> }
+object {Atom_O scale ATM_SCL translate <-7.209, -9.263, 17.833> }
+object {Atom_C scale ATM_SCL * .8 translate <-6.301, -10.011, 18.670> }
+object {Atom_C scale ATM_SCL * .8 translate <-4.875, -9.708, 18.271> }
+object {Atom_O scale ATM_SCL translate <-4.281, -8.506, 18.641> }
+object {Atom_C scale ATM_SCL * .8 translate <-4.512, -9.906, 16.813> }
+object {Atom_O scale ATM_SCL translate <-3.373, -10.748, 16.664> }
+object {Atom_C scale ATM_SCL * .8 translate <-4.279, -8.478, 16.338> }
+object {Atom_C scale ATM_SCL * .8 translate <-3.582, -7.893, 17.549> }
+object {Atom_N scale ATM_SCL translate <-3.903, -6.454, 17.699> }
+object {Atom_C scale ATM_SCL * .8 translate <-2.919, -5.518, 17.836> }
+object {Atom_O scale ATM_SCL translate <-1.752, -5.884, 17.794> }
+object {Atom_N scale ATM_SCL translate <-3.236, -4.242, 18.060> }
+object {Atom_C scale ATM_SCL * .8 translate <-4.505, -3.867, 18.166> }
+object {Atom_N scale ATM_SCL translate <-4.793, -2.570, 18.461> }
+object {Atom_C scale ATM_SCL * .8 translate <-5.546, -4.785, 18.031> }
+object {Atom_C scale ATM_SCL * .8 translate <-5.216, -6.117, 17.797> }
+object {Atom_H scale ATM_SCL translate <-8.104, -9.455, 18.086> }
+object {Atom_H scale ATM_SCL translate <-6.494, -11.087, 18.549> }
+object {Atom_H scale ATM_SCL translate <-6.455, -9.727, 19.721> }
+object {Atom_H scale ATM_SCL translate <-4.308, -10.476, 18.817> }
+object {Atom_H scale ATM_SCL translate <-5.351, -10.357, 16.263> }
+object {Atom_H scale ATM_SCL translate <-5.227, -7.961, 16.126> }
+object {Atom_H scale ATM_SCL translate <-3.637, -8.447, 15.445> }
+object {Atom_H scale ATM_SCL translate <-2.499, -8.083, 17.545> }
+object {Atom_H scale ATM_SCL translate <-5.774, -2.266, 18.546> }
+object {Atom_H scale ATM_SCL translate <-4.031, -1.891, 18.599> }
+object {Atom_H scale ATM_SCL translate <-6.586, -4.469, 18.106> }
+object {Atom_H scale ATM_SCL translate <-5.993, -6.873, 17.695> }
+object {Atom_P scale ATM_SCL translate <-3.200, -11.486, 15.309> }
+object {Atom_O scale ATM_SCL translate <-4.084, -10.881, 14.291> }
+object {Atom_O scale ATM_SCL translate <-3.347, -12.954, 15.510> }
+object {Atom_O scale ATM_SCL translate <-1.685, -11.125, 14.963> }
+object {Atom_C scale ATM_SCL * .8 translate <-0.682, -10.910, 15.979> }
+object {Atom_C scale ATM_SCL * .8 translate <0.377, -9.997, 15.467> }
+object {Atom_O scale ATM_SCL translate <-0.154, -8.662, 15.563> }
+object {Atom_C scale ATM_SCL * .8 translate <0.677, -10.198, 13.994> }
+object {Atom_O scale ATM_SCL translate <2.066, -10.429, 13.789> }
+object {Atom_C scale ATM_SCL * .8 translate <0.137, -8.920, 13.329> }
+object {Atom_C scale ATM_SCL * .8 translate <0.312, -7.907, 14.441> }
+object {Atom_N scale ATM_SCL translate <-0.707, -6.848, 14.320> }
+object {Atom_C scale ATM_SCL * .8 translate <-2.032, -7.021, 14.032> }
+object {Atom_N scale ATM_SCL translate <-2.722, -5.873, 14.061> }
+object {Atom_C scale ATM_SCL * .8 translate <-1.800, -4.944, 14.372> }
+object {Atom_C scale ATM_SCL * .8 translate <-1.972, -3.536, 14.551> }
+object {Atom_O scale ATM_SCL translate <-3.008, -2.872, 14.478> }
+object {Atom_N scale ATM_SCL translate <-0.781, -2.918, 14.833> }
+object {Atom_C scale ATM_SCL * .8 translate <0.436, -3.519, 14.960> }
+object {Atom_N scale ATM_SCL translate <1.510, -2.718, 15.201> }
+object {Atom_N scale ATM_SCL translate <0.590, -4.840, 14.816> }
+object {Atom_C scale ATM_SCL translate <-0.561, -5.494, 14.531> }
+object {Atom_H scale ATM_SCL translate <-0.230, -11.874, 16.253> }
+object {Atom_H scale ATM_SCL translate <-1.153, -10.460, 16.865> }
+object {Atom_H scale ATM_SCL translate <1.294, -10.113, 16.062> }
+object {Atom_H scale ATM_SCL translate <0.126, -11.069, 13.610> }
+object {Atom_H scale ATM_SCL translate <-0.921, -9.029, 13.047> }
+object {Atom_H scale ATM_SCL translate <0.727, -8.648, 12.441> }
+object {Atom_H scale ATM_SCL translate <1.337, -7.518, 14.529> }
+object {Atom_H scale ATM_SCL translate <-2.479, -7.987, 13.804> }
+object {Atom_H scale ATM_SCL translate <-0.808, -1.926, 14.958> }
+object {Atom_H scale ATM_SCL translate <2.448, -3.131, 15.304> }
+object {Atom_H scale ATM_SCL translate <1.385, -1.698, 15.281> }
+object {Atom_P scale ATM_SCL translate <2.797, -10.538, 12.386> }
+object {Atom_O scale ATM_SCL translate <1.748, -10.863, 11.402> }
+object {Atom_O scale ATM_SCL translate <3.899, -11.504, 12.565> }
+object {Atom_O scale ATM_SCL translate <3.412, -9.091, 12.084> }
+object {Atom_C scale ATM_SCL * .8 translate <4.444, -8.375, 12.792> }
+object {Atom_C scale ATM_SCL * .8 translate <4.243, -6.963, 12.327> }
+object {Atom_O scale ATM_SCL translate <2.818, -6.614, 12.397> }
+object {Atom_C scale ATM_SCL * .8 translate <4.507, -6.755, 10.851> }
+object {Atom_O scale ATM_SCL translate <5.903, -6.624, 10.600> }
+object {Atom_C scale ATM_SCL * .8 translate <3.720, -5.500, 10.550> }
+object {Atom_C scale ATM_SCL * .8 translate <2.739, -5.391, 11.699> }
+object {Atom_N scale ATM_SCL translate <1.337, -5.317, 11.258> }
+object {Atom_C scale ATM_SCL * .8 translate <0.684, -4.134, 11.385> }
+object {Atom_O scale ATM_SCL translate <1.328, -3.165, 11.780> }
+object {Atom_N scale ATM_SCL translate <-0.616, -4.054, 11.093> }
+object {Atom_C scale ATM_SCL * .8 translate <-1.275, -5.129, 10.657> }
+object {Atom_N scale ATM_SCL translate <-2.608, -5.047, 10.387> }
+object {Atom_C scale ATM_SCL * .8 translate <-0.632, -6.351, 10.487> }
+object {Atom_C scale ATM_SCL * .8 translate <0.715, -6.438, 10.813> }
+object {Atom_H scale ATM_SCL translate <5.443, -8.744, 12.518> }
+object {Atom_H scale ATM_SCL translate <4.308, -8.457, 13.880> }
+object {Atom_H scale ATM_SCL translate <4.862, -6.288, 12.937> }
+object {Atom_H scale ATM_SCL translate <4.120, -7.599, 10.261> }
+object {Atom_H scale ATM_SCL translate <3.189, -5.593, 9.591> }
+object {Atom_H scale ATM_SCL translate <4.382, -4.622, 10.518> }
+object {Atom_H scale ATM_SCL translate <2.991, -4.531, 12.337> }
+object {Atom_H scale ATM_SCL translate <-3.117, -5.876, 10.050> }
+object {Atom_H scale ATM_SCL translate <-3.107, -4.155, 10.519> }
+object {Atom_H scale ATM_SCL translate <-1.172, -7.217, 10.108> }
+object {Atom_H scale ATM_SCL translate <1.256, -7.378, 10.714> }
+object {Atom_P scale ATM_SCL translate <6.590, -6.388, 9.292> }
+object {Atom_O scale ATM_SCL translate <5.894, -6.950, 8.119> }
+object {Atom_O scale ATM_SCL translate <7.932, -6.898, 9.574> }
+object {Atom_O scale ATM_SCL translate <6.689, -4.804, 9.187> }
+object {Atom_C scale ATM_SCL * .8 translate <7.356, -4.043, 10.238> }
+object {Atom_C scale ATM_SCL * .8 translate <6.940, -2.651, 9.885> }
+object {Atom_O scale ATM_SCL translate <5.467, -2.650, 9.876> }
+object {Atom_C scale ATM_SCL * .8 translate <7.346, -2.132, 8.518> }
+object {Atom_O scale ATM_SCL translate <7.849, -0.790, 8.586> }
+object {Atom_C scale ATM_SCL * .8 translate <6.087, -2.336, 7.672> }
+object {Atom_C scale ATM_SCL * .8 translate <5.006, -2.000, 8.680> }
+object {Atom_N scale ATM_SCL translate <3.734, -2.669, 8.293> }
+object {Atom_C scale ATM_SCL * .8 translate <3.551, -3.905, 7.728> }
+object {Atom_N scale ATM_SCL translate <2.258, -4.204, 7.520> }
+object {Atom_C scale ATM_SCL * .8 translate <1.605, -3.106, 7.948> }
+object {Atom_C scale ATM_SCL * .8 translate <0.204, -2.827, 7.968> }
+object {Atom_O scale ATM_SCL translate <-0.729, -3.527, 7.596> }
+object {Atom_N scale ATM_SCL translate <-0.049, -1.564, 8.436> }
+object {Atom_C scale ATM_SCL * .8 translate <0.870, -0.656, 8.855> }
+object {Atom_N scale ATM_SCL translate <0.425, 0.577, 9.219> }
+object {Atom_N scale ATM_SCL translate <2.173, -0.926, 8.867> }
+object {Atom_C scale ATM_SCL translate <2.467, -2.155, 8.407> }
+object {Atom_H scale ATM_SCL translate <8.448, -4.162, 10.193> }
+object {Atom_H scale ATM_SCL translate <6.996, -4.331, 11.237> }
+object {Atom_H scale ATM_SCL translate <7.329, -1.965, 10.652> }
+object {Atom_H scale ATM_SCL translate <8.151, -2.759, 8.109> }
+object {Atom_H scale ATM_SCL translate <6.001, -3.374, 7.318> }
+object {Atom_H scale ATM_SCL translate <6.063, -1.652, 6.811> }
+object {Atom_H scale ATM_SCL translate <4.872, -0.915, 8.804> }
+object {Atom_H scale ATM_SCL translate <4.370, -4.575, 7.474> }
+object {Atom_H scale ATM_SCL translate <-1.008, -1.282, 8.473> }
+object {Atom_H scale ATM_SCL translate <1.093, 1.291, 9.542> }
+object {Atom_H scale ATM_SCL translate <-0.580, 0.797, 9.172> }
+object {Atom_P scale ATM_SCL translate <8.100, 0.258, 7.445> }
+object {Atom_O scale ATM_SCL translate <8.259, -0.531, 6.201> }
+object {Atom_O scale ATM_SCL translate <9.205, 1.181, 7.772> }
+object {Atom_O scale ATM_SCL translate <6.778, 1.135, 7.476> }
+object {Atom_C scale ATM_SCL * .8 translate <6.367, 1.820, 8.671> }
+object {Atom_C scale ATM_SCL * .8 translate <5.258, 2.752, 8.305> }
+object {Atom_O scale ATM_SCL translate <4.069, 1.967, 7.934> }
+object {Atom_C scale ATM_SCL * .8 translate <5.544, 3.666, 7.132> }
+object {Atom_O scale ATM_SCL translate <4.918, 4.938, 7.286> }
+object {Atom_C scale ATM_SCL * .8 translate <4.994, 2.825, 5.983> }
+object {Atom_C scale ATM_SCL * .8 translate <3.704, 2.314, 6.592> }
+object {Atom_N scale ATM_SCL translate <3.266, 1.026, 5.970> }
+object {Atom_C scale ATM_SCL * .8 translate <4.019, -0.049, 5.567> }
+object {Atom_N scale ATM_SCL translate <3.271, -1.074, 5.117> }
+object {Atom_C scale ATM_SCL * .8 translate <2.004, -0.627, 5.242> }
+object {Atom_C scale ATM_SCL * .8 translate <0.729, -1.222, 4.960> }
+object {Atom_N scale ATM_SCL translate <0.583, -2.495, 4.491> }
+object {Atom_N scale ATM_SCL translate <-0.357, -0.477, 5.183> }
+object {Atom_C scale ATM_SCL * .8 translate <-0.224, 0.760, 5.672> }
+object {Atom_N scale ATM_SCL translate <0.889, 1.419, 5.995> }
+object {Atom_C scale ATM_SCL translate <1.970, 0.649, 5.746> }
+object {Atom_H scale ATM_SCL translate <7.212, 2.389, 9.086> }
+object {Atom_H scale ATM_SCL translate <6.013, 1.093, 9.416> }
+object {Atom_H scale ATM_SCL translate <5.033, 3.373, 9.185> }
+object {Atom_H scale ATM_SCL translate <6.625, 3.826, 7.009> }
+object {Atom_H scale ATM_SCL translate <5.674, 2.000, 5.725> }
+object {Atom_H scale ATM_SCL translate <4.804, 3.437, 5.089> }
+object {Atom_H scale ATM_SCL translate <2.908, 3.072, 6.546> }
+object {Atom_H scale ATM_SCL translate <5.107, -0.070, 5.607> }
+object {Atom_H scale ATM_SCL translate <1.414, -3.077, 4.316> }
+object {Atom_H scale ATM_SCL translate <-0.358, -2.873, 4.312> }
+object {Atom_H scale ATM_SCL translate <-1.150, 1.303, 5.827> }
+object {Atom_P scale ATM_SCL translate <5.163, 6.132, 6.254> }
+object {Atom_O scale ATM_SCL translate <6.220, 5.732, 5.288> }
+object {Atom_O scale ATM_SCL translate <5.349, 7.447, 6.909> }
+object {Atom_O scale ATM_SCL translate <3.706, 6.113, 5.615> }
+object {Atom_C scale ATM_SCL * .8 translate <2.531, 6.127, 6.307> }
+object {Atom_C scale ATM_SCL * .8 translate <1.406, 5.980, 5.329> }
+object {Atom_O scale ATM_SCL translate <1.325, 4.607, 4.918> }
+object {Atom_C scale ATM_SCL * .8 translate <1.480, 6.854, 4.082> }
+object {Atom_O scale ATM_SCL translate <0.290, 7.632, 3.939> }
+object {Atom_C scale ATM_SCL * .8 translate <1.703, 5.805, 2.992> }
+object {Atom_C scale ATM_SCL * .8 translate <0.934, 4.624, 3.548> }
+object {Atom_N scale ATM_SCL translate <1.442, 3.334, 3.023> }
+object {Atom_C scale ATM_SCL * .8 translate <2.740, 2.907, 2.914> }
+object {Atom_N scale ATM_SCL translate <2.836, 1.644, 2.464> }
+object {Atom_C scale ATM_SCL * .8 translate <1.553, 1.267, 2.294> }
+object {Atom_C scale ATM_SCL * .8 translate <0.970, 0.041, 1.857> }
+object {Atom_N scale ATM_SCL translate <1.712, -1.050, 1.527> }
+object {Atom_N scale ATM_SCL translate <-0.359, -0.017, 1.789> }
+object {Atom_C scale ATM_SCL * .8 translate <-1.087, 1.042, 2.136> }
+object {Atom_N scale ATM_SCL translate <-0.673, 2.229, 2.568> }
+object {Atom_C scale ATM_SCL translate <0.678, 2.264, 2.624> }
+object {Atom_H scale ATM_SCL translate <2.430, 7.079, 6.849> }
+object {Atom_H scale ATM_SCL translate <2.512, 5.293, 7.024> }
+object {Atom_H scale ATM_SCL translate <0.479, 6.245, 5.858> }
+object {Atom_H scale ATM_SCL translate <2.339, 7.540, 4.130> }
+object {Atom_H scale ATM_SCL translate <2.771, 5.570, 2.873> }
+object {Atom_H scale ATM_SCL translate <1.291, 6.135, 2.027> }
+object {Atom_H scale ATM_SCL translate <-0.151, 4.730, 3.397> }
+object {Atom_H scale ATM_SCL translate <3.601, 3.525, 3.165> }
+object {Atom_H scale ATM_SCL translate <2.740, -1.008, 1.578> }
+object {Atom_H scale ATM_SCL translate <1.246, -1.917, 1.225> }
+object {Atom_H scale ATM_SCL translate <-2.161, 0.920, 2.055> }
+object {Atom_P scale ATM_SCL translate <-0.027, 8.612, 2.766> }
+object {Atom_O scale ATM_SCL translate <1.199, 8.958, 2.024> }
+object {Atom_O scale ATM_SCL translate <-0.767, 9.716, 3.403> }
+object {Atom_O scale ATM_SCL translate <-1.075, 7.866, 1.828> }
+object {Atom_C scale ATM_SCL * .8 translate <-2.285, 7.312, 2.432> }
+object {Atom_C scale ATM_SCL * .8 translate <-2.900, 6.329, 1.479> }
+object {Atom_O scale ATM_SCL translate <-1.997, 5.213, 1.253> }
+object {Atom_C scale ATM_SCL * .8 translate <-3.219, 6.888, 0.098> }
+object {Atom_O scale ATM_SCL translate <-4.635, 6.931, -0.135> }
+object {Atom_C scale ATM_SCL * .8 translate <-2.409, 5.998, -0.840> }
+object {Atom_C scale ATM_SCL * .8 translate <-2.303, 4.713, -0.037> }
+object {Atom_N scale ATM_SCL translate <-1.121, 3.906, -0.421> }
+object {Atom_C scale ATM_SCL * .8 translate <-1.291, 2.625, -0.856> }
+object {Atom_O scale ATM_SCL translate <-2.423, 2.155, -1.003> }
+object {Atom_N scale ATM_SCL translate <-0.183, 1.866, -1.091> }
+object {Atom_C scale ATM_SCL * .8 translate <1.082, 2.358, -0.953> }
+object {Atom_O scale ATM_SCL translate <2.020, 1.598, -1.187> }
+object {Atom_C scale ATM_SCL * .8 translate <1.243, 3.688, -0.556> }
+object {Atom_C scale ATM_SCL * .8 translate <2.618, 4.276, -0.426> }
+object {Atom_C scale ATM_SCL * .8 translate <0.116, 4.456, -0.262> }
+object {Atom_H scale ATM_SCL translate <-2.999, 8.123, 2.637> }
+object {Atom_H scale ATM_SCL translate <-2.028, 6.803, 3.372> }
+object {Atom_H scale ATM_SCL translate <-3.833, 5.962, 1.932> }
+object {Atom_H scale ATM_SCL translate <-2.844, 7.919, 0.018> }
+object {Atom_H scale ATM_SCL translate <-1.417, 6.428, -1.041> }
+object {Atom_H scale ATM_SCL translate <-2.937, 5.834, -1.791> }
+object {Atom_H scale ATM_SCL translate <-3.229, 4.120, -0.076> }
+object {Atom_H scale ATM_SCL translate <-0.302, 0.915, -1.375> }
+object {Atom_H scale ATM_SCL translate <2.539, 5.326, -0.106> }
+object {Atom_H scale ATM_SCL translate <3.191, 3.707, 0.320> }
+object {Atom_H scale ATM_SCL translate <3.131, 4.227, -1.398> }
+object {Atom_H scale ATM_SCL translate <0.223, 5.481, 0.090> }
+object {Atom_P scale ATM_SCL translate <-5.159, 7.591, -1.494> }
+object {Atom_O scale ATM_SCL translate <-4.223, 8.663, -1.889> }
+object {Atom_O scale ATM_SCL translate <-6.574, 7.968, -1.354> }
+object {Atom_O scale ATM_SCL translate <-5.097, 6.353, -2.490> }
+object {Atom_C scale ATM_SCL * .8 translate <-6.131, 5.371, -1.992> }
+object {Atom_C scale ATM_SCL * .8 translate <-6.074, 4.225, -2.940> }
+object {Atom_O scale ATM_SCL translate <-4.741, 3.717, -2.998> }
+object {Atom_C scale ATM_SCL * .8 translate <-6.432, 4.564, -4.375> }
+object {Atom_O scale ATM_SCL translate <-7.475, 3.706, -4.829> }
+object {Atom_C scale ATM_SCL * .8 translate <-5.096, 4.397, -5.109> }
+object {Atom_C scale ATM_SCL * .8 translate <-4.514, 3.243, -4.314> }
+object {Atom_N scale ATM_SCL translate <-3.040, 3.168, -4.386> }
+object {Atom_C scale ATM_SCL * .8 translate <-2.433, 1.978, -4.643> }
+object {Atom_O scale ATM_SCL translate <-3.098, 0.962, -4.865> }
+object {Atom_N scale ATM_SCL translate <-1.069, 1.930, -4.614> }
+object {Atom_C scale ATM_SCL * .8 translate <-0.299, 3.017, -4.321> }
+object {Atom_O scale ATM_SCL translate <0.924, 2.870, -4.310> }
+object {Atom_C scale ATM_SCL * .8 translate <-0.937, 4.229, -4.053> }
+object {Atom_C scale ATM_SCL * .8 translate <-0.162, 5.464, -3.713> }
+object {Atom_C scale ATM_SCL * .8 translate <-2.326, 4.288, -4.088> }
+object {Atom_H scale ATM_SCL translate <-7.132, 5.828, -2.000> }
+object {Atom_H scale ATM_SCL translate <-5.888, 5.040, -0.972> }
+object {Atom_H scale ATM_SCL translate <-6.759, 3.446, -2.576> }
+object {Atom_H scale ATM_SCL translate <-6.776, 5.606, -4.458> }
+object {Atom_H scale ATM_SCL translate <-4.473, 5.301, -5.037> }
+object {Atom_H scale ATM_SCL translate <-5.240, 4.135, -6.168> }
+object {Atom_H scale ATM_SCL translate <-4.991, 2.281, -4.551> }
+object {Atom_H scale ATM_SCL translate <-0.616, 1.062, -4.816> }
+object {Atom_H scale ATM_SCL translate <-0.858, 6.298, -3.541> }
+object {Atom_H scale ATM_SCL translate <0.430, 5.287, -2.803> }
+object {Atom_H scale ATM_SCL translate <0.512, 5.715, -4.546> }
+object {Atom_H scale ATM_SCL translate <-2.840, 5.225, -3.878> }
+object {Atom_P scale ATM_SCL translate <-8.073, 3.862, -6.267> }
+object {Atom_O scale ATM_SCL translate <-7.656, 5.205, -6.722> }
+object {Atom_O scale ATM_SCL translate <-9.520, 3.567, -6.369> }
+object {Atom_O scale ATM_SCL translate <-7.269, 2.716, -7.028> }
+object {Atom_C scale ATM_SCL * .8 translate <-7.271, 1.361, -6.584> }
+object {Atom_C scale ATM_SCL * .8 translate <-6.575, 0.590, -7.651> }
+object {Atom_O scale ATM_SCL translate <-5.173, 0.867, -7.442> }
+object {Atom_C scale ATM_SCL * .8 translate <-6.906, 1.101, -9.047> }
+object {Atom_O scale ATM_SCL translate <-7.604, 0.121, -9.838> }
+object {Atom_C scale ATM_SCL * .8 translate <-5.552, 1.533, -9.603> }
+object {Atom_C scale ATM_SCL * .8 translate <-4.562, 0.790, -8.719> }
+object {Atom_N scale ATM_SCL translate <-3.331, 1.578, -8.488> }
+object {Atom_C scale ATM_SCL * .8 translate <-2.136, 0.940, -8.480> }
+object {Atom_O scale ATM_SCL translate <-2.126, -0.262, -8.757> }
+object {Atom_N scale ATM_SCL translate <-1.025, 1.615, -8.151> }
+object {Atom_C scale ATM_SCL * .8 translate <-1.087, 2.908, -7.828> }
+object {Atom_N scale ATM_SCL translate <0.044, 3.571, -7.460> }
+object {Atom_C scale ATM_SCL * .8 translate <-2.297, 3.599, -7.831> }
+object {Atom_C scale ATM_SCL * .8 translate <-3.449, 2.895, -8.165> }
+object {Atom_H scale ATM_SCL translate <-8.302, 1.000, -6.459> }
+object {Atom_H scale ATM_SCL translate <-6.732, 1.269, -5.630> }
+object {Atom_H scale ATM_SCL translate <-6.802, -0.483, -7.570> }
+object {Atom_H scale ATM_SCL translate <-7.559, 1.984, -8.970> }
+object {Atom_H scale ATM_SCL translate <-5.419, 2.622, -9.517> }
+object {Atom_H scale ATM_SCL translate <-5.444, 1.233, -10.656> }
+object {Atom_H scale ATM_SCL translate <-4.358, -0.230, -9.076> }
+object {Atom_H scale ATM_SCL translate <-0.003, 4.570, -7.211> }
+object {Atom_H scale ATM_SCL translate <0.946, 3.075, -7.431> }
+object {Atom_H scale ATM_SCL translate <-2.340, 4.658, -7.580> }
+object {Atom_H scale ATM_SCL translate <-4.422, 3.386, -8.168> }
+object {Atom_P scale ATM_SCL translate <-8.190, 0.447, -11.320> }
+object {Atom_O scale ATM_SCL translate <-8.452, 1.886, -11.608> }
+object {Atom_O scale ATM_SCL translate <-9.310, -0.489, -11.593> }
+object {Atom_O scale ATM_SCL translate <-6.916, -0.003, -12.167> }
+object {Atom_C scale ATM_SCL * .8 translate <-6.502, -1.402, -12.282> }
+object {Atom_C scale ATM_SCL * .8 translate <-5.325, -1.459, -13.221> }
+object {Atom_O scale ATM_SCL translate <-4.261, -0.768, -12.571> }
+object {Atom_C scale ATM_SCL * .8 translate <-5.486, -0.742, -14.565> }
+object {Atom_O scale ATM_SCL translate <-4.667, -1.344, -15.539> }
+object {Atom_C scale ATM_SCL * .8 translate <-5.006, 0.661, -14.225> }
+object {Atom_C scale ATM_SCL * .8 translate <-3.769, 0.217, -13.490> }
+object {Atom_N scale ATM_SCL translate <-3.173, 1.342, -12.756> }
+object {Atom_C scale ATM_SCL * .8 translate <-3.746, 2.522, -12.363> }
+object {Atom_N scale ATM_SCL translate <-2.873, 3.337, -11.751> }
+object {Atom_C scale ATM_SCL * .8 translate <-1.719, 2.635, -11.760> }
+object {Atom_C scale ATM_SCL * .8 translate <-0.427, 2.987, -11.264> }
+object {Atom_O scale ATM_SCL translate <-0.063, 4.035, -10.729> }
+object {Atom_N scale ATM_SCL translate <0.478, 1.974, -11.472> }
+object {Atom_C scale ATM_SCL * .8 translate <0.247, 0.772, -12.074> }
+object {Atom_N scale ATM_SCL translate <1.297, -0.081, -12.219> }
+object {Atom_N scale ATM_SCL translate <-0.954, 0.448, -12.550> }
+object {Atom_C scale ATM_SCL translate <-1.874, 1.417, -12.348> }
+object {Atom_H scale ATM_SCL translate <-7.330, -2.005, -12.683> }
+object {Atom_H scale ATM_SCL translate <-6.212, -1.788, -11.294> }
+object {Atom_H scale ATM_SCL translate <-5.066, -2.512, -13.402> }
+object {Atom_H scale ATM_SCL translate <-6.532, -0.740, -14.905> }
+object {Atom_H scale ATM_SCL translate <-5.711, 1.210, -13.583> }
+object {Atom_H scale ATM_SCL translate <-4.780, 1.263, -15.118> }
+object {Atom_H scale ATM_SCL translate <-3.029, -0.214, -14.180> }
+object {Atom_H scale ATM_SCL translate <-4.793, 2.771, -12.529> }
+object {Atom_H scale ATM_SCL translate <1.409, 2.136, -11.146> }
+object {Atom_H scale ATM_SCL translate <1.158, -0.997, -12.669> }
+object {Atom_H scale ATM_SCL translate <2.231, 0.190, -11.879> }
+object {Atom_P scale ATM_SCL translate <-5.288, -2.388, -16.572> }
+object {Atom_O scale ATM_SCL translate <-6.123, -1.671, -17.570> }
+object {Atom_O scale ATM_SCL translate <-5.960, -3.469, -15.809> }
+object {Atom_O scale ATM_SCL translate <-3.946, -2.937, -17.253> }
+object {Atom_C scale ATM_SCL * .8 translate <-3.019, -3.630, -16.332> }
+object {Atom_C scale ATM_SCL * .8 translate <-1.566, -3.481, -16.713> }
+object {Atom_O scale ATM_SCL translate <-1.237, -2.208, -15.986> }
+object {Atom_C scale ATM_SCL * .8 translate <-1.294, -3.172, -18.190> }
+object {Atom_O scale ATM_SCL translate <-0.276, -3.996, -18.792> }
+object {Atom_C scale ATM_SCL * .8 translate <-1.010, -1.675, -18.198> }
+object {Atom_C scale ATM_SCL * .8 translate <-0.390, -1.448, -16.831> }
+object {Atom_N scale ATM_SCL translate <-0.580, -0.033, -16.409> }
+object {Atom_C scale ATM_SCL * .8 translate <0.470, 0.642, -15.872> }
+object {Atom_O scale ATM_SCL translate <1.540, 0.047, -15.768> }
+object {Atom_N scale ATM_SCL translate <0.319, 1.915, -15.478> }
+object {Atom_C scale ATM_SCL * .8 translate <-0.863, 2.529, -15.603> }
+object {Atom_N scale ATM_SCL translate <-1.008, 3.823, -15.195> }
+object {Atom_C scale ATM_SCL * .8 translate <-1.962, 1.872, -16.162> }
+object {Atom_C scale ATM_SCL * .8 translate <-1.802, 0.555, -16.574> }
+object {Atom_H scale ATM_SCL translate <-3.270, -4.701, -16.327> }
+object {Atom_H scale ATM_SCL translate <-3.158, -3.216, -15.322> }
+object {Atom_H scale ATM_SCL translate <-0.973, -4.346, -16.384> }
+object {Atom_H scale ATM_SCL translate <-2.216, -3.353, -18.762> }
+object {Atom_H scale ATM_SCL translate <-1.938, -1.095, -18.315> }
+object {Atom_H scale ATM_SCL translate <-0.308, -1.408, -19.002> }
+object {Atom_H scale ATM_SCL translate <0.666, -1.753, -16.789> }
+object {Atom_H scale ATM_SCL translate <-1.919, 4.295, -15.292> }
+object {Atom_H scale ATM_SCL translate <-0.207, 4.329, -14.790> }
+object {Atom_H scale ATM_SCL translate <-2.920, 2.380, -16.272> }
+object {Atom_H scale ATM_SCL translate <-2.631, 0.005, -17.018> }
+object {Atom_P scale ATM_SCL translate <-0.154, -3.799, -20.443> }
+object {Atom_O scale ATM_SCL translate <-1.233, -2.962, -21.042> }
+object {Atom_O scale ATM_SCL translate <0.040, -5.135, -21.050> }
+object {Atom_O scale ATM_SCL translate <1.201, -2.957, -20.552> }
+object {Atom_C scale ATM_SCL * .8 translate <2.328, -3.588, -19.937> }
+object {Atom_C scale ATM_SCL * .8 translate <3.363, -2.506, -19.899> }
+object {Atom_O scale ATM_SCL translate <3.056, -1.563, -18.916> }
+object {Atom_C scale ATM_SCL * .8 translate <3.490, -1.729, -21.191> }
+object {Atom_O scale ATM_SCL translate <4.204, -2.438, -22.203> }
+object {Atom_C scale ATM_SCL * .8 translate <4.243, -0.514, -20.679> }
+object {Atom_C scale ATM_SCL * .8 translate <3.627, -0.309, -19.296> }
+object {Atom_N scale ATM_SCL translate <2.520, 0.665, -19.274> }
+object {Atom_C scale ATM_SCL * .8 translate <1.231, 0.539, -19.718> }
+object {Atom_N scale ATM_SCL translate <0.491, 1.628, -19.474> }
+object {Atom_C scale ATM_SCL * .8 translate <1.354, 2.459, -18.853> }
+object {Atom_C scale ATM_SCL * .8 translate <1.135, 3.766, -18.328> }
+object {Atom_O scale ATM_SCL translate <0.093, 4.417, -18.297> }
+object {Atom_N scale ATM_SCL translate <2.297, 4.298, -17.821> }
+object {Atom_C scale ATM_SCL * .8 translate <3.524, 3.700, -17.778> }
+object {Atom_N scale ATM_SCL translate <4.578, 4.425, -17.308> }
+object {Atom_N scale ATM_SCL translate <3.712, 2.461, -18.223> }
+object {Atom_C scale ATM_SCL translate <2.592, 1.911, -18.732> }
+object {Atom_H scale ATM_SCL translate <2.675, -4.442, -20.537> }
+object {Atom_H scale ATM_SCL translate <2.080, -3.930, -18.921> }
+object {Atom_H scale ATM_SCL translate <4.332, -2.973, -19.670> }
+object {Atom_H scale ATM_SCL translate <2.502, -1.449, -21.587> }
+object {Atom_H scale ATM_SCL translate <4.253, -1.905, -22.988> }
+object {Atom_H scale ATM_SCL translate <4.074, 0.361, -21.324> }
+object {Atom_H scale ATM_SCL translate <5.322, -0.714, -20.609> }
+object {Atom_H scale ATM_SCL translate <4.408, 0.003, -18.587> }
+object {Atom_H scale ATM_SCL translate <0.849, -0.351, -20.216> }
+object {Atom_H scale ATM_SCL translate <2.237, 5.222, -17.443> }
+object {Atom_H scale ATM_SCL translate <5.515, 4.001, -17.264> }
+object {Atom_H scale ATM_SCL translate <4.437, 5.397, -16.997> }
+}
+
+
+#declare bna7_full_belljar = union {
+        object {bell_jar  scale <25 11 25 >}
+        object { bdna_full_obj rotate x*90 translate <0, 25, 0>}
+     }
+
+#declare bna7_reoriented = object { bdna_full_obj rotate x*90 translate <-3, 25, 0>}
+
+#version BDNA_Full_Inc_Temp

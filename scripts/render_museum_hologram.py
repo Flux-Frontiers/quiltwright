@@ -62,10 +62,11 @@ from quiltwright.povray import PovCamera, render_pov_quilt
 
 # --- Scene -----------------------------------------------------------------
 
-SCENE = Path("~/Documents/POV_Art/museum/museum_8x10.pov").expanduser()
+POV_SCENES = Path(__file__).resolve().parents[1] / "pov-scenes"
+SCENE = POV_SCENES / "museum" / "museum.pov"
 INCLUDE_PATHS = [
-    Path("~/Documents/POV_Art/myinclude").expanduser(),
-    Path("~/Documents/POV_Art").expanduser(),
+    POV_SCENES / "myinclude",
+    POV_SCENES,
 ]
 
 #: Eye position of the scene's own ``camera_zdna3``.

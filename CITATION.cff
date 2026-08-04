@@ -18,6 +18,7 @@ authors:
     email: suchanek@flux-frontiers.com
     affiliation: "Flux-Frontiers"
 version: "0.1.0"
+date-released: "2026-08-04"
 license: BSD-3-Clause
 repository-code: "https://github.com/suchanek/quiltwright"
 url: "https://github.com/suchanek/quiltwright"

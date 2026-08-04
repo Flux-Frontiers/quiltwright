@@ -20,3 +20,7 @@ out/
 
 # OS
 .DS_Store
+
+# Cruft
+*.o
+
