@@ -1,8 +1,8 @@
 # Light-Field Display (LFD) Output
 
-**Module**: `waverider.lfd`
-**CLI**: `waverider-voxel-viz --quilt <device>`
-**Source**: `src/waverider/lfd.py`
+**Module**: `quiltwright.lfd`
+**Downstream CLI**: `waverider-voxel-viz --quilt <device>` (see note below)
+**Source**: `src/quiltwright/lfd.py`
 
 > *"A manifold you can slice with a mouse is good. A manifold floating
 > behind glass is better."*
@@ -28,7 +28,7 @@ top-right (rightmost camera). The filename suffix
 `_qs<cols>x<rows>a<aspect>` carries the layout metadata, so Looking Glass
 Studio and Bridge configure playback automatically.
 
-`waverider.lfd` turns **any PyVista scene** into a quilt:
+`quiltwright.lfd` turns **any PyVista scene** into a quilt:
 
 1. The plotter's camera defines the centre view; its **focal point becomes
    the plane of the physical glass**.
@@ -141,7 +141,7 @@ Studio — the `_qs…a…` suffix configures playback automatically.
 
 ```python
 import pyvista as pv
-from waverider import QUILT_PRESETS, render_quilt, save_quilt, cast_quilt
+from quiltwright import QUILT_PRESETS, render_quilt, save_quilt, cast_quilt
 
 p = pv.Plotter(off_screen=True)
 p.add_mesh(pv.ParametricTorus(), color="teal")
@@ -189,7 +189,7 @@ each frame — mutate the scene (advance a time step, move a slice plane,
 update scalars) for arbitrary animation:
 
 ```python
-from waverider import QUILT_PRESETS, render_quilt_video
+from quiltwright import QUILT_PRESETS, render_quilt_video
 
 render_quilt_video(plotter, QUILT_PRESETS["16-landscape"], "evolving",
                    n_frames=240, fps=24, orbit_degrees=0.0,
@@ -216,9 +216,9 @@ leaving the playlist in place so the next `cast_quilt()` replaces it
 cleanly):
 
 ```python
-from waverider import cast_quilt, pause_quilt, resume_quilt, stop_quilt
+from quiltwright import cast_quilt, pause_quilt, resume_quilt, stop_quilt
 
-cast_quilt(path, spec)   # play (creates/replaces the "waverider" playlist)
+cast_quilt(path, spec)   # play (creates/replaces the "quiltwright" playlist)
 pause_quilt()             # freeze the current frame
 resume_quilt()            # continue from where it paused
 stop_quilt()               # pause + hide the display window
@@ -304,7 +304,7 @@ aspect and resamples into the tile, so geometry is never distorted.
 Custom layouts are just a dataclass away:
 
 ```python
-from waverider import QuiltSpec
+from quiltwright import QuiltSpec
 spec = QuiltSpec(columns=8, rows=6, quilt_width=7680, quilt_height=4320,
                  aspect=1.77778, view_cone=50.0)
 ```

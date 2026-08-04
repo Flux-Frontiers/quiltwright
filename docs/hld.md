@@ -1,8 +1,8 @@
 # Hololuminescent Display (HLD) Output
 
-**Module**: `waverider.hld`
-**CLI**: `waverider-voxel-viz --hld`
-**Source**: `src/waverider/hld.py`
+**Module**: `quiltwright.hld`
+**Downstream CLI**: `waverider-voxel-viz --hld`
+**Source**: `src/quiltwright/hld.py`
 
 > *"On an HLD, white is the new alpha."*
 
@@ -19,7 +19,7 @@ you're rendering for:
 | Content | **ordinary 2-D video** | multi-view **quilts** |
 | True 3-D parallax | no — fixed holographic "alcove" effect | yes — ~48–100 views across a cone |
 | Software | HLD Author + USB media player | Bridge / Studio |
-| WaveRider module | `waverider.hld` (this page) | `waverider.lfd` |
+| WaveRider module | `quiltwright.hld` (this page) | `quiltwright.lfd` |
 
 The HLD is an LCD with a fixed holographic volume — a stage-like "alcove" —
 embedded in its optical stack. Your flat video is multiply-blended into it:
@@ -59,7 +59,7 @@ From Python, for any PyVista scene:
 
 ```python
 import pyvista as pv
-from waverider import render_hld_video, style_plotter_for_hld
+from quiltwright import render_hld_video, style_plotter_for_hld
 
 p = pv.Plotter(off_screen=True)
 p.add_mesh(pv.ParametricTorus(), color="teal")

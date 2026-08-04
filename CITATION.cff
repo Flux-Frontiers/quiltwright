@@ -1,0 +1,32 @@
+cff-version: "1.2.0"
+message: "If you use this software, please cite it using the metadata below."
+type: software
+title: "Quiltwright: Holographic Output for Looking Glass Displays"
+abstract: >
+  Quiltwright renders multi-view quilts for Looking Glass light-field
+  displays. Every view uses an off-axis (asymmetric-frustum) projection
+  rather than a toe-in rotation, which is the geometric requirement for the
+  display's lenticular optics to fuse the views into stable depth. Scenes
+  can come from PyVista/VTK or from the POV-Ray ray-tracer, and the library
+  provides tools for managing the holographic depth budget — adjacent-view
+  disparity and focal-plane placement — plus a client for Looking Glass
+  Bridge and encoders for quilt video and Hololuminescent Display masters.
+authors:
+  - family-names: Suchanek
+    given-names: "Eric G., PhD"
+    orcid: "https://orcid.org/0009-0009-0891-1507"
+    email: suchanek@flux-frontiers.com
+    affiliation: "Flux-Frontiers"
+version: "0.1.0"
+license: BSD-3-Clause
+repository-code: "https://github.com/suchanek/quiltwright"
+url: "https://github.com/suchanek/quiltwright"
+keywords:
+  - looking-glass
+  - light-field-display
+  - holographic-display
+  - quilt
+  - off-axis-projection
+  - povray
+  - pyvista
+  - autostereoscopy

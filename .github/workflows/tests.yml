@@ -1,0 +1,39 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # VTK needs a GL stack and an X server; povray exercises the ray-traced
+      # backend.  Without these the relevant tests skip rather than fail, but
+      # then they are not actually testing anything.
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1 libglx-mesa0 libxrender1 povray
+
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[viz,video]"
+          pip install pytest ruff
+
+      - name: Lint
+        run: ruff check src tests scripts
+
+      - name: Format check
+        run: ruff format --check src tests scripts
+
+      - name: Test
+        run: xvfb-run -a pytest

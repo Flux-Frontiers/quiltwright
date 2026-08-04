@@ -1,10 +1,10 @@
-"""Tests for the Hololuminescent Display renderer (waverider.hld)."""
+"""Tests for the Hololuminescent Display renderer (quiltwright.hld)."""
 
 import numpy as np
 import pytest
 from render_probe import can_render
 
-from waverider.hld import (
+from quiltwright.hld import (
     HLD_RESOLUTION,
     HLD_SAFE_MARGINS,
     _hld_encode_args,
@@ -52,9 +52,9 @@ class TestHldSpec:
 
 def _have_ffmpeg() -> bool:
     try:
-        from waverider.lfd import _find_ffmpeg
+        from quiltwright.lfd import find_ffmpeg
 
-        _find_ffmpeg()
+        find_ffmpeg()
         return True
     except RuntimeError:
         return False
@@ -71,7 +71,7 @@ class TestStyleAndSafeArea:
         """After styling, all non-white pixels must respect the margins."""
         import pyvista as pv
 
-        from waverider.hld import style_plotter_for_hld
+        from quiltwright.hld import style_plotter_for_hld
 
         p = pv.Plotter(off_screen=True, window_size=(216, 384))
         p.add_mesh(pv.Sphere(), color="navy")
@@ -94,7 +94,7 @@ class TestStyleAndSafeArea:
     def test_background_is_pure_white(self):
         import pyvista as pv
 
-        from waverider.hld import style_plotter_for_hld
+        from quiltwright.hld import style_plotter_for_hld
 
         p = pv.Plotter(off_screen=True, window_size=(216, 384))
         p.add_mesh(pv.Sphere(), color="navy")
@@ -108,7 +108,7 @@ class TestStyleAndSafeArea:
     def test_floor_shadow_adds_grey_below_subject(self):
         import pyvista as pv
 
-        from waverider.hld import add_floor_shadow, style_plotter_for_hld
+        from quiltwright.hld import add_floor_shadow, style_plotter_for_hld
 
         p = pv.Plotter(off_screen=True, window_size=(216, 384))
         sphere = pv.Sphere(radius=0.5)
@@ -129,7 +129,7 @@ class TestRenderHldVideo:
     def test_turntable_master(self, tmp_path):
         import pyvista as pv
 
-        from waverider.hld import render_hld_video, style_plotter_for_hld
+        from quiltwright.hld import render_hld_video, style_plotter_for_hld
 
         p = pv.Plotter(off_screen=True)
         p.add_mesh(pv.Cube(), color="firebrick")

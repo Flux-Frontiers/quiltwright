@@ -1,4 +1,4 @@
-"""Tests for the Looking Glass quilt renderer (waverider.lfd)."""
+"""Tests for the Looking Glass quilt renderer (quiltwright.lfd)."""
 
 import math
 
@@ -6,11 +6,14 @@ import numpy as np
 import pytest
 from render_probe import can_render
 
-from waverider.lfd import (
+from quiltwright.lfd import (
     QUILT_PRESETS,
     QuiltSpec,
     _encode_args,
+    assemble_quilt,
+    focal_distance_for_range,
     save_quilt,
+    view_disparity,
     view_offsets,
 )
 
@@ -180,8 +183,114 @@ class TestViewOffsets:
 
 
 # ---------------------------------------------------------------------------
+# Depth budget
+# ---------------------------------------------------------------------------
+
+
+class TestViewDisparity:
+    def test_zero_at_focal_plane(self, portrait):
+        assert view_disparity(portrait, fov=14.0, focal_distance=10.0, depth=10.0) == 0.0
+
+    def test_matches_ray_traced_measurement(self):
+        """Anchor the formula to real renders.
+
+        A POV-Ray scene with markers at depths 6 and 14, focal plane at 10,
+        30 deg FOV, eye offsets of +/-2 on a 256 px image measured shifts of
+        128.16 px and 54.43 px between the extreme views.  A 2-view spec
+        makes the adjacent-view gap the extreme gap.
+        """
+        cone = 2.0 * math.degrees(math.atan(2.0 / 10.0))  # offsets +/-2 at distance 10
+        spec = QuiltSpec(
+            columns=2, rows=1, quilt_width=512, quilt_height=256, aspect=1.0, view_cone=cone
+        )
+        near = view_disparity(spec, fov=30.0, focal_distance=10.0, depth=6.0)
+        far = view_disparity(spec, fov=30.0, focal_distance=10.0, depth=14.0)
+        assert near == pytest.approx(128.16, rel=0.02)
+        assert far == pytest.approx(54.43, rel=0.02)
+
+    def test_narrower_fov_increases_disparity(self, portrait):
+        """Counterintuitive but load-bearing: narrowing the FOV magnifies the
+        scene, and the parallax with it."""
+        wide = view_disparity(portrait, fov=50.0, focal_distance=50.0, depth=25.0)
+        narrow = view_disparity(portrait, fov=14.0, focal_distance=50.0, depth=25.0)
+        assert narrow > wide
+
+    def test_infinite_depth_saturates(self, portrait):
+        far = view_disparity(portrait, fov=30.0, focal_distance=40.0, depth=1e12)
+        inf = view_disparity(portrait, fov=30.0, focal_distance=40.0, depth=math.inf)
+        assert inf == pytest.approx(far, rel=1e-6)
+
+    def test_symmetric_about_harmonic_focal_plane(self):
+        """The pairing with focal_distance_for_range: near and far content
+        must end up with equal disparity."""
+        spec = QUILT_PRESETS["16-landscape"]
+        z = focal_distance_for_range(32.0, 100.0)
+        assert view_disparity(spec, 53.13, z, 32.0) == pytest.approx(
+            view_disparity(spec, 53.13, z, 100.0)
+        )
+
+    def test_single_view_has_no_disparity(self):
+        spec = QuiltSpec(columns=1, rows=1, quilt_width=64, quilt_height=64, aspect=1.0)
+        assert view_disparity(spec, fov=14.0, focal_distance=10.0, depth=1.0) == 0.0
+
+
+class TestFocalDistanceForRange:
+    def test_harmonic_mean(self):
+        assert focal_distance_for_range(32.0, 100.0) == pytest.approx(2 / (1 / 32 + 1 / 100))
+
+    def test_infinite_far_is_twice_near(self):
+        assert focal_distance_for_range(25.0, math.inf) == pytest.approx(50.0)
+
+    def test_degenerate_range_is_identity(self):
+        assert focal_distance_for_range(7.0, 7.0) == pytest.approx(7.0)
+
+    def test_lies_between_near_and_far(self):
+        z = focal_distance_for_range(32.0, 100.0)
+        assert 32.0 < z < 100.0
+        # Harmonic mean sits below the arithmetic midpoint: near content is
+        # the harder side of the budget, so the plane leans toward it.
+        assert z < (32.0 + 100.0) / 2
+
+    def test_rejects_invalid_range(self):
+        with pytest.raises(ValueError, match="positive"):
+            focal_distance_for_range(0.0, 10.0)
+        with pytest.raises(ValueError, match="must be >="):
+            focal_distance_for_range(10.0, 5.0)
+
+
+# ---------------------------------------------------------------------------
 # Quilt assembly + I/O
 # ---------------------------------------------------------------------------
+
+
+class TestAssembleQuilt:
+    def test_places_views_in_quilt_order(self, tiny_spec):
+        views = [np.full((64, 64, 3), i * 10, dtype=np.uint8) for i in range(4)]
+        quilt = assemble_quilt(views, tiny_spec)
+        for i in range(4):
+            x, y = tiny_spec.tile_origin(i)
+            assert quilt[y + 32, x + 32, 0] == i * 10
+
+    def test_resamples_mismatched_views(self, tiny_spec):
+        pytest.importorskip("PIL")
+        views = [np.full((32, 48, 3), 7, dtype=np.uint8) for _ in range(4)]
+        quilt = assemble_quilt(views, tiny_spec)
+        assert quilt.shape == (128, 128, 3)
+        assert quilt[32, 32, 0] == 7
+
+    def test_drops_alpha_channel(self, tiny_spec):
+        views = [np.full((64, 64, 4), 9, dtype=np.uint8) for _ in range(4)]
+        assert assemble_quilt(views, tiny_spec).shape == (128, 128, 3)
+
+    def test_too_few_views_rejected(self, tiny_spec):
+        views = [np.zeros((64, 64, 3), np.uint8) for _ in range(3)]
+        with pytest.raises(ValueError, match="expected 4 views"):
+            assemble_quilt(views, tiny_spec)
+
+    def test_too_many_views_rejected(self, tiny_spec):
+        views = [np.zeros((64, 64, 3), np.uint8) for _ in range(5)]
+        with pytest.raises(ValueError, match="more than 4 views"):
+            assemble_quilt(views, tiny_spec)
 
 
 class TestSaveQuilt:
@@ -222,7 +331,7 @@ class TestRenderQuilt:
     def test_shape_and_views_differ(self, tiny_spec):
         import pyvista as pv
 
-        from waverider.lfd import render_quilt
+        from quiltwright.lfd import render_quilt
 
         p = pv.Plotter(off_screen=True)
         p.add_mesh(pv.Cube(), color="red")
@@ -244,7 +353,7 @@ class TestRenderQuilt:
         point should occupy the centre pixel of *every* view."""
         import pyvista as pv
 
-        from waverider.lfd import render_quilt
+        from quiltwright.lfd import render_quilt
 
         p = pv.Plotter(off_screen=True)
         p.add_mesh(pv.Sphere(radius=0.2), color="white")
@@ -262,7 +371,7 @@ class TestRenderQuilt:
     def test_camera_restored_after_render(self, tiny_spec):
         import pyvista as pv
 
-        from waverider.lfd import render_quilt
+        from quiltwright.lfd import render_quilt
 
         p = pv.Plotter(off_screen=True)
         p.add_mesh(pv.Sphere())
@@ -276,9 +385,9 @@ class TestRenderQuilt:
 
 def _have_ffmpeg() -> bool:
     try:
-        from waverider.lfd import _find_ffmpeg
+        from quiltwright.lfd import find_ffmpeg
 
-        _find_ffmpeg()
+        find_ffmpeg()
         return True
     except RuntimeError:
         return False
@@ -290,7 +399,7 @@ class TestRenderQuiltVideo:
     def test_turntable_mp4(self, tmp_path, tiny_spec):
         import pyvista as pv
 
-        from waverider.lfd import render_quilt_video
+        from quiltwright.lfd import render_quilt_video
 
         p = pv.Plotter(off_screen=True)
         p.add_mesh(pv.Cube(), color="red")
@@ -309,7 +418,7 @@ class TestRenderQuiltVideo:
     def test_on_frame_callback_runs(self, tmp_path, tiny_spec):
         import pyvista as pv
 
-        from waverider.lfd import render_quilt_video
+        from quiltwright.lfd import render_quilt_video
 
         seen = []
         p = pv.Plotter(off_screen=True)

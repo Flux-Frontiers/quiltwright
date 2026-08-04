@@ -7,7 +7,7 @@ Displays* — the HLD product line (16" / 27" / 86" Portrait).
 
 HLDs are a different technology from the classic light-field Looking Glass
 devices (which consume multi-view quilts; see
-:mod:`waverider.lfd`).  An HLD is an LCD with a fixed holographic
+:mod:`quiltwright.lfd`).  An HLD is an LCD with a fixed holographic
 "alcove" volume embedded in its optical stack; ordinary **flat 2-D video**
 is multiply-blended into that volume.  The consequences for rendering:
 
@@ -29,7 +29,7 @@ signage players (BrightSign/Yodeck) or direct HDMI, use the master as-is.
 Typical usage::
 
     import pyvista as pv
-    from waverider.hld import render_hld_video, style_plotter_for_hld
+    from quiltwright.hld import render_hld_video, style_plotter_for_hld
 
     p = pv.Plotter(off_screen=True)
     p.add_mesh(pv.ParametricTorus(), color="teal")
@@ -37,7 +37,7 @@ Typical usage::
     render_hld_video(p, "torus")              # -> torus_hld.mp4 (10s orbit)
     p.close()
 
-Part of WaveRider — https://github.com/Flux-Frontiers/waverider
+Part of Quiltwright — https://github.com/suchanek/quiltwright
 Author: Eric G. Suchanek, PhD
 """
 
@@ -49,7 +49,7 @@ from pathlib import Path
 
 import numpy as np
 
-from waverider.lfd import _find_ffmpeg
+from quiltwright.lfd import find_ffmpeg
 
 try:
     import pyvista as pv  # noqa: F401
@@ -237,7 +237,7 @@ def render_hld_video(
     :return: Path of the MP4 written.
     """
     _require_pyvista("render_hld_video")
-    ffmpeg = _find_ffmpeg()
+    ffmpeg = find_ffmpeg()
 
     try:
         from PIL import Image

@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+
+# Testing / tooling
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Rendered output
+out/
+*_qs[0-9]*x[0-9]*a*.png
+*_qs[0-9]*x[0-9]*a*.mp4
+
+# OS
+.DS_Store
