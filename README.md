@@ -209,6 +209,7 @@ on Zenodo.
   author  = {Suchanek, Eric G.},
   title   = {Quiltwright: Holographic Output for Looking Glass Displays},
   url     = {https://github.com/suchanek/quiltwright},
+  doi     = {10.5281/zenodo.21798504},
   version = {0.1.0},
   year    = {2026}
 }
