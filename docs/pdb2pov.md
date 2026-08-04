@@ -15,55 +15,29 @@ hand-built scenes. See [Why molecules are the easy case](#why-molecules-are-the-
 ## 1. Building it on a modern machine
 
 The source is K&R-era C with `#ifdef AMIGA` branches. It compiles and runs on
-Apple Silicon with **no edits to the original sources** — four compatibility
-fixes, all supplied on the command line or via a force-included header.
+Apple Silicon with **no edits to the original sources**. The compatibility
+fixes live upstream now, so a fresh clone just builds:
 
-### The one real bug
+```bash
+git clone https://github.com/suchanek/pdb2pov
+cd pdb2pov && make pdb2pov
+```
+
+### What that is working around
 
 `pdb2pov.c` never declares the Numerical-Recipes-style allocators that live in
 `util.c` — `dmatrix`, `dvector`, `cmatrix`, `ivector`, `imatrix`. Under K&R
 rules an undeclared function is assumed to return `int`, so on a 64-bit target
 **every pointer they return is truncated to 32 bits**. This was harmless in
-1994 and segfaults immediately now.
-
-Save this as `pdb2pov_protos.h` next to the sources:
-
-```c
-/* Prototypes for the allocators in util.c.  pdb2pov.c never declared them,
- * so on a 64-bit target their pointer returns were truncated to int. */
-#ifndef PDB2POV_PROTOS_H
-#define PDB2POV_PROTOS_H
-double **dmatrix(int nrh, int nch);
-void     free_dmatrix(double **m, int nrh, int nch);
-int    **imatrix(int nrh, int nch);
-void     free_imatrix(int **m, int nrh, int nch);
-char   **cmatrix(int nrh, int nch);
-void     free_cmatrix(char **m, int nrh, int nch);
-double  *dvector(int nh);
-void     free_dvector(double *v, int nh);
-int     *ivector(int nh);
-void     free_ivector(int *v, int nh);
-#endif
-```
-
-### The build line
-
-```bash
-cc -std=gnu89 -O0 \
-   -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0 -fno-stack-protector \
-   -include stdlib.h -include string.h -include ./pdb2pov_protos.h \
-   -Wno-implicit-function-declaration -Wno-deprecated-non-prototype \
-   -o pdb2pov pdb2pov.c util.c -lm
-```
-
-What each group is for:
+1994 and segfaults immediately now. `pdb2pov_protos.h` supplies the missing
+prototypes and is force-included from the Makefile's `PORTFLAGS`.
 
 | Flag | Why |
 |------|-----|
-| `-std=gnu89` | K&R function definitions without prototypes |
 | `-include ./pdb2pov_protos.h` | the pointer-truncation fix above |
-| `-include stdlib.h` | the non-Amiga path never includes it, so `malloc` also truncated |
+| `-include stdlib.h` | the non-Amiga path never includes it, so `malloc` truncates the same way |
 | `-D_FORTIFY_SOURCE=0 -fno-stack-protector` | modern libc traps on `sprintf` overruns that were benign in 1994 |
+| `-std=gnu89` | K&R function definitions without prototypes |
 | `-Wno-implicit-function-declaration` | several in-file helpers are used before declaration; these all return `int`, so they are genuinely harmless |
 
 > `-O0` is deliberate. The buffer handling is loose enough that optimised
