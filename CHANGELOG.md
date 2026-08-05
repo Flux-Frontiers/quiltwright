@@ -24,6 +24,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   - `depth_budget()` / `format_depth_budget()` — adjacent-view disparity at
     labelled depths, as data and as a pre-render report that flags soft depths
     and warns when the sweep would leave the room.
+- **Test suite for the Gen3 16" Landscape** (`TestSixteenLandscape`), the
+  device these renders target. Pins the preset against the defaultQuilt Bridge
+  reports, and covers the property that makes it the awkward one: its tiles are
+  stored *anamorphically*, 960x720 holding a 16:9 view rendered 1280x720, so
+  tile pixel aspect deliberately disagrees with view aspect. Also anchors the
+  published museum depth budget (3.58 px near/far, 6.95 px sky) to this
+  device's real 720 px tiles, and pins the cost of its native 50-degree cone.
 
 ### Changed
 

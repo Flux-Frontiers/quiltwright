@@ -1,6 +1,7 @@
 """Tests for the Looking Glass quilt renderer (quiltwright.lfd)."""
 
 import math
+from dataclasses import replace
 
 import numpy as np
 import pytest
@@ -121,6 +122,159 @@ class TestQuiltSpec:
         assert dense.aspect == portrait.aspect
         assert dense.tile_width < portrait.tile_width  # views cost resolution
         assert dense.filename("x") == "x_qs11x6a0.75.png"
+
+
+# ---------------------------------------------------------------------------
+# Gen3 16" Landscape — the device these renders target
+# ---------------------------------------------------------------------------
+
+
+class TestSixteenLandscape:
+    """The 16" Landscape preset, end to end.
+
+    This is the display the museum quilts are actually rendered for, and it
+    is the awkward one: its tiles are stored *anamorphically*, so the pixel
+    aspect of a tile is not the aspect of the view it holds.  Almost every
+    property below looks like a typo until that is understood, which is
+    precisely why they are pinned here — "correcting" the preset to make the
+    numbers agree is a plausible mistake that would distort every render.
+    """
+
+    @pytest.fixture
+    def landscape(self) -> QuiltSpec:
+        return QUILT_PRESETS["16-landscape"]
+
+    # -- Preset fidelity ----------------------------------------------------
+
+    def test_matches_bridge_default_quilt(self, landscape):
+        """Verified against the defaultQuilt Bridge reports for hardware
+        version "16_gen3_l" (LKG-J00332)."""
+        assert (landscape.columns, landscape.rows) == (8, 6)
+        assert landscape.n_views == 48
+        assert (landscape.quilt_width, landscape.quilt_height) == (7680, 4320)
+        assert landscape.aspect == 1.77778
+
+    def test_native_cone_is_50_degrees(self, landscape):
+        """Wider than the 35 deg QuiltSpec default — the device's own optics,
+        not the rendering convention."""
+        default = QuiltSpec(columns=1, rows=1, quilt_width=8, quilt_height=8, aspect=1.0)
+        assert landscape.view_cone == 50.0
+        assert default.view_cone == 35.0
+
+    # -- Anamorphic tile geometry ------------------------------------------
+
+    def test_tile_size(self, landscape):
+        assert (landscape.tile_width, landscape.tile_height) == (960, 720)
+
+    def test_tiles_are_stored_squeezed(self, landscape):
+        """The tile is 4:3 while the view it holds is 16:9.  The display
+        un-squeezes on playback; the quilt stores the compressed form."""
+        assert landscape.tile_width / landscape.tile_height == pytest.approx(4 / 3)
+        assert landscape.aspect == pytest.approx(16 / 9, rel=1e-5)
+        assert landscape.tile_width / landscape.tile_height != pytest.approx(landscape.aspect)
+
+    def test_views_are_captured_wider_than_the_tile(self, landscape):
+        """Both backends render at ``tile_height * aspect`` so the frustum is
+        undistorted, then let assemble_quilt squeeze it in.  Rendering at the
+        tile width instead would stretch the scene horizontally by 4/3."""
+        render_w = round(landscape.tile_height * landscape.aspect)
+        assert render_w == 1280
+        assert landscape.tile_width / render_w == pytest.approx(0.75)
+
+    def test_tiling_covers_the_quilt_exactly(self, landscape):
+        # Unlike the 65", this preset divides evenly: no unused margin.
+        assert landscape.tile_width * landscape.columns == landscape.quilt_width
+        assert landscape.tile_height * landscape.rows == landscape.quilt_height
+
+    def test_corner_views(self, landscape):
+        assert landscape.tile_origin(0) == (0, 3600)  # view 0: bottom-left
+        assert landscape.tile_origin(47) == (6720, 0)  # view 47: top-right
+
+    def test_filename_suffix_bridge_parses(self, landscape):
+        assert landscape.filename("museum") == "museum_qs8x6a1.77778.png"
+
+    # -- Assembly -----------------------------------------------------------
+
+    def test_assembly_squeezes_views_into_tiles(self):
+        """A 16:9 view laid into a 4:3 tile must lose width, not height.
+
+        Run at 1/10 scale — same aspects and squeeze factor, 1% of the
+        pixels.  The full-resolution equivalent is marked slow below.
+        """
+        spec = QuiltSpec(columns=8, rows=6, quilt_width=768, quilt_height=432, aspect=1.77778)
+        assert (spec.tile_width, spec.tile_height) == (96, 72)
+        views = [np.full((72, 128, 3), i * 5, dtype=np.uint8) for i in range(spec.n_views)]
+        quilt = assemble_quilt(views, spec)
+        assert quilt.shape == (432, 768, 3)
+        for i in (0, 24, 47):
+            x, y = spec.tile_origin(i)
+            assert quilt[y + 36, x + 48, 0] == i * 5
+
+    def test_assembly_preserves_view_order(self):
+        """View 0 must land bottom-left and view 47 top-right: get this wrong
+        and the hologram's look-around runs backwards."""
+        spec = QuiltSpec(columns=8, rows=6, quilt_width=768, quilt_height=432, aspect=1.77778)
+        views = [np.full((72, 128, 3), i, dtype=np.uint8) for i in range(spec.n_views)]
+        quilt = assemble_quilt(views, spec)
+        assert quilt[432 - 36, 48, 0] == 0
+        assert quilt[36, 768 - 48, 0] == 47
+
+    @pytest.mark.slow
+    def test_full_resolution_assembly(self, landscape):
+        pytest.importorskip("PIL")
+        views = (np.full((720, 1280, 3), i, dtype=np.uint8) for i in range(landscape.n_views))
+        quilt = assemble_quilt(views, landscape)
+        assert quilt.shape == (4320, 7680, 3)
+        assert quilt.dtype == np.uint8
+        for i in (0, landscape.n_views - 1):
+            x, y = landscape.tile_origin(i)
+            assert quilt[y + 360, x + 480, 0] == i
+
+    # -- Video --------------------------------------------------------------
+
+    def test_video_uses_hevc_without_padding(self, landscape):
+        """7680 px exceeds the 6000 px H.264 ceiling, and both dimensions are
+        even, so yuv420p needs no pad filter."""
+        args = _encode_args(landscape, crf=18)
+        assert "libx265" in args
+        assert "-vf" not in args
+
+    # -- Camera sweep -------------------------------------------------------
+
+    def test_sweep_spans_the_native_cone(self, landscape):
+        offs = view_offsets(landscape, distance=48.5)
+        assert offs.shape == (48,)
+        assert offs[-1] == pytest.approx(48.5 * math.tan(math.radians(25.0)))
+        np.testing.assert_allclose(offs, -offs[::-1], atol=1e-12)
+
+    # -- Depth budget on this device ---------------------------------------
+
+    def test_museum_depth_budget(self, landscape):
+        """The published museum figures, on this device's real 720 px tiles.
+
+        Anchors the whole chain — preset, cone, focal plane, tile height —
+        to numbers measured off finished renders (docs/povray.md).
+        """
+        spec = replace(landscape, view_cone=25.565)  # clearance-limited
+        z = focal_distance_for_range(32.0, 100.0)
+        assert z == pytest.approx(48.48, abs=0.01)
+        assert view_disparity(spec, 53.13, z, 32.0) == pytest.approx(3.58, abs=0.01)
+        assert view_disparity(spec, 53.13, z, 100.0) == pytest.approx(3.58, abs=0.01)
+        assert view_disparity(spec, 53.13, z, math.inf) == pytest.approx(6.95, abs=0.01)
+
+    def test_native_cone_costs_the_budget(self, landscape):
+        """At the device's full 50 deg cone the same scene doubles its
+        disparity, past the ~5 px comfort ceiling — the trade the museum
+        script makes when it narrows the cone for wall clearance."""
+        z = focal_distance_for_range(32.0, 100.0)
+        assert view_disparity(landscape, 53.13, z, 32.0) == pytest.approx(7.36, abs=0.01)
+
+    def test_object_centric_fov_advice_blows_up_here(self, landscape):
+        """The "~14 deg FOV" advice that circulates for Looking Glass content
+        is for object-centric scenes.  On an interior it magnifies parallax:
+        30 px between adjacent views, ghosting on every hard edge."""
+        z = focal_distance_for_range(32.0, 100.0)
+        assert view_disparity(landscape, 14.0, z, 32.0) > 25.0
 
 
 # ---------------------------------------------------------------------------

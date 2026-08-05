@@ -414,6 +414,18 @@ class TestRenderPovQuilt:
         with pytest.raises(ValueError, match="expected 4 views"):
             assemble_quilt((np.zeros((32, 32, 3), np.uint8) for _ in range(3)), spec)
 
+    def test_anamorphic_quilt_assembles(self, scene, camera):
+        """The 16" Landscape shape: views are captured at 16:9 and squeezed
+        into 4:3 tiles.  Scaled down 10x, the squeeze factor is the device's
+        own 0.75 — tiles 96x72 holding views rendered 128x72.
+        """
+        from quiltwright.povray import render_pov_quilt
+
+        spec = QuiltSpec(columns=2, rows=2, quilt_width=192, quilt_height=144, aspect=1.77778)
+        assert (spec.tile_width, spec.tile_height) == (96, 72)
+        quilt = render_pov_quilt(scene, spec, camera, progress=False)
+        assert quilt.shape == (144, 192, 3)
+
     def test_missing_scene_raises(self, tiny_spec, camera, tmp_path):
         from quiltwright.povray import render_pov_quilt
 
