@@ -1,6 +1,6 @@
 # Molecules from PDB files, via pdb2pov
 
-**Upstream**: <https://github.com/suchanek/pdb2pov> (v2.1; the original RCS
+**Upstream**: <https://github.com/suchanek/pdb2pov> (v2.2; the original RCS
 logs are dated 1993–94)
 **Feeds**: [`quiltwright.povray`](povray.md)
 
@@ -11,7 +11,7 @@ v2.0 the scenes it writes need no adaptation at all.
 It is also, conveniently, *better* prepared for holographic output than most
 hand-built scenes. See [Why molecules are the easy case](#why-molecules-are-the-easy-case).
 
-> **Updated for pdb2pov 2.1.** This page previously documented a set of build
+> **Updated for pdb2pov 2.2.** This page previously documented a set of build
 > workarounds and a `#version 3.1;` prepending step. Both are gone: v2.0 is
 > prototyped C17 and emits POV-Ray 3.7. If you are on v1.19, see
 > [Working with v1.19](#working-with-v119) at the foot of this page.
@@ -29,8 +29,9 @@ That is the whole procedure. There are no portability flags to arrange, no
 force-included prototype header, and no need to disable `_FORTIFY_SOURCE`.
 The build is clean under `-Wall -Wextra -Wpedantic`.
 
-`make check` converts the bundled `1CRN.pdb` several ways as a smoke test, and
-asserts that the 2.1 parser changes leave crambin's output unchanged.
+`make check` converts the bundled `1CRN.pdb` several ways, asserts that the
+parser changes leave crambin's output unchanged, and renders one atom of every
+element to prove the element table and the include files agree.
 
 ---
 
@@ -59,18 +60,36 @@ any two-letter element sharing a first letter with a one-letter one, and
 anything it could not place was dropped without a message — so an ion could
 vanish from a scene while the header atom count still looked plausible:
 
-| Record | Element | Through 2.0 | 2.1 |
-|--------|---------|-------------|-----|
-| `NA` | sodium | **nitrogen** | sodium |
-| `CL` | chlorine | **carbon** | chlorine |
-| `F` | fluorine | **iron** | fluorine |
-| `ZN` | zinc | **silently dropped** | zinc |
-| `MG` | magnesium | **silently dropped** | magnesium |
+| Record | Element | Through 2.0 | 2.1 and later |
+|--------|---------|-------------|---------------|
+| `NA` | sodium | **nitrogen** | sodium, own colour |
+| `CL` | chlorine | **carbon** | chlorine, own colour |
+| `F` | fluorine | **iron** | fluorine, own colour |
+| `ZN` | zinc | **silently dropped** | zinc, own colour |
+| `MG` | magnesium | **silently dropped** | magnesium, own colour |
 
-Only H, C, N, O, S, P, Ca and Fe have dedicated textures in `atoms2.inc`.
-Everything else now renders as `Atom_X`, a neutral grey sphere, and the
-conversion reports how many atoms landed there and which elements they were.
-Nothing disappears silently.
+**The palette covers 33 elements as of 2.2**, up from eight:
+
+| Group | Elements |
+|-------|----------|
+| Organic and biological | H, C, N, O, S, P, Se |
+| Halogens | F, Cl, Br, I |
+| Alkali and alkaline earth | Li, Na, K, Mg, Ca |
+| Transition and heavy metals | Mn, Fe, Co, Ni, Cu, Zn, Mo, W, Ag, Cd, Pt, Au, Hg |
+| Other | B, Si, As, Xe |
+
+That covers the biological metals, halogen ligands and phasing heavy atoms,
+so a zinc finger, a selenomethionine structure and a mercury derivative all
+come out correctly coloured and sized rather than as identical grey spheres.
+Anything still unrecognised renders as `Atom_X`, a neutral grey sphere, and
+the conversion reports how many atoms landed there and which elements they
+were. Nothing disappears silently.
+
+The original eight keep their 1994 colours, which are **not** the CPK
+convention — carbon is green, phosphorus yellow, iron dark purple, calcium
+white. Elements added in 2.2 use Jmol/CPK colours, so a scene mixing old and
+new elements mixes two conventions. That is deliberate: changing the original
+eight would alter every existing render.
 
 **Alternate conformations are now filtered** to the blank and `A` altLoc
 indicators. Keeping all of them — the behaviour through 2.0 — puts both
