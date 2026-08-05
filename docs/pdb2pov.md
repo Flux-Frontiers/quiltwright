@@ -1,6 +1,6 @@
 # Molecules from PDB files, via pdb2pov
 
-**Upstream**: <https://github.com/suchanek/pdb2pov> (v2.0; the original RCS
+**Upstream**: <https://github.com/suchanek/pdb2pov> (v2.1; the original RCS
 logs are dated 1993–94)
 **Feeds**: [`quiltwright.povray`](povray.md)
 
@@ -11,7 +11,7 @@ v2.0 the scenes it writes need no adaptation at all.
 It is also, conveniently, *better* prepared for holographic output than most
 hand-built scenes. See [Why molecules are the easy case](#why-molecules-are-the-easy-case).
 
-> **Updated for pdb2pov 2.0.** This page previously documented a set of build
+> **Updated for pdb2pov 2.1.** This page previously documented a set of build
 > workarounds and a `#version 3.1;` prepending step. Both are gone: v2.0 is
 > prototyped C17 and emits POV-Ray 3.7. If you are on v1.19, see
 > [Working with v1.19](#working-with-v119) at the foot of this page.
@@ -29,7 +29,8 @@ That is the whole procedure. There are no portability flags to arrange, no
 force-included prototype header, and no need to disable `_FORTIFY_SOURCE`.
 The build is clean under `-Wall -Wextra -Wpedantic`.
 
-`make check` converts the bundled `1CRN.pdb` three ways as a smoke test.
+`make check` converts the bundled `1CRN.pdb` several ways as a smoke test, and
+asserts that the 2.1 parser changes leave crambin's output unchanged.
 
 ---
 
@@ -47,36 +48,50 @@ grep -E "^(ATOM|END)" 1CRN.pdb > crambin.pdb          # protein only
 grep -E "^(ATOM|HETATM|END)" 1CRN.pdb > crambin.pdb   # keep heteroatoms
 ```
 
-### Two parser limits worth knowing
+### Heteroatoms and alternate conformations
 
-Neither is new, but both are easy to hit and neither announces itself.
+Two long-standing parser defects were fixed in **pdb2pov 2.1**. If you are on
+2.0 or earlier they still apply, and the workarounds are given below.
 
-**Elements are guessed from the atom name, not the element column.** The
-parser reads the first one or two characters of the PDB atom name rather than
-columns 77–78. Ordinary protein atoms are fine, but heteroatoms are not:
+**Elements now come from the PDB element column** (77–78) rather than being
+guessed from the first characters of the atom name. The guess was wrong for
+any two-letter element sharing a first letter with a one-letter one, and
+anything it could not place was dropped without a message — so an ion could
+vanish from a scene while the header atom count still looked plausible:
 
-| Record | Actual element | Rendered as |
-|--------|----------------|-------------|
-| `NA` | sodium | **nitrogen** |
-| `CL` | chlorine | **carbon** |
-| `ZN` | zinc | **silently dropped** |
-| `MG` | magnesium | **silently dropped** |
-| `F` | fluorine | **iron** |
+| Record | Element | Through 2.0 | 2.1 |
+|--------|---------|-------------|-----|
+| `NA` | sodium | **nitrogen** | sodium |
+| `CL` | chlorine | **carbon** | chlorine |
+| `F` | fluorine | **iron** | fluorine |
+| `ZN` | zinc | **silently dropped** | zinc |
+| `MG` | magnesium | **silently dropped** | magnesium |
 
-Anything with no matching texture in `atoms2.inc` is skipped without a
-message, so an ion can vanish from a scene and the atom count in the header
-will still look plausible. If your structure has metals or ions that matter,
-check them.
+Only H, C, N, O, S, P, Ca and Fe have dedicated textures in `atoms2.inc`.
+Everything else now renders as `Atom_X`, a neutral grey sphere, and the
+conversion reports how many atoms landed there and which elements they were.
+Nothing disappears silently.
 
-**Alternate conformations are all kept.** A residue modelled in two
-conformations contributes both to the scene — overlapping spheres at nearly
-identical positions, plus spurious bonds between the A and B conformers. A
-7-record test file with three side-chain atoms in two conformations yields 7
-atoms and 13 bonds where the correct answer is 4 and 3. Strip them first if
-your structure has them:
+**Alternate conformations are now filtered** to the blank and `A` altLoc
+indicators. Keeping all of them — the behaviour through 2.0 — puts both
+conformers in the scene: overlapping spheres at nearly identical positions,
+plus spurious bonds between the A and B copies. A 7-record test file with
+three side-chain atoms in two conformations gave 7 atoms and 13 bonds where
+the correct answer is 4 and 3. `--keep-altlocs` restores the old behaviour.
+
+**On 2.0 or earlier**, strip alternate conformations yourself:
 
 ```bash
 awk '/^(ATOM|HETATM)/ && (substr($0,17,1)==" " || substr($0,17,1)=="A")' in.pdb > out.pdb
+```
+
+and check any metals or ions by hand, since they will be mistyped or missing.
+
+**Chain selection.** 2.1 also adds `--chain`, so a single subunit can be
+converted without pre-filtering the file:
+
+```bash
+./pdb2pov 4hhb hemoglobin_a -b -d 1.9 -o --chain A
 ```
 
 If a structure still misbehaves, stripping column 22 restores the pre-1996
@@ -110,6 +125,9 @@ Arguments are `InputFile OutputFile` **without extensions** — `.pdb` and
 | `-s` / `-g` / `-h` | cloudy sky / plain ground / checkered ground |
 | `-a` | area light |
 | `-x -y -z` | absolute axis rotations in degrees |
+| `--chain IDS` | restrict to the given chain IDs, e.g. `--chain AB` (2.1) |
+| `--keep-altlocs` | keep every alternate conformation (2.1) |
+| `--legacy-elements` | guess elements from atom names, pre-2.1 style (2.1) |
 
 `-o` is the one to reach for when composing, and it is the right choice for
 quilts specifically — see below.
