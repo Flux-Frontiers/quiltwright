@@ -47,7 +47,7 @@ Author: Eric G. Suchanek, PhD
 
 from __future__ import annotations
 
-# pylint: disable=import-outside-toplevel  # viz deps (pillow, imageio-ffmpeg) are optional/heavy; lazy-loaded only when needed
+# pylint: disable=import-outside-toplevel  # pyvista/imageio-ffmpeg are optional extras and pillow is heavy; all lazy-loaded only when needed
 import json
 import math
 import urllib.request

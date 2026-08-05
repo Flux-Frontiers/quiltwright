@@ -3,12 +3,21 @@
 import math
 import re
 import shutil
+from dataclasses import replace
 
 import numpy as np
 import pytest
 
 from quiltwright.lfd import QUILT_PRESETS, QuiltSpec, view_offsets
-from quiltwright.povray import PovCamera, _find_povray, camera_block
+from quiltwright.povray import (
+    Clearance,
+    PovCamera,
+    _find_povray,
+    camera_block,
+    depth_budget,
+    format_depth_budget,
+    sweep_extent,
+)
 
 # ---------------------------------------------------------------------------
 # Fixtures + helpers
@@ -137,6 +146,157 @@ class TestCameraBlock:
 
 
 # ---------------------------------------------------------------------------
+# Framing an existing scene
+# ---------------------------------------------------------------------------
+
+
+class TestAimed:
+    def test_keeps_view_direction_and_lens(self):
+        """Re-aiming must not swing the camera off the scene's own axis."""
+        cam = PovCamera.aimed((15.0, 20.0, 6.0), (58.0, 19.0, 53.0), fov=53.13, focal_distance=48.5)
+        base = PovCamera(location=(15.0, 20.0, 6.0), look_at=(58.0, 19.0, 53.0))
+        np.testing.assert_allclose(cam.basis()[0], base.basis()[0], atol=1e-12)
+        assert cam.fov == pytest.approx(53.13)
+
+    def test_focal_distance_applied(self):
+        cam = PovCamera.aimed((0, 0, 0), (0, 0, 10), fov=30.0, focal_distance=48.5)
+        assert cam.focal_distance == pytest.approx(48.5)
+        np.testing.assert_allclose(cam.look_at, [0, 0, 48.5], atol=1e-12)
+
+    def test_defaults_to_scene_aim_distance(self):
+        cam = PovCamera.aimed((0, 0, 0), (0, 0, 10), fov=30.0)
+        assert cam.focal_distance == pytest.approx(10.0)
+        np.testing.assert_allclose(cam.look_at, [0, 0, 10], atol=1e-12)
+
+    def test_lateral_shift_slides_eye_and_aim_together(self):
+        """The look-at point rides along with the eye, so the view direction
+        is untouched — the whole point of shifting rather than re-aiming."""
+        cam = PovCamera.aimed((0, 0, 0), (0, 0, 10), fov=30.0, lateral_shift=-5.0)
+        np.testing.assert_allclose(cam.location, [-5, 0, 0], atol=1e-12)
+        np.testing.assert_allclose(cam.look_at, [-5, 0, 10], atol=1e-12)
+
+    def test_rejects_non_positive_focal_distance(self):
+        with pytest.raises(ValueError, match="focal_distance"):
+            PovCamera.aimed((0, 0, 0), (0, 0, 10), fov=30.0, focal_distance=0.0)
+
+    def test_rejects_degenerate_aim(self):
+        with pytest.raises(ValueError, match="identical"):
+            PovCamera.aimed((1, 1, 1), (1, 1, 1), fov=30.0)
+
+
+class TestSweepExtent:
+    def test_matches_outermost_view_offset(self):
+        spec = QUILT_PRESETS["portrait"]
+        offsets = view_offsets(spec, 48.5)
+        assert sweep_extent(spec, 48.5) == pytest.approx(abs(offsets).max())
+
+    def test_scales_with_focal_distance(self):
+        spec = QUILT_PRESETS["portrait"]
+        assert sweep_extent(spec, 20.0) == pytest.approx(2 * sweep_extent(spec, 10.0))
+
+
+class TestClearance:
+    @pytest.fixture
+    def museum(self) -> Clearance:
+        return Clearance(left=-18.0, right=8.0, margin=2.0)
+
+    def test_centre_and_half_width(self, museum):
+        assert museum.centre == pytest.approx(-5.0)
+        assert museum.half_width == pytest.approx(11.0)
+
+    def test_cone_is_the_measured_museum_value(self, museum):
+        # 2*atan(11 / 46.87) -> the 26.4 deg the museum render uses, where
+        # 46.87 is the harmonic mean of its measured 31..96 depth range.
+        assert museum.cone(46.87) == pytest.approx(26.4, abs=0.05)
+
+    def test_cone_sweep_lands_on_the_margin(self, museum):
+        """The derived cone must consume exactly the usable corridor: any
+        wider and the outer views render the back of a wall."""
+        spec = replace(QUILT_PRESETS["16-landscape"], view_cone=museum.cone(48.5))
+        assert sweep_extent(spec, 48.5) == pytest.approx(museum.half_width)
+        assert museum.fits(spec, 48.5)
+
+    @pytest.mark.parametrize("cone", [35.0, 50.0])
+    def test_uncorrected_cones_do_not_fit_the_museum(self, museum, cone):
+        """The documented 35 deg standard and the 16" Landscape's own 50 deg
+        both walk through the wall — the failure this class exists to catch,
+        and the one that shows up only in the views nobody previews."""
+        spec = replace(QUILT_PRESETS["16-landscape"], view_cone=cone)
+        assert not museum.fits(spec, 48.5)
+
+    @pytest.mark.parametrize("focal", [5.0, 48.5, 63.7, 1000.0])
+    def test_derived_cone_never_reports_a_wall_strike(self, museum, focal):
+        """Rounding must not make the cone this class derived look like it
+        leaves the room; the report would cry wolf on every render."""
+        spec = replace(QUILT_PRESETS["16-landscape"], view_cone=museum.cone(focal))
+        assert museum.fits(spec, focal)
+
+    def test_inverted_corridor_rejected(self):
+        with pytest.raises(ValueError, match="must exceed"):
+            Clearance(left=8.0, right=-18.0)
+
+    def test_negative_margin_rejected(self):
+        with pytest.raises(ValueError, match="non-negative"):
+            Clearance(left=-1.0, right=1.0, margin=-0.5)
+
+    def test_margin_consuming_corridor_rejected(self):
+        with pytest.raises(ValueError, match="no room"):
+            Clearance(left=-1.0, right=1.0, margin=1.0).cone(10.0)
+
+    def test_non_positive_focal_distance_rejected(self, museum):
+        with pytest.raises(ValueError, match="focal_distance"):
+            museum.cone(0.0)
+
+
+class TestDepthBudget:
+    @pytest.fixture
+    def spec(self) -> QuiltSpec:
+        """The museum's quilt: 16" Landscape at its clearance-limited cone."""
+        cone = Clearance(left=-18.0, right=8.0, margin=2.0).cone(46.87)
+        return replace(QUILT_PRESETS["16-landscape"], view_cone=cone)
+
+    def test_focal_plane_has_zero_disparity(self, spec):
+        cam = PovCamera(location=(0, 0, 0), look_at=(0, 0, 46.87), fov=53.13)
+        rows = depth_budget(spec, cam, {"focal": 46.87, "near": 31.0, "sky": math.inf})
+        assert dict((label, px) for label, _, px in rows)["focal"] == pytest.approx(0.0)
+
+    def test_harmonic_focal_plane_balances_the_extremes(self, spec):
+        """Near and far disparity match when the focal plane sits at their
+        harmonic mean — the property the museum camera is built on."""
+        cam = PovCamera(location=(0, 0, 0), look_at=(0, 0, 5952 / 127), fov=53.13)
+        rows = dict((label, px) for label, _, px in depth_budget(spec, cam, {"n": 31.0, "f": 96.0}))
+        assert rows["n"] == pytest.approx(rows["f"], rel=1e-6)
+
+    def test_rows_preserve_input_order(self, spec):
+        cam = PovCamera(location=(0, 0, 0), look_at=(0, 0, 46.87), fov=53.13)
+        depths = {"near": 31.0, "focal": 46.87, "far": 96.0}
+        assert [label for label, _, _ in depth_budget(spec, cam, depths)] == list(depths)
+
+    def test_report_flags_a_sweep_that_leaves_the_room(self, spec):
+        cam = PovCamera(location=(0, 0, 0), look_at=(0, 0, 46.87), fov=53.13)
+        wide = replace(spec, view_cone=35.0)
+        text = format_depth_budget(
+            wide, cam, {"near": 31.0}, clearance=Clearance(-18.0, 8.0, margin=2.0)
+        )
+        assert "WARNING" in text
+
+    def test_report_is_quiet_when_the_sweep_fits(self, spec):
+        cam = PovCamera(location=(0, 0, 0), look_at=(0, 0, 46.87), fov=53.13)
+        text = format_depth_budget(
+            spec, cam, {"near": 31.0}, clearance=Clearance(-18.0, 8.0, margin=2.0)
+        )
+        assert "WARNING" not in text
+        assert "clearance +/-11.0" in text
+
+    def test_report_flags_soft_depths(self, spec):
+        cam = PovCamera(location=(0, 0, 0), look_at=(0, 0, 46.87), fov=53.13)
+        text = format_depth_budget(spec, cam, {"near": 31.0, "sky": math.inf}, soft_px=5.5)
+        near, sky = [line for line in text.splitlines() if "near" in line or "sky" in line]
+        assert "<- soft" not in near
+        assert "<- soft" in sky
+
+
+# ---------------------------------------------------------------------------
 # Binary discovery
 # ---------------------------------------------------------------------------
 
@@ -252,6 +412,18 @@ class TestRenderPovQuilt:
         spec = QuiltSpec(columns=2, rows=2, quilt_width=64, quilt_height=64, aspect=1.0)
         with pytest.raises(ValueError, match="expected 4 views"):
             assemble_quilt((np.zeros((32, 32, 3), np.uint8) for _ in range(3)), spec)
+
+    def test_anamorphic_quilt_assembles(self, scene, camera):
+        """The 16" Landscape shape: views are captured at 16:9 and squeezed
+        into 4:3 tiles.  Scaled down 10x, the squeeze factor is the device's
+        own 0.75 — tiles 96x72 holding views rendered 128x72.
+        """
+        from quiltwright.povray import render_pov_quilt
+
+        spec = QuiltSpec(columns=2, rows=2, quilt_width=192, quilt_height=144, aspect=1.77778)
+        assert (spec.tile_width, spec.tile_height) == (96, 72)
+        quilt = render_pov_quilt(scene, spec, camera, progress=False)
+        assert quilt.shape == (144, 192, 3)
 
     def test_missing_scene_raises(self, tiny_spec, camera, tmp_path):
         from quiltwright.povray import render_pov_quilt

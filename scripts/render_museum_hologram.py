@@ -1,38 +1,22 @@
 #!/usr/bin/env python
 """
-Render the "meek museum" POV-Ray scene as a Looking Glass hologram.
+Render "Eric's Science Museum" as a Looking Glass hologram.
 
-The scene is a 1994 Michael Mittelstadt interior, later extended with
-molecular exhibits under bell jars.  It is close to ideal light-field
-content: a foreground pedestal, mid-depth framed art and exhibits, and a
-window onto terrain and sky at infinity.
+A 1995-97 POV-Ray scene: molecular exhibits under bell jars in a room
+borrowed from Michael "meek" Mittelstadt.  What is in it and why is in
+``docs/about-the-image.md``; the derivation of the numbers below is in
+``docs/povray.md``.
 
-The camera keeps the scene's own viewpoint, aim direction and lens, and
-changes three things — each measured from the scene rather than guessed.
+The camera keeps the scene's own viewpoint, aim direction and lens.  Three
+things change, each measured from the scene rather than guessed:
 
-*Focal plane.*  The scene's ``camera_zdna3`` looks at a point 63.7 units
-away, chosen for composition.  A hologram wants the focal plane placed to
-balance the disparity budget instead.  The depth range was measured by
-sweeping an opaque plane along the view axis (nearest geometry ~32 units,
-structured far content ~100, with ~10% of the frame — sky through the window
-— at effective infinity), and :func:`focal_distance_for_range` turns that
-into the balanced distance.  The new look-at point sits on the *original*
-aim ray, so the view direction is untouched.
-
-*Sweep clearance.*  This is the constraint peculiar to interiors, and the
-one that bites hardest.  The quilt sweeps the eye laterally by
-``focal_distance * tan(cone/2)`` — at a 35-degree cone and this focal plane,
-+/-15.3 units.  The room is not that wide: probing eye positions along the
-right vector shows usable travel only from -18 to +8 before the camera
-passes through a wall and renders its unlit back face.  A cone chosen
-without checking silently blackens the outer views — 11 of 48, in the first
-render of this scene.  The eye is therefore shifted to the middle of that
-corridor and the cone derived from the clearance that remains.
-
-*Aspect and cone.*  Rendered for the 16" Landscape.  The cone comes from
-the clearance above (~26 degrees), which is well inside both the device's
-50-degree native cone and the documented 35-degree standard, and lands
-adjacent-view disparity near 3.6 px.
+* **Focal plane** — moved from the scene's composed 63.7 units to the
+  harmonic mean of the measured depth range (31 to 96 units), along the
+  original aim ray.
+* **Eye position** — shifted to the middle of the room's usable lateral
+  corridor, measured at -18 to +8 units along the right vector.
+* **View cone** — derived from the clearance that remains, ~26 degrees.
+  The default 35 blackened 11 of 48 views by sweeping through a wall.
 
 Usage::
 
@@ -50,15 +34,8 @@ import time
 from dataclasses import replace
 from pathlib import Path
 
-import numpy as np
-
-from quiltwright.lfd import (
-    QUILT_PRESETS,
-    focal_distance_for_range,
-    save_quilt,
-    view_disparity,
-)
-from quiltwright.povray import PovCamera, render_pov_quilt
+from quiltwright.lfd import QUILT_PRESETS, focal_distance_for_range, save_quilt
+from quiltwright.povray import Clearance, PovCamera, format_depth_budget, render_pov_quilt
 
 # --- Scene -----------------------------------------------------------------
 
@@ -76,73 +53,36 @@ AIM = (58.0, 19.0, 53.0)
 #: Vertical FOV of the scene's ``the_lens`` (direction 1, up 1 -> 2*atan(0.5)).
 FOV = 53.13
 
-#: Depth range measured by plane-sweep probe, in scene units.
-NEAR_DEPTH = 32.0
-FAR_DEPTH = 100.0
+#: Depth range measured by plane-sweep probe, in scene units: an opaque plane
+#: slides along the view axis and the frame is scored for how much geometry
+#: remains in front of it.  *near* is where geometry first appears (the near
+#: pedestal's tabletop, at 0.1% of frame); *far* is where 95% of everything
+#: occludable is accounted for.  The remaining ~6% of the frame is sky through
+#: the window, at effective infinity, and is left out of the balance on
+#: purpose — it is low-contrast and can afford the disparity.
+NEAR_DEPTH = 31.0
+FAR_DEPTH = 96.0
 
 #: Usable lateral eye travel along the camera's right vector, measured by
 #: rendering at candidate offsets and watching for the frame to collapse to
 #: the unlit back of a wall.  The corridor is asymmetric about the scene's
-#: own eye position.
-CLEARANCE_LEFT = -18.0
-CLEARANCE_RIGHT = 8.0
-#: Safety margin kept between the outermost view and the wall, in scene
-#: units.  The walls are not perfectly planar and grazing them dims the
-#: outer views well before the camera actually passes through.
-CLEARANCE_MARGIN = 2.0
+#: own eye position, and the 2-unit margin keeps the outermost view off
+#: walls that are neither planar nor evenly lit at grazing angles.
+CLEARANCE = Clearance(left=-18.0, right=8.0, margin=2.0)
 
 
 def museum_camera() -> PovCamera:
     """The scene's viewpoint, re-aimed and re-centred for the view sweep.
 
-    The eye slides along the right vector to the middle of the measured
-    lateral corridor so the sweep has symmetric room, and the look-at point
-    moves to the distance that balances near/far disparity.  The view
-    *direction* and lens are the scene's own.
-
     :return: The centre-view camera.
     """
-    eye = np.asarray(EYE, dtype="d")
-    forward = np.asarray(AIM, dtype="d") - eye
-    forward /= np.linalg.norm(forward)
-    right = np.cross((0.0, 1.0, 0.0), forward)
-    right /= np.linalg.norm(right)
-
-    eye = eye + right * ((CLEARANCE_LEFT + CLEARANCE_RIGHT) / 2.0)
-    focal = focal_distance_for_range(NEAR_DEPTH, FAR_DEPTH)
-    return PovCamera(location=tuple(eye), look_at=tuple(eye + forward * focal), fov=FOV)
-
-
-def clearance_limited_cone(camera: PovCamera) -> float:
-    """Widest view cone whose outermost eye still clears the walls.
-
-    :param camera: The re-centred centre-view camera.
-    :return: Total sweep in degrees.
-    """
-    half_corridor = (CLEARANCE_RIGHT - CLEARANCE_LEFT) / 2.0 - CLEARANCE_MARGIN
-    return 2.0 * math.degrees(math.atan(half_corridor / camera.focal_distance))
-
-
-def report_depth_budget(spec, camera: PovCamera) -> None:
-    """Print the sweep extent and adjacent-view disparity at depth extremes."""
-    z = camera.focal_distance
-    sweep = z * math.tan(math.radians(spec.view_cone) / 2.0)
-    room = (CLEARANCE_RIGHT - CLEARANCE_LEFT) / 2.0
-    print(f"  focal plane      {z:.1f} units (scene's own aim was 63.7)")
-    print(f"  view cone        {spec.view_cone:.1f} deg over {spec.n_views} views")
-    print(f"  eye sweep        +/-{sweep:.1f} units (walls at +/-{room:.1f})")
-    if sweep > room:
-        print("    WARNING: sweep exceeds wall clearance; outer views will be black")
-    print("  adjacent-view disparity:")
-    for label, depth in (
-        ("nearest geometry", NEAR_DEPTH),
-        ("focal plane", z),
-        ("far interior", FAR_DEPTH),
-        ("sky (infinite)", math.inf),
-    ):
-        px = view_disparity(spec, camera.fov, z, depth)
-        flag = "" if px <= 5.5 else "  <- soft"
-        print(f"    {label:<18} {depth:>8.1f}  {px:5.2f} px{flag}")
+    return PovCamera.aimed(
+        EYE,
+        AIM,
+        fov=FOV,
+        focal_distance=focal_distance_for_range(NEAR_DEPTH, FAR_DEPTH),
+        lateral_shift=CLEARANCE.centre,
+    )
 
 
 def main() -> int:
@@ -186,7 +126,9 @@ def main() -> int:
         return 1
 
     camera = museum_camera()
-    cone = args.view_cone if args.view_cone is not None else clearance_limited_cone(camera)
+    cone = args.view_cone
+    if cone is None:
+        cone = CLEARANCE.cone(camera.focal_distance)
     spec = replace(QUILT_PRESETS[args.device], view_cone=cone)
     if args.preview:
         spec = replace(spec, quilt_width=spec.quilt_width // 4, quilt_height=spec.quilt_height // 4)
@@ -196,7 +138,19 @@ def main() -> int:
         f"  quilt            {spec.quilt_width}x{spec.quilt_height}, "
         f"tiles {spec.tile_width}x{spec.tile_height}"
     )
-    report_depth_budget(spec, camera)
+    print(
+        format_depth_budget(
+            spec,
+            camera,
+            {
+                "nearest geometry": NEAR_DEPTH,
+                "focal plane": camera.focal_distance,
+                "far interior": FAR_DEPTH,
+                "sky (infinite)": math.inf,
+            },
+            clearance=CLEARANCE,
+        )
+    )
 
     started = time.time()
     quilt = render_pov_quilt(

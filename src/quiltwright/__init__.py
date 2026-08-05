@@ -55,7 +55,15 @@ from .lfd import (
     view_disparity,
     view_offsets,
 )
-from .povray import PovCamera, camera_block, render_pov_quilt
+from .povray import (
+    Clearance,
+    PovCamera,
+    camera_block,
+    depth_budget,
+    format_depth_budget,
+    render_pov_quilt,
+    sweep_extent,
+)
 
 __version__ = "0.1.0"
 __all__ = [
@@ -67,6 +75,10 @@ __all__ = [
     # Depth budget
     "view_disparity",
     "focal_distance_for_range",
+    "depth_budget",
+    "format_depth_budget",
+    "sweep_extent",
+    "Clearance",
     # PyVista backend
     "render_quilt",
     "render_quilt_video",
