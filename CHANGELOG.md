@@ -36,6 +36,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   output from 14 Mar 1997, and pdb2pov still builds. The narrative moved here
   out of the `render_museum_hologram.py` docstring, which is now four sentences
   about the camera, and out of `povray.md § 4`, which is now only the numbers.
+- `scripts/measure_depth_range.py` — measures a scene's depth range instead of
+  estimating it. Slides an opaque plane along the view axis and scores how much
+  of the frame stays in front of it, giving a cumulative depth histogram, and
+  reports the near distance, the far distance covering 95% of occludable
+  content, and the sky fraction that never occludes at all. Two traps are
+  handled and documented: POV-Ray disables transparency below `+Q8`, so a cheap
+  probe reports a room with no windows and no sky, and the measurement has to
+  be taken through the camera that will render, not the scene's own.
 
 ### Changed
 
@@ -64,6 +72,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   POV-Ray scenes from pdb2pov — onto two display technologies, light-field
   (quilts) and hololuminescent (2-D video). The off-axis projection note stays,
   subordinated to what it is in service of.
+- **Re-measured the museum's depth range, and everything derived from it.**
+  `NEAR_DEPTH` moves 32 → 31 and `FAR_DEPTH` 100 → 96, which moves the focal
+  plane 48.5 → 46.9, the clearance-limited cone 25.6° → 26.4°, and the
+  near/far disparity 3.58 → 3.68 px. Figures updated in `povray.md § 3-4`,
+  the README, `about-the-image.md`, and the tests that pin them.
+
+  Two corrections came out of measuring rather than estimating. The nearest
+  geometry is the near pedestal's *tabletop*, not the bell jar it carries, so
+  drawing the pedestals inward moved the near bound far less than the jar
+  itself moved. And the sky is 6.1% of the frame, not the ~10% previously
+  recorded. Re-measuring the *previous* layout with the same probe gives 26
+  units, not the 32 documented for it, so the original figure was optimistic —
+  the depth budget it produced was slightly tighter than believed, never
+  looser.
+- **Regenerated `museum_centre_view.png` and `museum_parallax.png`**, which
+  still showed the old pedestal placement. The parallax figure is now views 0
+  and 47 of the near pedestal against the painting behind it.
+- The finished-quilt verification table in `povray.md § 4` is re-measured by
+  cross-correlating feature crops between views 11 gaps apart, and now records
+  the method's two failure modes: crops spanning a range of depths return a
+  number belonging to no feature, and crops must be chosen on a view between
+  the two being compared. It gains a row for a painting that sits within a unit
+  of the focal plane and therefore does not move at all.
 - **Corrected the museum scene's provenance.** It was described as "a 1994
   Michael Mittelstadt interior, later extended with molecular exhibits", which
   inverts the authorship: the scene is "Eric's Science Museum" (begun 10 Jun

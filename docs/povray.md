@@ -157,7 +157,7 @@ The quilt sweeps the eye laterally by `Z · tan(cone/2)`. For an object on a
 turntable that distance is empty space. **Inside a room it is furniture and
 walls.**
 
-At a 35° cone with the museum's focal plane, the sweep is ±15.3 units. The
+At a 35° cone with the museum's focal plane, the sweep is ±14.8 units. The
 room's usable lateral corridor, measured by rendering at candidate offsets and
 watching for the frame to collapse to the unlit back face of a wall, is only
 −18 to +8. The first full render of this scene therefore had **11 of its 48
@@ -183,13 +183,13 @@ room = Clearance(left=-18.0, right=8.0, margin=2.0)   # measured, in scene units
 camera = PovCamera.aimed(
     (15.0, 20.0, 6.0), (58.0, 19.0, 53.0),   # the scene's own eye and aim
     fov=53.13,                               # the scene's own lens
-    focal_distance=focal_distance_for_range(32.0, 100.0),
+    focal_distance=focal_distance_for_range(31.0, 96.0),   # measured, see § 4
     lateral_shift=room.centre,               # -5: middle of the corridor
 )
 spec = replace(QUILT_PRESETS["16-landscape"], view_cone=room.cone(camera.focal_distance))
 ```
 
-For the museum that gives 25.6°, comfortably inside both the 16" Landscape's
+For the museum that gives 26.4°, comfortably inside both the 16" Landscape's
 50° native cone and the documented 35° standard. `format_depth_budget(...,
 clearance=room)` prints the sweep extent against the measured walls and warns
 when it exceeds them — print it before committing to the render, since this is
@@ -213,33 +213,43 @@ about the numbers.
 It is near-ideal light-field content: a foreground pedestal, mid-depth framed
 art, and an arched window onto terrain and sky at infinity.
 
-**Measured scene properties** (plane-sweep probe along the view axis):
+**Measured scene properties.** The depth range comes from
+[`scripts/measure_depth_range.py`](../scripts/measure_depth_range.py), which
+slides an opaque plane along the view axis and scores how much of the frame
+stays in front of it — a cumulative depth histogram of the shot. Run it
+through the camera you will render with, at the quality you will ship: POV-Ray
+disables transparency below `+Q8`, and a cheap probe reports a room with no
+windows and no sky at all.
 
-| Property | Value |
-|----------|-------|
-| Nearest geometry | ~32 units |
-| Structured far content | ~100 units |
-| Sky through window | effective infinity (~10% of frame) |
-| Lateral corridor | −18 to +8 units |
-| Scene's own vertical FOV | 53.13° |
+| Property | Value | How |
+|----------|-------|-----|
+| Nearest geometry | 31 units | first distance occupying >0.1% of frame — the near pedestal's tabletop |
+| Structured far content | 96 units | 95% of everything occludable is nearer than this |
+| Sky through window | effective infinity, 6.1% of frame | never occludes at any finite distance |
+| Lateral corridor | −18 to +8 units | eye offsets before the frame collapses to a wall |
+| Scene's own vertical FOV | 53.13° | `the_lens`, unchanged |
+
+Sky is deliberately left out of the near/far balance. A backdrop at infinity
+would drag the focal plane far back to serve content that is low-contrast and
+can afford the disparity anyway.
 
 **Derived camera:**
 
 | Parameter | Value | Source |
 |-----------|-------|--------|
-| Focal plane | 48.5 units | harmonic mean of 32 and 100 |
+| Focal plane | 46.9 units | harmonic mean of 31 and 96 |
 | Eye shift | −5 units along `r` | centres the lateral corridor |
-| View cone | 25.6° | clearance-limited, 2-unit margin |
+| View cone | 26.4° | clearance-limited, 2-unit margin |
 | FOV | 53.13° | the scene's own lens, unchanged |
 
 **Resulting depth budget** (16" Landscape, 960×720 tiles, 48 views):
 
 | Content | Depth | Adjacent-view disparity |
 |---------|-------|-------------------------|
-| Nearest geometry | 32 | 3.58 px |
-| Focal plane | 48.5 | 0.00 px |
-| Far interior | 100 | 3.58 px |
-| Sky | ∞ | 6.95 px (soft, low contrast) |
+| Nearest geometry | 31 | 3.68 px |
+| Focal plane | 46.9 | 0.00 px |
+| Far interior | 96 | 3.68 px |
+| Sky | ∞ | 7.19 px (soft, low contrast) |
 
 ![Museum centre view](museum_centre_view.png)
 
@@ -247,15 +257,26 @@ art, and an arched window onto terrain and sky at infinity.
 
 **Verification on the finished quilt.** Near and far features must shift in
 *opposite* directions about a stationary focal plane — the signature of a
-correct off-axis render. Measured over a 12-view baseline:
+correct off-axis render. Measured by 1-D cross-correlation of a feature crop
+between two views 11 gaps apart, scaled to the device's 720 px tile:
 
-| Feature | Measured | Predicted |
-|---------|----------|-----------|
-| Pedestal rim (near) | +42 px | +36 px |
-| Bell-jar molecule (near) | +37 px | +36 px |
-| Window and tree (far) | −21 px | −36 px |
+| Feature | Depth | Predicted | Measured |
+|---------|-------|-----------|----------|
+| Bell-jar molecule (near) | 36.8 | +22 px | +24 px |
+| Wall art (on the focal plane) | 46.2 | +1 px | +5 px |
+| Window mullions (far) | 75.7 | −30 px | −31 px |
 
-All 48 tiles are populated, with a brightness spread of 4.0 across the sweep —
+The middle row is the load-bearing one: the left-hand painting happens to sit
+within a unit of the focal plane, and it stays put while everything around it
+moves in opposite directions.
+
+Pick crops with a single dominant depth. A wide, near-horizontal surface — the
+pedestal's disc, say — spans tens of units front to back, and correlating
+across it returns a number that belongs to no particular feature. Crops must
+also be chosen on a view *between* the two being compared, or the feature has
+already slid out of the box.
+
+All 48 tiles are populated, with a brightness spread of 7.3 across the sweep —
 no collapsed views.
 
 ![Museum parallax](museum_parallax.png)

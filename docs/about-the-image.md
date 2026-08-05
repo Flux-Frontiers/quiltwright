@@ -68,14 +68,15 @@ pipeline roughly thirty years long, and every stage of it still runs.
 This was composed as a still, and it happens to be close to ideal light-field
 content — for reasons that are worth naming, because they generalise:
 
-- **A foreground anchor.** The near pedestal and bell jar sit ~32 units out,
-  well in front of the focal plane, so they float clear of the glass.
+- **A foreground anchor.** The near pedestal and bell jar sit 31 units out,
+  well in front of the 46.9-unit focal plane, so they float clear of the glass.
 - **Structured mid-depth.** Framed art on three walls at staggered distances
   gives the eye something to parallax *against*. Depth reads as depth only
-  when there is a relationship between layers.
-- **A window to infinity.** Roughly a tenth of the frame is sky and terrain
-  seen through the arch — at effective infinity, and low-contrast, which is
-  exactly where a light-field display can afford its largest disparity.
+  when there is a relationship between layers. One painting lands within a
+  unit of the focal plane, welded to the glass while the room moves around it.
+- **A window to infinity.** About 6% of the frame is sky seen through the
+  arch — at effective infinity, and low-contrast, which is exactly where a
+  light-field display can afford its largest disparity.
 - **Glass and refraction.** Two bell jars and a mirror. Ray-tracing pays for
   itself here; these are the elements a rasteriser approximates and a
   holographic display then magnifies.

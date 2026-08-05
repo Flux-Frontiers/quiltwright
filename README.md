@@ -152,10 +152,15 @@ ceiling; past ~8 px, hard edges ghost.
 from quiltwright import QUILT_PRESETS, focal_distance_for_range, view_disparity
 
 # Put the focal plane where near and far content are equally penalised.
-focal = focal_distance_for_range(near=32, far=100)      # harmonic mean, not midpoint
+focal = focal_distance_for_range(near=31, far=96)       # harmonic mean, not midpoint
 view_disparity(QUILT_PRESETS["16-landscape"], fov=53.13,
-               focal_distance=focal, depth=32)          # -> px between adjacent views
+               focal_distance=focal, depth=31)          # -> px between adjacent views
 ```
+
+Those two depths are measured, not guessed —
+[`scripts/measure_depth_range.py`](scripts/measure_depth_range.py) sweeps an
+opaque plane along the view axis and reports where a scene's content actually
+begins and ends.
 
 Three results worth knowing before you frame a shot:
 

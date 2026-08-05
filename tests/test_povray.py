@@ -205,8 +205,9 @@ class TestClearance:
         assert museum.half_width == pytest.approx(11.0)
 
     def test_cone_is_the_measured_museum_value(self, museum):
-        # 2*atan(11 / 48.5) -> the 25.6 deg the museum render uses.
-        assert museum.cone(48.5) == pytest.approx(25.6, abs=0.05)
+        # 2*atan(11 / 46.87) -> the 26.4 deg the museum render uses, where
+        # 46.87 is the harmonic mean of its measured 31..96 depth range.
+        assert museum.cone(46.87) == pytest.approx(26.4, abs=0.05)
 
     def test_cone_sweep_lands_on_the_margin(self, museum):
         """The derived cone must consume exactly the usable corridor: any
@@ -251,47 +252,45 @@ class TestDepthBudget:
     @pytest.fixture
     def spec(self) -> QuiltSpec:
         """The museum's quilt: 16" Landscape at its clearance-limited cone."""
-        cone = Clearance(left=-18.0, right=8.0, margin=2.0).cone(48.5)
+        cone = Clearance(left=-18.0, right=8.0, margin=2.0).cone(46.87)
         return replace(QUILT_PRESETS["16-landscape"], view_cone=cone)
 
     def test_focal_plane_has_zero_disparity(self, spec):
-        cam = PovCamera(location=(0, 0, 0), look_at=(0, 0, 48.5), fov=53.13)
-        rows = depth_budget(spec, cam, {"focal": 48.5, "near": 32.0, "sky": math.inf})
+        cam = PovCamera(location=(0, 0, 0), look_at=(0, 0, 46.87), fov=53.13)
+        rows = depth_budget(spec, cam, {"focal": 46.87, "near": 31.0, "sky": math.inf})
         assert dict((label, px) for label, _, px in rows)["focal"] == pytest.approx(0.0)
 
     def test_harmonic_focal_plane_balances_the_extremes(self, spec):
         """Near and far disparity match when the focal plane sits at their
         harmonic mean — the property the museum camera is built on."""
-        cam = PovCamera(location=(0, 0, 0), look_at=(0, 0, 48.484848), fov=53.13)
-        rows = dict(
-            (label, px) for label, _, px in depth_budget(spec, cam, {"n": 32.0, "f": 100.0})
-        )
+        cam = PovCamera(location=(0, 0, 0), look_at=(0, 0, 5952 / 127), fov=53.13)
+        rows = dict((label, px) for label, _, px in depth_budget(spec, cam, {"n": 31.0, "f": 96.0}))
         assert rows["n"] == pytest.approx(rows["f"], rel=1e-6)
 
     def test_rows_preserve_input_order(self, spec):
-        cam = PovCamera(location=(0, 0, 0), look_at=(0, 0, 48.5), fov=53.13)
-        depths = {"near": 32.0, "focal": 48.5, "far": 100.0}
+        cam = PovCamera(location=(0, 0, 0), look_at=(0, 0, 46.87), fov=53.13)
+        depths = {"near": 31.0, "focal": 46.87, "far": 96.0}
         assert [label for label, _, _ in depth_budget(spec, cam, depths)] == list(depths)
 
     def test_report_flags_a_sweep_that_leaves_the_room(self, spec):
-        cam = PovCamera(location=(0, 0, 0), look_at=(0, 0, 48.5), fov=53.13)
+        cam = PovCamera(location=(0, 0, 0), look_at=(0, 0, 46.87), fov=53.13)
         wide = replace(spec, view_cone=35.0)
         text = format_depth_budget(
-            wide, cam, {"near": 32.0}, clearance=Clearance(-18.0, 8.0, margin=2.0)
+            wide, cam, {"near": 31.0}, clearance=Clearance(-18.0, 8.0, margin=2.0)
         )
         assert "WARNING" in text
 
     def test_report_is_quiet_when_the_sweep_fits(self, spec):
-        cam = PovCamera(location=(0, 0, 0), look_at=(0, 0, 48.5), fov=53.13)
+        cam = PovCamera(location=(0, 0, 0), look_at=(0, 0, 46.87), fov=53.13)
         text = format_depth_budget(
-            spec, cam, {"near": 32.0}, clearance=Clearance(-18.0, 8.0, margin=2.0)
+            spec, cam, {"near": 31.0}, clearance=Clearance(-18.0, 8.0, margin=2.0)
         )
         assert "WARNING" not in text
         assert "clearance +/-11.0" in text
 
     def test_report_flags_soft_depths(self, spec):
-        cam = PovCamera(location=(0, 0, 0), look_at=(0, 0, 48.5), fov=53.13)
-        text = format_depth_budget(spec, cam, {"near": 32.0, "sky": math.inf}, soft_px=5.5)
+        cam = PovCamera(location=(0, 0, 0), look_at=(0, 0, 46.87), fov=53.13)
+        text = format_depth_budget(spec, cam, {"near": 31.0, "sky": math.inf}, soft_px=5.5)
         near, sky = [line for line in text.splitlines() if "near" in line or "sky" in line]
         assert "<- soft" not in near
         assert "<- soft" in sky

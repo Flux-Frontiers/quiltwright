@@ -11,7 +11,7 @@ The camera keeps the scene's own viewpoint, aim direction and lens.  Three
 things change, each measured from the scene rather than guessed:
 
 * **Focal plane** — moved from the scene's composed 63.7 units to the
-  harmonic mean of the measured depth range (32 to 100 units), along the
+  harmonic mean of the measured depth range (31 to 96 units), along the
   original aim ray.
 * **Eye position** — shifted to the middle of the room's usable lateral
   corridor, measured at -18 to +8 units along the right vector.
@@ -53,9 +53,15 @@ AIM = (58.0, 19.0, 53.0)
 #: Vertical FOV of the scene's ``the_lens`` (direction 1, up 1 -> 2*atan(0.5)).
 FOV = 53.13
 
-#: Depth range measured by plane-sweep probe, in scene units.
-NEAR_DEPTH = 32.0
-FAR_DEPTH = 100.0
+#: Depth range measured by plane-sweep probe, in scene units: an opaque plane
+#: slides along the view axis and the frame is scored for how much geometry
+#: remains in front of it.  *near* is where geometry first appears (the near
+#: pedestal's tabletop, at 0.1% of frame); *far* is where 95% of everything
+#: occludable is accounted for.  The remaining ~6% of the frame is sky through
+#: the window, at effective infinity, and is left out of the balance on
+#: purpose — it is low-contrast and can afford the disparity.
+NEAR_DEPTH = 31.0
+FAR_DEPTH = 96.0
 
 #: Usable lateral eye travel along the camera's right vector, measured by
 #: rendering at candidate offsets and watching for the frame to collapse to

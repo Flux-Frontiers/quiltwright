@@ -252,29 +252,32 @@ class TestSixteenLandscape:
     def test_museum_depth_budget(self, landscape):
         """The published museum figures, on this device's real 720 px tiles.
 
-        Anchors the whole chain — preset, cone, focal plane, tile height —
-        to numbers measured off finished renders (docs/povray.md).
+        Anchors the whole chain — preset, cone, focal plane, tile height — to
+        the depth range measured by scripts/measure_depth_range.py: nearest
+        geometry at 31 units, 95% of occludable content within 96, and the
+        remaining ~6% of frame sky left out of the balance on purpose
+        (docs/povray.md § 4).
         """
-        spec = replace(landscape, view_cone=25.565)  # clearance-limited
-        z = focal_distance_for_range(32.0, 100.0)
-        assert z == pytest.approx(48.48, abs=0.01)
-        assert view_disparity(spec, 53.13, z, 32.0) == pytest.approx(3.58, abs=0.01)
-        assert view_disparity(spec, 53.13, z, 100.0) == pytest.approx(3.58, abs=0.01)
-        assert view_disparity(spec, 53.13, z, math.inf) == pytest.approx(6.95, abs=0.01)
+        spec = replace(landscape, view_cone=26.42)  # clearance-limited
+        z = focal_distance_for_range(31.0, 96.0)
+        assert z == pytest.approx(46.87, abs=0.01)
+        assert view_disparity(spec, 53.13, z, 31.0) == pytest.approx(3.68, abs=0.01)
+        assert view_disparity(spec, 53.13, z, 96.0) == pytest.approx(3.68, abs=0.01)
+        assert view_disparity(spec, 53.13, z, math.inf) == pytest.approx(7.19, abs=0.01)
 
     def test_native_cone_costs_the_budget(self, landscape):
         """At the device's full 50 deg cone the same scene doubles its
         disparity, past the ~5 px comfort ceiling — the trade the museum
         script makes when it narrows the cone for wall clearance."""
-        z = focal_distance_for_range(32.0, 100.0)
-        assert view_disparity(landscape, 53.13, z, 32.0) == pytest.approx(7.36, abs=0.01)
+        z = focal_distance_for_range(31.0, 96.0)
+        assert view_disparity(landscape, 53.13, z, 31.0) == pytest.approx(7.31, abs=0.01)
 
     def test_object_centric_fov_advice_blows_up_here(self, landscape):
         """The "~14 deg FOV" advice that circulates for Looking Glass content
         is for object-centric scenes.  On an interior it magnifies parallax:
         30 px between adjacent views, ghosting on every hard edge."""
-        z = focal_distance_for_range(32.0, 100.0)
-        assert view_disparity(landscape, 14.0, z, 32.0) > 25.0
+        z = focal_distance_for_range(31.0, 96.0)
+        assert view_disparity(landscape, 14.0, z, 31.0) > 25.0
 
 
 # ---------------------------------------------------------------------------
