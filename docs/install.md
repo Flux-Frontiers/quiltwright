@@ -105,6 +105,25 @@ brew install ffmpeg                  # system ffmpeg
 pip install "quiltwright[video]"     # or the bundled one
 ```
 
+**Why this is an extra and not a core dependency.** Three reasons, and the
+first is the one that matters:
+
+- **Licence.** The `imageio-ffmpeg` wrapper is BSD-2-Clause, but the binary it
+  bundles is built `--enable-gpl --enable-version3` — a GPLv3 ffmpeg. Calling
+  it as a subprocess does not affect Quiltwright's own BSD-3-Clause terms, but
+  anyone *redistributing* a bundled environment (a Docker image, a conda pack,
+  a PyInstaller app) inherits GPLv3 obligations. That should be a choice, not
+  a default. A system ffmpeg — whose build and licence you control — avoids
+  the question entirely, which is why `PATH` is searched first.
+- **Size.** ~21–31 MB to download, ~80 MB installed, against a core of numpy
+  and pillow.
+- **Redundancy.** If you already have ffmpeg on `PATH`, the bundled copy is
+  never executed.
+
+Encoding uses `libx264` and `libx265` (HEVC above 6000 px); a minimal or
+LGPL-only ffmpeg build may lack them, and fails at encode time rather than at
+install time. Check with `ffmpeg -h encoder=libx265`.
+
 ## 5. pdb2pov (molecular scenes)
 
 Optional; feeds the POV-Ray backend with molecular structures. It is a 1993
@@ -139,4 +158,16 @@ pip install pytest
 pytest -v
 ```
 
-On a headless machine, `xvfb-run -a pytest` exercises the PyVista tests too.
+A skipped test reports success while asserting nothing, so for real coverage
+install the layers too. Everything runs green with:
+
+```bash
+sudo apt install xvfb libgl1 libglx-mesa0 libxrender1 povray   # or brew
+pip install -e ".[viz,video]" pytest
+xvfb-run -a pytest
+```
+
+`poetry install --with dev` pulls `imageio-ffmpeg` for the same reason — it is
+the only skip condition a Python dependency can lift, since the PyVista tests
+additionally need a GL stack and an X server. Add `--with viz,video` for the
+rest.

@@ -6,6 +6,7 @@
 # ----------------------
 #   poetry install                     core (quilt geometry + Bridge control)
 #   poetry install --with viz          + pyvista/VTK rendering backend
+#   poetry install --with video        + bundled ffmpeg for video encoding
 #   poetry install --with dev          + test and lint tooling
 #
 # Quick install (pip)
@@ -65,6 +66,9 @@ dependencies = ["numpy>=1.26", "pillow>=10.0"]
 
 [project.optional-dependencies]
 viz = ["pyvista>=0.44"]
+# ffmpeg is found on PATH first and only falls back to this, so a system
+# ffmpeg makes the extra redundant.  It also stays optional on licence
+# grounds: see docs/install.md section 4.
 video = ["imageio-ffmpeg>=0.4"]
 
 [project.urls]
@@ -76,13 +80,27 @@ Issues = "https://github.com/suchanek/quiltwright/issues"
 # ---------------------------------------------------------------------------
 # Dependency groups (poetry)
 # ---------------------------------------------------------------------------
+# Groups mirror the PEP 621 extras above one-for-one, so `poetry install --with
+# viz` and `pip install ".[viz]"` produce the same environment.  ffmpeg is
+# deliberately its own group rather than part of viz: the binary imageio-ffmpeg
+# bundles is a GPLv3 build (--enable-gpl --enable-version3), which a BSD-3
+# project should hand people on request rather than by default.
 [tool.poetry.group.viz]
 optional = true
 
 [tool.poetry.group.viz.dependencies]
 pyvista = ">=0.44"
-imageio-ffmpeg = "*"
 
+[tool.poetry.group.video]
+optional = true
+
+[tool.poetry.group.video.dependencies]
+imageio-ffmpeg = ">=0.4"
+
+# imageio-ffmpeg is a dev dependency as well as an extra: without it the video
+# tests skip, and a skipped test reports success while asserting nothing.  It
+# is the only skip condition pip alone can lift — the pyvista tests also need a
+# system GL stack and an X server, which no dependency can supply.
 [tool.poetry.group.dev]
 optional = true
 
@@ -90,6 +108,7 @@ optional = true
 pytest = ">=8.0"
 pytest-cov = ">=5.0"
 ruff = ">=0.6"
+imageio-ffmpeg = ">=0.4"
 
 # ---------------------------------------------------------------------------
 # Tooling

@@ -37,6 +37,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - `scripts/render_museum_hologram.py` now holds only the museum's measured
   constants and calls the module. Camera, cone and reported disparities are
   unchanged.
+- **Poetry groups now mirror the PEP 621 extras one-for-one.** The `viz` group
+  pulled in `imageio-ffmpeg` while the `[viz]` extra did not, so
+  `poetry install --with viz` and `pip install ".[viz]"` produced different
+  environments. ffmpeg now lives in its own `video` group, matching the
+  `[video]` extra.
+- `imageio-ffmpeg` added to the `dev` group. Without it the video tests skip,
+  and a skipped test reports success while asserting nothing. It is the only
+  skip condition a Python dependency can lift — the PyVista tests also need a
+  system GL stack and an X server.
+- `docs/install.md` records why ffmpeg stays an extra rather than a core
+  dependency: the binary `imageio-ffmpeg` bundles is a GPLv3 build
+  (`--enable-gpl --enable-version3`), which a BSD-3 project should hand people
+  on request rather than by default. Also notes that encoding needs `libx264`
+  and `libx265`, which a minimal or LGPL-only ffmpeg may lack — a failure that
+  surfaces at encode time, not install time.
+- `poetry.lock` regenerated for the group changes.
 
 ## [0.1.0] — 2026-08-04
 
