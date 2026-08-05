@@ -171,9 +171,29 @@ cone from the clearance that remains:
 cone = 2 · atan((corridor_half_width − margin) / focal_distance)
 ```
 
+`Clearance` holds the measured corridor and does all three:
+
+```python
+from dataclasses import replace
+
+from quiltwright.lfd import QUILT_PRESETS, focal_distance_for_range
+from quiltwright.povray import Clearance, PovCamera, format_depth_budget
+
+room = Clearance(left=-18.0, right=8.0, margin=2.0)   # measured, in scene units
+camera = PovCamera.aimed(
+    (15.0, 20.0, 6.0), (58.0, 19.0, 53.0),   # the scene's own eye and aim
+    fov=53.13,                               # the scene's own lens
+    focal_distance=focal_distance_for_range(32.0, 100.0),
+    lateral_shift=room.centre,               # -5: middle of the corridor
+)
+spec = replace(QUILT_PRESETS["16-landscape"], view_cone=room.cone(camera.focal_distance))
+```
+
 For the museum that gives 25.6°, comfortably inside both the 16" Landscape's
-50° native cone and the documented 35° standard. The script prints the sweep
-extent against the measured walls and warns when it exceeds them.
+50° native cone and the documented 35° standard. `format_depth_budget(...,
+clearance=room)` prints the sweep extent against the measured walls and warns
+when it exceeds them — print it before committing to the render, since this is
+the failure that costs an hour of ray-tracing to discover.
 
 Worth noting: narrowing the cone to fit costs less than it appears. With the
 focal plane at the harmonic mean, the disparity at the depth extremes depends
@@ -264,6 +284,35 @@ python scripts/render_museum_hologram.py --cast          # straight to the displ
 
 Methods: `focal_distance`, `basis()` → `(forward, right, up)`,
 `image_plane_distance()`.
+
+`PovCamera.aimed(location, aim, *, fov, focal_distance=None, lateral_shift=0.0,
+sky=(0,1,0))` adopts a scene's own viewpoint and adapts it for a sweep: the
+focal plane moves to `focal_distance` along the original aim ray, and the eye
+slides `lateral_shift` along the right vector with the look-at point riding
+along, so the view **direction** and lens stay exactly as the scene's author
+composed them.
+
+### `Clearance(left, right, margin=0.0)`
+
+The measured lateral corridor of an enclosed scene, in scene units along the
+camera's right vector.
+
+| Member | Meaning |
+|--------|---------|
+| `centre` | Offset that puts the eye in the middle of the corridor — feed to `lateral_shift` |
+| `half_width` | Usable travel either side of `centre`, net of `margin` |
+| `cone(focal_distance)` | Widest view cone whose outermost eye still clears the walls |
+| `fits(spec, focal_distance)` | Whether the sweep `spec` asks for stays inside the corridor |
+
+### Reporting
+
+- `sweep_extent(spec, focal_distance)` — half-width of the lateral eye travel
+  the sweep needs, i.e. the largest `view_offsets()` magnitude in closed form.
+- `depth_budget(spec, camera, depths)` — `(label, depth, disparity_px)` per
+  labelled depth; `math.inf` is accepted for sky.
+- `format_depth_budget(spec, camera, depths, *, clearance=None, soft_px=5.5)` —
+  the same as a printable report, flagging depths above `soft_px` and warning
+  when the sweep leaves `clearance`.
 
 ### `render_pov_quilt(scene, spec, camera, ...)`
 

@@ -41,6 +41,17 @@ with nearer geometry floating in front and farther geometry behind.
 POV-Ray emits ``Camera vectors are not perpendicular`` for such a camera.
 That warning is expected and benign — it is the shear.
 
+**Framing an existing scene.**  A scene composed as a still needs three
+things changed before it sweeps well, and all three are measured from the
+scene rather than guessed: the focal plane moves to the distance that
+balances the disparity budget, the eye slides to the middle of whatever
+lateral corridor the geometry leaves, and the view cone is derived from the
+clearance that remains.  :meth:`PovCamera.aimed` performs the first two
+without disturbing the view direction or the lens, :class:`Clearance` holds
+the measured corridor and the cone it permits, and
+:func:`format_depth_budget` reports the result before the ray-tracer is
+asked to spend an hour on it.
+
 **Requirements** — a ``povray`` binary on ``PATH`` (``brew install povray``),
 plus pillow for quilt assembly (``poetry install --with viz``).
 
@@ -66,14 +77,14 @@ import os
 import shutil
 import subprocess
 import tempfile
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, replace
 from pathlib import Path
 
 import numpy as np
 
-from quiltwright.lfd import QuiltSpec, assemble_quilt, view_offsets
+from quiltwright.lfd import QuiltSpec, assemble_quilt, view_disparity, view_offsets
 
 #: Environment variable overriding which POV-Ray binary is used.
 POVRAY_ENV = "POVRAY_BINARY"
@@ -173,6 +184,59 @@ class PovCamera:
         """
         return 0.5 / math.tan(math.radians(self.fov) / 2.0)
 
+    @classmethod
+    def aimed(
+        cls,
+        location: Sequence[float],
+        aim: Sequence[float],
+        *,
+        fov: float,
+        focal_distance: float | None = None,
+        lateral_shift: float = 0.0,
+        sky: tuple[float, float, float] = (0.0, 1.0, 0.0),
+    ) -> PovCamera:
+        """Adopt a scene's own viewpoint, re-aimed and re-centred for a sweep.
+
+        A scene's camera was composed for a still: its aim point was chosen
+        for framing, and its eye sits wherever the composition wanted it.
+        Neither survives contact with a quilt unedited — the focal plane
+        wants the distance that balances the disparity budget (see
+        :func:`~quiltwright.lfd.focal_distance_for_range`), and inside an
+        interior the eye wants to sit in the middle of whatever lateral
+        corridor the walls leave (see :class:`Clearance`).
+
+        Both are changed here without touching the view *direction* or the
+        lens: the new look-at point stays on the original aim ray, so the
+        scene is framed as its author framed it.
+
+        :param location: The scene's eye position.
+        :param aim: The scene's aim point.  Used for direction only unless
+            *focal_distance* is ``None``.
+        :param fov: Vertical field of view in degrees — usually the scene's
+            own, see :class:`PovCamera`.
+        :param focal_distance: Distance along the aim ray to place the focal
+            plane.  Defaults to the scene's own aim distance.
+        :param lateral_shift: Distance to slide the eye along the camera's
+            right vector before re-aiming.  The look-at point slides with
+            it, so the view direction is unchanged.
+        :param sky: Up-hint, as on :class:`PovCamera`.
+        :return: The centre-view camera.
+        :raises ValueError: If the camera is degenerate (see :meth:`basis`)
+            or *focal_distance* is not positive.
+        """
+        base = cls(location=tuple(location), look_at=tuple(aim), sky=sky, fov=fov)
+        forward, right, _ = base.basis()
+        distance = base.focal_distance if focal_distance is None else float(focal_distance)
+        if distance <= 0:
+            raise ValueError(f"focal_distance must be positive, got {distance}")
+        eye = np.asarray(base.location, dtype="d") + right * float(lateral_shift)
+        return cls(
+            location=tuple(float(c) for c in eye),
+            look_at=tuple(float(c) for c in eye + forward * distance),
+            sky=sky,
+            fov=fov,
+        )
+
 
 def _vec(v: Iterable[float]) -> str:
     """Format a vector as POV-Ray ``<x, y, z>`` syntax.
@@ -209,6 +273,176 @@ def camera_block(camera: PovCamera, offset: float, aspect: float) -> str:
         f"  up        {_vec(up)}\n"
         "}\n"
     )
+
+
+# ---------------------------------------------------------------------------
+# Framing: sweep extent, wall clearance, depth budget
+# ---------------------------------------------------------------------------
+
+
+def sweep_extent(spec: QuiltSpec, focal_distance: float) -> float:
+    """Half-width of the lateral eye travel the quilt's view sweep needs.
+
+    The outermost views sit ``focal_distance * tan(cone/2)`` to either side
+    of the centre view — the largest magnitude in
+    :func:`~quiltwright.lfd.view_offsets`, in closed form.  For an object on
+    a turntable that space is empty; inside a room it is furniture and
+    walls, so compare it against a measured :class:`Clearance` before
+    committing to a render.
+
+    :param spec: Quilt specification (supplies the view cone).
+    :param focal_distance: Camera-to-focal-plane distance, in scene units.
+    :return: Half the total eye sweep, in scene units.
+    """
+    return focal_distance * math.tan(math.radians(spec.view_cone) / 2.0)
+
+
+@dataclass(frozen=True)
+class Clearance:
+    """The lateral corridor an interior leaves for the view sweep.
+
+    This is the constraint peculiar to enclosed scenes, and the one that
+    bites hardest.  A cone chosen without checking it does not fail loudly:
+    the centre view — the one you preview — is perfect, while the outer
+    views quietly render the unlit back face of a wall.
+
+    Measure the corridor by rendering at candidate eye offsets along the
+    camera's right vector and watching for the frame to collapse.  It is
+    rarely symmetric about the scene's own eye position, hence *centre*,
+    which slides the eye to the middle of the room before the sweep starts.
+
+    :param left: Most negative usable offset along the right vector, in
+        scene units.
+    :param right: Most positive usable offset.
+    :param margin: Safety margin held back at each end.  Walls are not
+        perfectly planar and grazing one dims the outer views well before
+        the camera actually passes through it.
+    """
+
+    left: float
+    right: float
+    margin: float = 0.0
+
+    def __post_init__(self) -> None:
+        if self.right <= self.left:
+            raise ValueError(f"clearance right ({self.right}) must exceed left ({self.left})")
+        if self.margin < 0:
+            raise ValueError(f"clearance margin must be non-negative, got {self.margin}")
+
+    @property
+    def centre(self) -> float:
+        """Offset that puts the eye in the middle of the corridor."""
+        return (self.left + self.right) / 2.0
+
+    @property
+    def half_width(self) -> float:
+        """Usable travel to either side of :attr:`centre`, net of *margin*."""
+        return (self.right - self.left) / 2.0 - self.margin
+
+    def cone(self, focal_distance: float) -> float:
+        """Widest view cone whose outermost eye still clears the walls.
+
+        ``cone = 2 * atan((half_width) / focal_distance)``.  Narrowing the
+        cone to fit costs less than it looks: with the focal plane at the
+        harmonic mean of the depth range, disparity at the extremes tracks
+        the physical baseline and the scene's depth range, so trading cone
+        for clearance trades look-around, not sharpness.
+
+        :param focal_distance: Camera-to-focal-plane distance, in scene units.
+        :return: Total sweep in degrees.
+        :raises ValueError: If the margin has consumed the whole corridor,
+            or *focal_distance* is not positive.
+        """
+        if focal_distance <= 0:
+            raise ValueError(f"focal_distance must be positive, got {focal_distance}")
+        if self.half_width <= 0:
+            raise ValueError(
+                f"clearance margin {self.margin} leaves no room in a corridor "
+                f"of width {self.right - self.left}"
+            )
+        return 2.0 * math.degrees(math.atan(self.half_width / focal_distance))
+
+    def fits(self, spec: QuiltSpec, focal_distance: float) -> bool:
+        """True if the sweep *spec* asks for stays inside the corridor.
+
+        A cone from :meth:`cone` lands the sweep exactly on
+        :attr:`half_width`, where rounding can put it a few ulps over, so
+        the comparison is made to within a relative tolerance rather than
+        reporting a wall strike for the cone this class just derived.
+        """
+        sweep = sweep_extent(spec, focal_distance)
+        return sweep <= self.half_width or math.isclose(sweep, self.half_width, rel_tol=1e-9)
+
+
+def depth_budget(
+    spec: QuiltSpec, camera: PovCamera, depths: Mapping[str, float]
+) -> list[tuple[str, float, float]]:
+    """Adjacent-view disparity at each depth of interest.
+
+    A thin pairing of :func:`~quiltwright.lfd.view_disparity` with the
+    labelled depths measured from a scene, kept separate from
+    :func:`format_depth_budget` so the numbers can be asserted on rather
+    than only printed.
+
+    :param spec: Quilt specification.
+    :param camera: Centre-view camera; supplies the focal distance and FOV.
+    :param depths: Labelled distances from the camera, in scene units.  Use
+        ``math.inf`` for sky or a backdrop at infinity.
+    :return: ``(label, depth, disparity_px)`` in the order given.
+    """
+    return [
+        (label, depth, view_disparity(spec, camera.fov, camera.focal_distance, depth))
+        for label, depth in depths.items()
+    ]
+
+
+def format_depth_budget(
+    spec: QuiltSpec,
+    camera: PovCamera,
+    depths: Mapping[str, float],
+    *,
+    clearance: Clearance | None = None,
+    soft_px: float = 5.5,
+    indent: str = "  ",
+) -> str:
+    """Render the sweep geometry and depth budget as a report.
+
+    Print this before committing to a render: it is where a blown disparity
+    budget or a sweep that walks through a wall shows up, at no cost, rather
+    than after the ray-tracer has spent an hour on it.
+
+    :param spec: Quilt specification.
+    :param camera: Centre-view camera.
+    :param depths: Labelled depths, as for :func:`depth_budget`.
+    :param clearance: Measured lateral corridor, if the scene is enclosed.
+        When given, the sweep is checked against it and a warning emitted if
+        the outer views would leave the room.
+    :param soft_px: Disparity above which a row is flagged as soft.  Roughly
+        4-5 px is the practical ceiling; past ~8 px expect visible ghosting.
+    :param indent: Leading whitespace for the outermost lines.
+    :return: A multi-line report, without a trailing newline.
+    """
+    z = camera.focal_distance
+    sweep = sweep_extent(spec, z)
+    lines = [
+        f"{indent}focal plane      {z:.1f} units",
+        f"{indent}view cone        {spec.view_cone:.1f} deg over {spec.n_views} views",
+    ]
+    if clearance is None:
+        lines.append(f"{indent}eye sweep        +/-{sweep:.1f} units")
+    else:
+        lines.append(
+            f"{indent}eye sweep        +/-{sweep:.1f} units "
+            f"(clearance +/-{clearance.half_width:.1f} after {clearance.margin:.1f} margin)"
+        )
+        if not clearance.fits(spec, z):
+            lines.append(f"{indent}  WARNING: sweep exceeds clearance; outer views will be black")
+
+    lines.append(f"{indent}adjacent-view disparity:")
+    for label, depth, px in depth_budget(spec, camera, depths):
+        flag = "" if px <= soft_px else "  <- soft"
+        lines.append(f"{indent}  {label:<18} {depth:>8.1f}  {px:5.2f} px{flag}")
+    return "\n".join(lines)
 
 
 # ---------------------------------------------------------------------------
