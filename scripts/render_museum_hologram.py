@@ -1,38 +1,22 @@
 #!/usr/bin/env python
 """
-Render the "meek museum" POV-Ray scene as a Looking Glass hologram.
+Render "Eric's Science Museum" as a Looking Glass hologram.
 
-The scene is a 1994 Michael Mittelstadt interior, later extended with
-molecular exhibits under bell jars.  It is close to ideal light-field
-content: a foreground pedestal, mid-depth framed art and exhibits, and a
-window onto terrain and sky at infinity.
+A 1995-97 POV-Ray scene: molecular exhibits under bell jars in a room
+borrowed from Michael "meek" Mittelstadt.  What is in it and why is in
+``docs/about-the-image.md``; the derivation of the numbers below is in
+``docs/povray.md``.
 
-The camera keeps the scene's own viewpoint, aim direction and lens, and
-changes three things — each measured from the scene rather than guessed.
+The camera keeps the scene's own viewpoint, aim direction and lens.  Three
+things change, each measured from the scene rather than guessed:
 
-*Focal plane.*  The scene's ``camera_zdna3`` looks at a point 63.7 units
-away, chosen for composition.  A hologram wants the focal plane placed to
-balance the disparity budget instead.  The depth range was measured by
-sweeping an opaque plane along the view axis (nearest geometry ~32 units,
-structured far content ~100, with ~10% of the frame — sky through the window
-— at effective infinity), and :func:`focal_distance_for_range` turns that
-into the balanced distance.  The new look-at point sits on the *original*
-aim ray, so the view direction is untouched.
-
-*Sweep clearance.*  This is the constraint peculiar to interiors, and the
-one that bites hardest.  The quilt sweeps the eye laterally by
-``focal_distance * tan(cone/2)`` — at a 35-degree cone and this focal plane,
-+/-15.3 units.  The room is not that wide: probing eye positions along the
-right vector shows usable travel only from -18 to +8 before the camera
-passes through a wall and renders its unlit back face.  A cone chosen
-without checking silently blackens the outer views — 11 of 48, in the first
-render of this scene.  The measured corridor goes into a ``Clearance``, which
-shifts the eye to its middle and derives the cone from the room that remains.
-
-*Aspect and cone.*  Rendered for the 16" Landscape.  The cone comes from
-the clearance above (~26 degrees), which is well inside both the device's
-50-degree native cone and the documented 35-degree standard, and lands
-adjacent-view disparity near 3.6 px.
+* **Focal plane** — moved from the scene's composed 63.7 units to the
+  harmonic mean of the measured depth range (32 to 100 units), along the
+  original aim ray.
+* **Eye position** — shifted to the middle of the room's usable lateral
+  corridor, measured at -18 to +8 units along the right vector.
+* **View cone** — derived from the clearance that remains, ~26 degrees.
+  The default 35 blackened 11 of 48 views by sweeping through a wall.
 
 Usage::
 

@@ -62,9 +62,9 @@ Verify with:
 povray --version
 ```
 
-The repo ships a complete test scene — the 1994 museum interior — under
-[pov-scenes/](../pov-scenes/), so you can exercise this layer with no scene
-files of your own:
+The repo ships a complete test scene — "Eric's Science Museum", 1995-97, see
+[about-the-image.md](about-the-image.md) — under [pov-scenes/](../pov-scenes/),
+so you can exercise this layer with no scene files of your own:
 
 ```bash
 python scripts/render_museum_hologram.py --preview

@@ -31,6 +31,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   tile pixel aspect deliberately disagrees with view aspect. Also anchors the
   published museum depth budget (3.58 px near/far, 6.95 px sky) to this
   device's real 720 px tiles, and pins the cost of its native 50-degree cone.
+- `docs/about-the-image.md` — what the museum scene is, what is on display in
+  it, and the pipeline behind it: the B-DNA under the left bell jar is pdb2pov
+  output from 14 Mar 1997, and pdb2pov still builds. The narrative moved here
+  out of the `render_museum_hologram.py` docstring, which is now four sentences
+  about the camera, and out of `povray.md § 4`, which is now only the numbers.
 
 ### Changed
 
@@ -53,6 +58,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   and `libx265`, which a minimal or LGPL-only ffmpeg may lack — a failure that
   surfaces at encode time, not install time.
 - `poetry.lock` regenerated for the group changes.
+- **README reframed around the pipelines it actually serves.** It read as a
+  solution to a projection problem; the purpose is holographic output for two
+  scientific rendering pipelines — PyVista/VTK scenes from WaveRider and
+  POV-Ray scenes from pdb2pov — onto two display technologies, light-field
+  (quilts) and hololuminescent (2-D video). The off-axis projection note stays,
+  subordinated to what it is in service of.
+- **Corrected the museum scene's provenance.** It was described as "a 1994
+  Michael Mittelstadt interior, later extended with molecular exhibits", which
+  inverts the authorship: the scene is "Eric's Science Museum" (begun 10 Jun
+  1995, revised 14 Mar 1997), and what it borrows from Mittelstadt's 1994 work
+  is the room — walls, columns, window, frames, pedestals — while every exhibit
+  in it is the author's own. Dates in `povray.md` and `install.md` fixed to
+  match the scene headers.
 
 ## [0.1.0] — 2026-08-04
 
