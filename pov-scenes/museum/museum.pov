@@ -345,7 +345,17 @@ light_source {
    }
 
 
-object {zdna_bell_jar_on_stand translate <80, .25, 37>}
+//
+// Pedestal positions along the back wall.  The room spans x 0..100, so 50
+// is centre.  Originally 16 and 80; drawn 8 units inward each so the pair
+// reads as a group rather than as two objects at opposite ends.  Each
+// spotlight below is placed relative to its pedestal, so changing these
+// two numbers moves the lighting with the exhibit.
+//
+#declare BDNA_X = 24    // left  pedestal, B-DNA   (was 16)
+#declare ZDNA_X = 72    // right pedestal, Z-DNA   (was 80)
+
+object {zdna_bell_jar_on_stand translate <ZDNA_X, .25, 37>}
 
 // light to illuminate the rightmost bell-jar
 // right-most B-DNA object and light source
@@ -354,9 +364,9 @@ object {zdna_bell_jar_on_stand translate <80, .25, 37>}
 
 light_source {
 //   <80,40,20> color Gray85
-   <70,40,30> color Gray85
+   <ZDNA_X - 10, 40, 30> color Gray85
    spotlight
-   point_at <80,20,38>
+   point_at <ZDNA_X, 20, 38>
    radius 10
    falloff 25
    tightness 20
@@ -364,13 +374,13 @@ light_source {
 
 
 
-object {bdna_stand translate <16, .25, 37>}
+object {bdna_stand translate <BDNA_X, .25, 37>}
 // light it up
 light_source {
-   <12,40,20> color Gray85
+   <BDNA_X - 4, 40, 20> color Gray85
 //<16,40,30> color Gray85
    spotlight
-   point_at <16,20,38>
+   point_at <BDNA_X, 20, 38>
    radius 15
    falloff 25
    tightness 20
