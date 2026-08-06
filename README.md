@@ -129,6 +129,11 @@ it end-to-end with a measured depth budget — the worked case study in
 [docs/povray.md](docs/povray.md), and the scene itself in
 [docs/about-the-image.md](docs/about-the-image.md).
 
+Two more scene trees ship alongside it — the bell-jar DNA still lifes the
+museum's pedestals were built from, and porin's β-barrel over water. What is in
+each, and how to render them directly, is in
+[pov-scenes/README.md](pov-scenes/README.md).
+
 ### Send it to the display
 
 ```python
