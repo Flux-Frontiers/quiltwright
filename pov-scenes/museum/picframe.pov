@@ -128,8 +128,8 @@ box {   // backpanel
   <-1, -1, -1>, <1, 1, 1>
   texture {
       canvasstexture
-//    pigment { image_map { tga "bell_jar.tga" once } // interpolate?
-    pigment { image_map { tga "innov_full.tga" once } // interpolate?
+    pigment { image_map { tga "bell_jar.tga" once } // interpolate?
+//    pigment { image_map { tga "innov_full.tga" once } // interpolate?
       scale 1.8
       translate <-0.9,-0.9,-0.9> }
     normal { wrinkles 0.1 omega 0.7 }

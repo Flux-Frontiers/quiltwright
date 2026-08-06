@@ -117,8 +117,8 @@ box {   // backpanel
   <-1, -1, -1>, <1, 1, 1>
   texture {
       canvasstexture
-//    pigment { image_map { tga "./pics/bell_jar.tga" once } // interpolate?
-    pigment { image_map { tga "./pics/innov_full.tga" once } // interpolate?
+    pigment { image_map { tga "./pics/bell_jar.tga" once } // interpolate?
+//    pigment { image_map { tga "./pics/innov_full.tga" once } // interpolate?
       scale 1.8
       translate <-0.9,-0.9,-0.9> }
     normal { wrinkles 0.1 omega 0.7 }
@@ -235,20 +235,3 @@ object{egs_frame}
 }
 
 
-#declare fluprostpic =
-union {
-box {   // backpanel
-  <-1, -1, -1>, <1, 1, 1>
-  texture {
-      canvasstexture
-      pigment { image_map { tga "./pics/fluprostpic.tga" once }
-      scale 1.8
-      translate <-0.9,-0.9,-0.9> }
-    normal { wrinkles 0.1 omega 0.7 }
-
-  }
-  scale <30.000000, 20.000000, 0.200000>
-}
-object{egs_frame}
-
-}

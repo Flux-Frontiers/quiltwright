@@ -37,7 +37,7 @@ integration of it, gathered into one frame.
 | Alcove, centre | **DNA cartoon mobile**, suspended between two silver bowls | `dna_cartoon.inc` |
 | Lower left wall | **Ras**, ribbon diagram with the nucleotide bound in its site | `ras.tga` |
 | Upper left wall | A small molecule under a colour-mapped **electrostatic surface** | `prostapic.tga` |
-| Upper right wall | **"Innovation: The Key to the Rx Pipeline"** — molecules coming off an industrial pipeline | `innov_full.tga` |
+| Upper right wall | **"DNA Under Glass"** — the bell-jar still life on the checkerboard ground | `bell_jar.tga` |
 | Back wall | A mirror, doubling the room | `picframe.pov` |
 | Right | Mittelstadt's arched window, onto terrain, a tree and sky | `window.pov` |
 

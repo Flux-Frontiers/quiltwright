@@ -71,8 +71,6 @@
 #declare LAMBDA = true          // lambda repressor picture
 #declare MIRROR_FRAME = false   // oval mirror on wall
 #declare DO_RISED3D = false     // risedronate coming out of picture.
-#declare DO_STAINED_GLASS = false // P&G stained glass logo
-#declare DO_HEALTHCARE_FLOOR = true
 #declare DO_LOGO_VIEW = false
 
 
@@ -277,53 +275,7 @@ cylinder { <0,3,60>,<100,3,60>,1/2 texture { mould_tex }}
 cylinder { <100,3,0>,<100,3,60>,1/2 texture { mould_tex }}
 
 
-// healthcare logo floor definitions
-#declare logo_plane = object {
- plane
- {
-  z, -.01
-  texture
-  {
-    pigment
-    {
-      image_map
-      {
-        tga "hclogo.tga"
-        interpolate 2 // smooth it
-        once   // don't tile image, just one copy
-      }
-      // transform it to unit-size (-1 to +1)
-      translate -0.5*(x+y) // center on the origin
-      scale 2              // make it unit-sized
-    }
-    finish {Shiny}
-  }
- }
-}
-
-
-#declare ring = object {
-torus
-{  .99,  0.017}
-  texture {_bluemetal}
-  rotate x*90 }
-
-
-#declare logo_disk = object {
-  union{
-     intersection {
-         object {logo_plane}
-         cylinder { 0*z,-.02*z,1 open}
-     }
-
-    object {ring}
-  }
-  rotate x * 90  // now oriented with Y up.
- }
-
-#if (DO_HEALTHCARE_FLOOR)
- object {logo_disk scale 22 translate <55,0.1,35>}
-#else
+// the rug
  box { // rug
   <5,1/4,15>,<85,1/2,45>
   pigment { //color red 0.4 }
@@ -333,66 +285,6 @@ torus
   finish { roughness 0.88 specular 0.05 }
  }
 
-#end
-
-//// stained glass ////
-#if (DO_STAINED_GLASS)
-
-#declare logo_plane_transp = object {
- plane
- {
-  z, -.01
-  texture
-  {
-    pigment
-    {
-      image_map
-      {
-        gif "hclogo.gif"
-        interpolate 2 // smooth it
-        once   // don't tile image, just one copy
-        filter all .9  // make 1st color mostly transparent
- //       filter 1 0.8  // make 2nd color mostly transparent
-      }
-      // transform it to unit-size (-1 to +1)
-      translate -0.5*(x+y) // center on the origin
-      scale 2              // make it unit-sized
-    }
-    finish {Metal}
-  }
- }
-}
-
-#declare logo_disk_transp = object {
-  union{
-     intersection {
-         object {logo_plane_transp}
-         cylinder { 0*z,-.02*z,1 open}
-     }
-
-    object {ring}
-  }
-  rotate y*-90
- }
-
-// object { MyTree scale <.5, .5, .5> translate <-80, 0, 10> }
-object {logo_disk_transp scale 20 translate <.5,35,CYL_Z>}
-
-//light_source {   <.2,35,25> color rgb <.3, .3, .3> }
-
-
-// create a point "spotlight" (conical directed) light source
-
-  light_source {
-   <65,50,25> color Gray60
-   spotlight
-   point_at <0,35,25>
-   radius 30
-   falloff 20
-   tightness 70
-   }
-
-#end
 
 
 object { column translate <100,0,60> }
@@ -403,8 +295,8 @@ object { column translate <0,0,0> }
 // some objects on the wall - pictures defined in picframe.inc
 //
 
-//object { raspic scale 1/2 translate <25,20,59.5> }
-object { fluprostpic scale 1/2 translate <75,20,59.5> }
+object { raspic scale 1/2 translate <75,20,59.5> }
+//object { fluprostpic scale 1/2 translate <75,20,59.5> }
 
 
 //object { lambdapic scale 1/2 translate <75,20,59.5>
@@ -429,11 +321,7 @@ light_source {
 object { window translate <101,6,30> }
 object { window translate <51,6,0> rotate y*90 }
 
-#if (DO_STAINED_GLASS)
-#else
 object { MyTree scale <.5, 1, .5> translate <205, 0, 50> }
-
-#end
 
 //object { MyTree scale <.75, 1, .75> translate <300, 0, -90> }
 

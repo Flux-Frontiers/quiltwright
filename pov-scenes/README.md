@@ -26,7 +26,7 @@ the walls.
 | `museum.pov` | Canonical cut. The image in the README. |
 | `museum_dark.pov` | Same room, interior lighting only. |
 | `museum_970211.pov` | 1997 cut, kept for provenance. |
-| `museum_pg.pov` | 1999 cut — the last one. Adds the P&G healthcare floor logo, the DNA cartoon mobile, the Risedronate exhibit and a tree outside the window. Pulls its wall pictures from `picframe_new.pov`, which reads them out of `pics/`. |
+| `museum_pg.pov` | 1999 cut — the last one. Adds the DNA cartoon mobile, the Risedronate exhibit and a tree outside the window. Pulls its wall pictures from `picframe_new.pov`, which reads them out of `pics/`. |
 | `museum_new_990101.pov` | The same file under its archival name, kept for provenance. |
 
 `pics/` holds the framed pictures at the path `picframe_new.pov` asks for
@@ -51,6 +51,7 @@ being the file as written.
 |---|---|
 | `bj.pov` | "DNA Under Glass" — B-DNA under the jar, sea and sky behind. |
 | `bj_black.pov` | The same still life on black, for print. |
+| `bj_check.pov` | The same still life over `bj.pov`'s checkerboard ground instead of its sea, framed 4:3. This renders `bell_jar.tga`, the picture the museum hangs on its upper-right wall — a file the scenes had always asked for but that was never in the tree. |
 | `bdna.pov` | B-DNA alone on a checkerboard, no jar. |
 | `yinyang.pov` | B-DNA and Z-DNA side by side under two jars. |
 | `bdna/` | Variant of the still life plus the turntable animation (`bdna_anim.pov` + `bdna_anim.ini`). Its `bell_jar.inc`, `bna7_full.inc` and `bdna.pov` differ from the copies one level up; the rest are the same files. |
