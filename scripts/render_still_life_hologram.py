@@ -65,6 +65,8 @@ class StillLife:
     :param backdrop: Label for the residual that never occludes, and so is
         left out of the near/far balance on purpose.
     :param extra_args: POV-Ray arguments the scene needs, e.g. ``+MV3.1``.
+    :param caveat: Anything in the scene that the sweep cannot serve, printed
+        before the render so it is not discovered in the output.
     """
 
     scene: str
@@ -75,6 +77,7 @@ class StillLife:
     far: float
     backdrop: str
     extra_args: tuple[str, ...] = ()
+    caveat: str = ""
 
     def camera(self) -> PovCamera:
         """The scene's viewpoint, re-focused for the view sweep.
@@ -119,12 +122,18 @@ SCENES = {
         eye=(0.0, 0.0, -1100.0),
         aim=(0.0, 0.0, 0.0),
         fov=53.13,
-        # The floating "Porin" title is the nearest thing in frame at 790,
-        # ahead of the barrel itself; 95% of the subject is in by 1265.  The
-        # sea's own creep past that is 0.02%/unit.
+        # The barrel's leading loops appear at 790 and 95% of it is in by
+        # 1265; the sea's own creep past that is 0.02%/unit.  These bound the
+        # barrel only — see `caveat`, which is not scene content.
         near=790.0,
         far=1265.0,
         backdrop="sea and sky",
+        caveat=(
+            'the "Porin" title and the signature are pinned 10-12 units from '
+            "the eye, not out at the barrel.  No focal plane serves both, so "
+            "they leave the frame entirely during the sweep and the hologram "
+            "is the barrel alone."
+        ),
         # 3porin.pov carries no #version pragma, so POV-Ray 3.5+ rejects its
         # 2.x-syntax #declares.  Pinning the language version on the command
         # line leaves the scene file as it was written.
@@ -203,6 +212,8 @@ def main() -> int:
             },
         )
     )
+    if subject.caveat:
+        print(f"  note: {subject.caveat}")
 
     started = time.time()
     quilt = render_pov_quilt(

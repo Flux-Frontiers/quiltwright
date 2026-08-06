@@ -13,6 +13,11 @@ everything downstream of quilt assembly — filenames, casting, playback — is
 shared. For rendering molecular structures this way, see
 [pdb2pov.md](pdb2pov.md).
 
+This page explains the mechanism. For the step-by-step procedure of getting a
+particular archive scene through it — parsing, reading its camera, measuring
+its depths, and the traps at each step — see
+[pov-workflow.md](pov-workflow.md).
+
 ---
 
 ## Concept
