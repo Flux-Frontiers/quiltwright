@@ -26,7 +26,8 @@ the walls.
 | `museum.pov` | Canonical cut. The image in the README. |
 | `museum_dark.pov` | Same room, interior lighting only. |
 | `museum_970211.pov` | 1997 cut, kept for provenance. |
-| `museum_new_990101.pov` | 1999 cut — the last one. Adds the healthcare floor logo, the DNA cartoon mobile, the Risedronate exhibit and a tree outside the window. Pulls its wall pictures from `picframe_new.pov`, which reads them out of `pics/`. |
+| `museum_pg.pov` | 1999 cut — the last one. Adds the P&G healthcare floor logo, the DNA cartoon mobile, the Risedronate exhibit and a tree outside the window. Pulls its wall pictures from `picframe_new.pov`, which reads them out of `pics/`. |
+| `museum_new_990101.pov` | The same file under its archival name, kept for provenance. |
 
 `pics/` holds the framed pictures at the path `picframe_new.pov` asks for
 (`./pics/*.tga`). The five that both picture-frame files use also sit flat in
@@ -106,3 +107,21 @@ quilt = render_pov_quilt(
     extra_args=["+MV3.1"],
 )
 ```
+
+---
+
+## Holograms
+
+Two of these are wired up as light-field quilts:
+
+```bash
+python scripts/render_still_life_hologram.py bell-jar --preview
+python scripts/render_still_life_hologram.py porin --device portrait
+python scripts/render_museum_hologram.py --preview          # the interior
+```
+
+Both still lifes are 3:4 portrait, which the Portrait preset matches without
+cropping. Their focal planes come from measured depth ranges rather than the
+scenes' own composed aim points — see the script's docstring for how the sea
+is kept out of the disparity budget, and `scripts/measure_depth_range.py` for
+the plane sweep that produces the numbers.

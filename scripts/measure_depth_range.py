@@ -54,6 +54,17 @@ from quiltwright.povray import PovCamera, camera_block
 MARKER = (1.0, 0.0, 1.0)
 
 
+def _triple(text: str) -> tuple[float, float, float]:
+    """Parse an ``x,y,z`` command-line vector."""
+    parts = text.replace(" ", "").split(",")
+    if len(parts) != 3:
+        raise argparse.ArgumentTypeError(f"expected x,y,z — got {text!r}")
+    try:
+        return tuple(float(p) for p in parts)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(f"expected three numbers — got {text!r}") from exc
+
+
 def _wrapper(scene: Path, camera: PovCamera, aspect: float, dist: float | None) -> str:
     """Scene + camera, plus the marker plane at *dist* if given."""
     body = f'#include "{scene}"\n' + camera_block(camera, 0.0, aspect)
@@ -79,6 +90,7 @@ def _render(
     height: int,
     quality: int,
     dist: float | None,
+    extra_args=(),
 ) -> np.ndarray:
     """Render one probe frame and return it as an RGB array."""
     from PIL import Image
@@ -97,6 +109,7 @@ def _render(
         f"+Q{quality}",
         f"+L{scene.parent}",
         *[f"+L{Path(p)}" for p in include_paths],
+        *extra_args,
     ]
     result = subprocess.run(cmd, cwd=workdir, capture_output=True, text=True)
     if result.returncode != 0 or not out.exists():
@@ -113,6 +126,7 @@ def sweep(
     width: int = 320,
     height: int = 180,
     quality: int = 11,
+    extra_args=(),
     progress: bool = True,
 ) -> list[tuple[float, float]]:
     """Fraction of the frame nearer than each distance.
@@ -121,6 +135,8 @@ def sweep(
     :param camera: Camera to measure through — the one you will render with.
     :param distances: Distances along the view axis to test, in scene units.
     :param quality: POV-Ray ``+Q``.  Keep at 8 or above or glass reads solid.
+    :param extra_args: Additional POV-Ray arguments, e.g. ``["+MV3.1"]`` for
+        pre-2000 scenes that carry no ``#version`` pragma of their own.
     :return: ``(distance, fraction_in_front)`` pairs, in the order given.
     :raises RuntimeError: If POV-Ray fails, or the calibration frame is not
         uniformly the marker colour (something occludes the plane at d=1).
@@ -134,6 +150,7 @@ def sweep(
             width=width,
             height=height,
             quality=quality,
+            extra_args=extra_args,
         )
         calib = _render(workdir, dist=1.0, **opts)
         if calib.std(axis=(0, 1)).max() > 2:
@@ -184,12 +201,55 @@ def main() -> int:
     parser.add_argument("--height", type=int, default=180)
     parser.add_argument("--quality", type=int, default=11, help="POV-Ray +Q; keep >= 8")
     parser.add_argument("--max-distance", type=float, default=400.0)
+    parser.add_argument(
+        "--min-distance",
+        type=float,
+        default=None,
+        help="near end of the sweep.  Given, the probes are spread evenly "
+        "between it and --max-distance instead of using the museum's grid.",
+    )
+    parser.add_argument(
+        "--include-path",
+        action="append",
+        default=[],
+        metavar="DIR",
+        help="extra #include directory; repeatable.  With --scene only.",
+    )
+    parser.add_argument(
+        "--eye",
+        type=_triple,
+        metavar="X,Y,Z",
+        help="camera position to probe through.  With --scene only.",
+    )
+    parser.add_argument(
+        "--aim", type=_triple, metavar="X,Y,Z", help="camera look_at.  With --scene only."
+    )
+    parser.add_argument(
+        "--fov",
+        type=float,
+        default=53.13,
+        help="vertical field of view in degrees.  With --scene only.",
+    )
+    parser.add_argument(
+        "--pov-arg",
+        action="append",
+        default=[],
+        metavar="ARG",
+        help="extra POV-Ray argument, e.g. +MV3.1 for a scene with no "
+        "#version pragma; repeatable.",
+    )
     args = parser.parse_args()
 
     if args.scene:
-        scene, include_paths = Path(args.scene).resolve(), ()
-        camera = PovCamera(location=(0, 0, -10), look_at=(0, 0, 0), fov=53.13)
-        print("note: probing with a default camera; edit this script for your own")
+        scene = Path(args.scene).resolve()
+        include_paths = [Path(p).resolve() for p in args.include_path]
+        camera = PovCamera(
+            location=args.eye or (0, 0, -10),
+            look_at=args.aim or (0, 0, 0),
+            fov=args.fov,
+        )
+        if args.eye is None or args.aim is None:
+            print("note: probing with a default camera; pass --eye and --aim for your own")
     else:
         sys.path.insert(0, str(Path(__file__).resolve().parent))
         import render_museum_hologram as museum
@@ -200,12 +260,18 @@ def main() -> int:
     if args.quality < 8:
         print(f"warning: +Q{args.quality} disables transparency; glass will read solid")
 
-    grid = [
-        *np.arange(5.0, 62.0, 1.0),
-        *np.arange(62.0, 122.0, 2.0),
-        *np.arange(125.0, args.max_distance, 10.0),
-        5000.0,
-    ]
+    if args.min_distance is None:
+        # The museum's grid: fine through the room, coarse out to the walls.
+        grid = [
+            *np.arange(5.0, 62.0, 1.0),
+            *np.arange(62.0, 122.0, 2.0),
+            *np.arange(125.0, args.max_distance, 10.0),
+            5000.0,
+        ]
+    else:
+        # A scene composed at some other scale — porin sits 1100 units out —
+        # wants its probes where its content is, not 200 of them in front of it.
+        grid = [*np.linspace(args.min_distance, args.max_distance, 200), 5000.0]
     print(f"Sweeping {scene.name} through {len(grid)} planes at {args.width}x{args.height}")
     rows = sweep(
         scene,
@@ -215,6 +281,7 @@ def main() -> int:
         width=args.width,
         height=args.height,
         quality=args.quality,
+        extra_args=args.pov_arg,
     )
     found = summarise(rows)
     print(f"\n  nearest geometry   {found['near']:.0f} units")
