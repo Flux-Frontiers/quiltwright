@@ -16,6 +16,19 @@
 
 /* The Bell Jar glass object */
 
+// Wall thickness, in pre-scale units.  The jar was originally a zero-
+// thickness surface -- an `open` cylinder merged with a sphere -- which
+// refracts once instead of twice, so it read as a soap film rather than
+// as glass: no rim, no edge, barely visible against a bright sky.  Giving
+// it a real wall costs nothing and matters more on a light-field display
+// than on a still, because a dome the display cannot see is a dome it
+// cannot fuse.  Set to 0 for the original surface.
+#declare BJ_WALL = 0.06
+
+#include "glass.inc"
+
+#if (BJ_WALL = 0)
+
 #declare hemi = object {
         intersection {
                        sphere { <0, 3, 0> , .9}
@@ -30,7 +43,6 @@
         cylinder { <0,0,0>, <0,3.0,0>, .9 open}
    hollow
 }
-#include "glass.inc"
 #declare bell = merge {
    object { cyl }
    object { hemi }
@@ -39,6 +51,33 @@
 
   hollow
 }
+
+#else
+
+// Outer surface: solid capsule.  The sphere sits at the cylinder's top rim
+// and shares its radius, so the two are flush and the merge is a dome on a
+// tube.
+#declare bell_outer = merge {
+   cylinder { <0, 0, 0>, <0, 3.0, 0>, .9 }
+   sphere   { <0, 3, 0>, .9 }
+}
+
+// Cavity: the same shape inset by the wall, running below y=0 so the jar
+// is open at the bottom rather than a sealed bubble.
+#declare bell_cavity = merge {
+   cylinder { <0, -0.5, 0>, <0, 3.0, 0>, .9 - BJ_WALL }
+   sphere   { <0, 3, 0>, .9 - BJ_WALL }
+}
+
+#declare bell = difference {
+   object { bell_outer }
+   object { bell_cavity }
+   scale <1, 1.5, 1>
+   texture { T_Glass3 }
+   hollow
+}
+
+#end
 
 /*-----------BASE OF COLUMN A / TOP FLOOR-------------------*/
 #declare base_a = union {

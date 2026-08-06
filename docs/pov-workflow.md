@@ -332,6 +332,19 @@ disparity scales with tile height, so a quarter-size preview genuinely has a
 quarter of the disparity. Composition and view validity transfer from a
 preview; the ghosting margin does not.
 
+**A preset's native cone is not a target.** § 6 said an open scene can use the
+display's own cone because nothing encloses it. That is true of *clearance* and
+false of *disparity*. The 16" Landscape declares 50°, and on its 720 px tiles
+the bell jar comes out at 4.10 px on the subject — at the ceiling — and 14.29 px
+on the sea, nearly double where ghosting gets obvious. The same scene at the
+documented 35° standard is 2.77 and 9.66. Nothing bounded the cone, so it had to
+be bounded by the budget instead, and `render_still_life_hologram.py` now caps
+it at 35° and says so. The cost is look-around, not sharpness.
+
+The general point: an open scene has no wall to run into, which makes it easy to
+assume the sweep is free. It is not — it is paid for in disparity, and on a wide
+panel the bill arrives at the backdrop.
+
 ---
 
 ## 8. Render, then verify the parallax

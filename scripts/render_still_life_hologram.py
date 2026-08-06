@@ -50,6 +50,20 @@ from quiltwright.povray import PovCamera, format_depth_budget, render_pov_quilt
 
 POV_SCENES = Path(__file__).resolve().parents[1] / "pov-scenes"
 
+#: Widest sweep these scenes are rendered at unless asked otherwise.
+#:
+#: Nothing encloses them, so unlike the museum there is no wall to bound the
+#: cone — but the disparity budget bounds it anyway, and on a wide panel the
+#: preset's native cone overruns it.  The 16" Landscape declares 50 degrees,
+#: which on its 720 px tiles puts the sea at 14.3 px of adjacent-view
+#: disparity, close to double the ~8 px where ghosting becomes obvious, and
+#: the subject itself at 4.1 px, right at the practical ceiling.  At the
+#: documented 35 degree standard the same scene is 2.8 px on the subject and
+#: 9.7 px on the sea.  The cost is look-around, not sharpness: with the focal
+#: plane at the harmonic mean, disparity at the extremes depends on the
+#: physical baseline rather than on where the focal plane sits.
+STANDARD_VIEW_CONE = 35.0
+
 
 @dataclass(frozen=True)
 class StillLife:
@@ -215,6 +229,13 @@ def main() -> int:
     spec = QUILT_PRESETS[args.device]
     if args.view_cone is not None:
         spec = replace(spec, view_cone=args.view_cone)
+    elif spec.view_cone > STANDARD_VIEW_CONE:
+        print(
+            f"  view cone        {spec.view_cone:.0f} deg native -> "
+            f"{STANDARD_VIEW_CONE:.0f} to keep the budget in range "
+            f"(--view-cone {spec.view_cone:.0f} to override)"
+        )
+        spec = replace(spec, view_cone=STANDARD_VIEW_CONE)
     if args.aspect is not None:
         spec = replace(spec, aspect=args.aspect)
     if args.preview:
