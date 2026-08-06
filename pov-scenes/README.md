@@ -116,12 +116,24 @@ Two of these are wired up as light-field quilts:
 
 ```bash
 python scripts/render_still_life_hologram.py bell-jar --preview
+python scripts/render_still_life_hologram.py porin                  # 16" landscape
 python scripts/render_still_life_hologram.py porin --device portrait
-python scripts/render_museum_hologram.py --preview          # the interior
+python scripts/render_museum_hologram.py --preview                  # the interior
 ```
 
-Both still lifes are 3:4 portrait, which the Portrait preset matches without
-cropping. Their focal planes come from measured depth ranges rather than the
-scenes' own composed aim points — see the script's docstring for how the sea
-is kept out of the disparity budget, and `scripts/measure_depth_range.py` for
-the plane sweep that produces the numbers.
+Both default to the 16" landscape panel, matching `render_museum_hologram.py`.
+Their focal planes come from measured depth ranges rather than the scenes' own
+composed aim points — see the script's docstring for how the sea is kept out of
+the disparity budget, and `scripts/measure_depth_range.py` for the plane sweep
+that produces the numbers.
+
+### Framing
+
+`--device` selects the panel and with it the frame shape; `--fov` overrides the
+scene's own vertical lens to re-frame within it. Both still lifes were composed
+3:4 portrait, so on a landscape panel the vertical framing is unchanged and the
+extra width is backdrop — lower `--fov` to fill it, and re-read the depth budget
+the script prints, because a narrower lens magnifies parallax too. `--aspect`
+overrides the tile aspect directly; it is encoded in the output filename, which
+is what Looking Glass software reads, so a value that disagrees with the panel
+gets letterboxed by it.

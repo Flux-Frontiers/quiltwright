@@ -89,11 +89,26 @@ grep -n 'right\|up\|#declare ASPECT' yinyang.pov
 
 | Scene | declares | aspect | renders correctly at |
 |---|---|---|---|
-| `bell_jar/bj.pov` | `right <3/4,0,0>` | 0.75 | 480×640, 960×1280 |
+| `bell_jar/bj.pov` | `right <3/4,0,0>` | 0.75 | 900×1200 |
+| `bell_jar/bj_black.pov` | `right <3/4,0,0>` | 0.75 | 900×1200 |
+| `bell_jar/bdna.pov` | `right <3/4,0,0>` | 0.75 | 900×1200 |
 | `bell_jar/yinyang.pov` | `right <5/4,0,0>` | 1.25 | 1500×1200 |
-| `porin/3porin.pov` | `right <ASPECT,0,0>`, `ASPECT = 3/4` | 0.75 | 600×800 |
+| `bell_jar/bdna/bdna.pov` | `right <4/8,0,0>` | 0.5 | 600×1200 |
+| `bell_jar/bdna/bdna_anim.pov` | `right <5/8,0,0>` | 0.625 | 750×1200 |
+| `porin/3porin.pov` | `right <ASPECT,0,0>`, `ASPECT = 3/4` | 0.75 | 1200×1600 |
+| `porin/3porin2.pov` | `right 4/3*x` | 1.333 | 1600×1200 |
 | `museum/museum.pov` | `ASPECT = 36/24` | 1.5 | 1800×1200 |
+| `museum/museum_dark.pov` | `right <4/3,0,0>` | 1.333 | 1600×1200 |
+| `museum/museum_970211.pov` | `ASPECT = PC_ASPECT` | 1.333 | 1600×1200 |
 | `museum/museum_pg.pov` | `ASPECT = 5/4` | 1.25 | 1500×1200 |
+| `museum/disc1.pov` | `right 4/3*x` | 1.333 | 1600×1200 |
+
+Three of those need care beyond reading the first `right` in the file.
+`museum_970211.pov` declares `ASPECT` twice and the first is commented out;
+`bdna/bdna.pov` and `bdna/bdna_anim.pov` each declare several cameras at
+different aspects and instantiate one at the bottom — `original_camera` at 0.5
+and `simple_camera` at 0.625 respectively. Strip comments and find the
+instantiated camera, not the first declared one.
 
 Rendered at 960×1200 — an aspect of 0.8 — `yinyang.pov` squeezes its 1.25-wide
 frustum by 36%, and the result reads unmistakably as vertical stretch: the bell

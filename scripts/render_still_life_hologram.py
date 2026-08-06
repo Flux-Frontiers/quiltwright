@@ -151,10 +151,12 @@ def main() -> int:
     parser.add_argument("subject", choices=sorted(SCENES), help="which still life")
     parser.add_argument(
         "--device",
-        default="portrait",
+        default="16-landscape",
         choices=sorted(QUILT_PRESETS),
-        help="target display.  Both scenes are composed 3:4 portrait, which "
-        "the Portrait preset matches without cropping.",
+        help="target display.  Both scenes were composed 3:4 portrait, so on "
+        "a landscape panel the vertical framing is unchanged and the extra "
+        "width is backdrop — use --fov to re-frame if you want the subject "
+        "larger.",
     )
     parser.add_argument(
         "--view-cone",
@@ -162,6 +164,25 @@ def main() -> int:
         default=None,
         help="camera sweep in degrees; defaults to the display's own cone.  "
         "Nothing encloses these scenes, so there is no wall to walk into.",
+    )
+    parser.add_argument(
+        "--fov",
+        type=float,
+        default=None,
+        help="vertical field of view in degrees, overriding the scene's own "
+        "lens.  This is the framing control: lower zooms in.  Note that a "
+        "narrower lens magnifies parallax along with everything else, so "
+        "re-check the depth budget it prints.",
+    )
+    parser.add_argument(
+        "--aspect",
+        type=float,
+        default=None,
+        help="tile aspect (width/height), overriding the device preset's.  "
+        "Changes the shape of the frame rather than what is in it.  The "
+        "value is encoded in the output filename, which is what Looking "
+        "Glass software reads, so a value that disagrees with the panel "
+        "will be letterboxed by it.",
     )
     parser.add_argument(
         "--preview",
@@ -188,10 +209,14 @@ def main() -> int:
         print(f"error: scene not found at {scene}", file=sys.stderr)
         return 1
 
+    if args.fov is not None:
+        subject = replace(subject, fov=args.fov)
     camera = subject.camera()
     spec = QUILT_PRESETS[args.device]
     if args.view_cone is not None:
         spec = replace(spec, view_cone=args.view_cone)
+    if args.aspect is not None:
+        spec = replace(spec, aspect=args.aspect)
     if args.preview:
         spec = replace(spec, quilt_width=spec.quilt_width // 4, quilt_height=spec.quilt_height // 4)
 
