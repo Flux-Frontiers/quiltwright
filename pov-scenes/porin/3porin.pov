@@ -48424,12 +48424,18 @@ plane { y, -445.000000
  scale 2.0
 }
 
+// Scaled about the camera (at z = -1100) to sit 900 units out — just in
+// front of the barrel (850) and above the waterline — so the quilt sweep
+// carries them instead of throwing them out of frame. Same apparent size
+// and position from the center view as the old near placement.
 object {egstext
-        translate <1.9, -4.9, -1090>
+        scale 90                       // was at depth 10; 10 * 90 = 900
+        translate <1.9*90, -4.9*90, -1100 + 900>
         }
 
 object {titletext  rotate x*5
-  translate <-2.0, -5.5, -1088>
+  scale 75                             // was at depth 12; 12 * 75 = 900
+  translate <-2.0*75, -5.5*75, -1100 + 900>
    }
 
 

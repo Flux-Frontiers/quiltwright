@@ -253,23 +253,26 @@ sweep only reports what it passes through, so anything nearer than where you
 started is silently absent from the numbers — and near content is exactly what
 blows a depth budget.
 
-Porin has some. Its "Porin" title and the `E. G. Suchanek, '97` signature are
+Porin had some. Its "Porin" title and the `E. G. Suchanek, '97` signature were
 extruded text translated to `z = -1088` and `-1090`, against a camera at
 `z = -1100`: **10 to 12 units from the eye**, while the barrel they annotate is
-850 to 1265 units out. They are camera-pinned overlays, not scene content, and
-sweeping from 700 stepped straight over them. A second sweep from 5 finds them
-immediately — 0.9% of the frame appearing at 12 units and flat thereafter,
-which is the signature of a near overlay with nothing behind it.
+850 to 1265 units out. They were camera-pinned overlays, not scene content, and
+sweeping from 700 stepped straight over them. A second sweep from 5 finds such
+content immediately — 0.9% of the frame appearing at 12 units and flat
+thereafter, which is the signature of a near overlay with nothing behind it.
 
 No focal plane serves both. At `Z = 972.6`, content at 12 units moves 0.53
 image-plane units per 6.5 units of eye travel against a half-frame of 0.375 —
 so it does not ghost, it **leaves the frame**, and it is gone by the second
-view of the sweep. The porin hologram is the barrel alone.
+view of the sweep.
 
-That is the right outcome here, but it has to be a decision rather than a
-surprise, which is why `StillLife.caveat` prints it before the render starts.
-The bell jar's "DNA Under Glass" lettering, by contrast, is modelled on the
-pedestal at scene depth, and it rides the sweep with everything else.
+The cure is geometric: scaling an overlay *about the camera* preserves its
+apparent size and position in the centre view exactly while moving it to any
+depth you choose. Porin's texts are now scaled ×90 and ×75 out to **900 units**
+— just ahead of the barrel's leading loops, floating at the waterline — so
+they ride the sweep with everything else and the quilt carries them. The bell
+jar's "DNA Under Glass" lettering never needed this: it is modelled on the
+pedestal at scene depth.
 
 **The general check**: if a scene has a title, a signature, a logo or a border,
 find out whether it is *in* the scene or *on the lens* before you measure. Grep

@@ -137,17 +137,12 @@ SCENES = {
         aim=(0.0, 0.0, 0.0),
         fov=53.13,
         # The barrel's leading loops appear at 790 and 95% of it is in by
-        # 1265; the sea's own creep past that is 0.02%/unit.  These bound the
-        # barrel only — see `caveat`, which is not scene content.
+        # 1265; the sea's own creep past that is 0.02%/unit.  The title and
+        # signature sit at 900, inside these bounds — they were camera-pinned
+        # overlays 10-12 units from the eye until scaled out to scene depth.
         near=790.0,
         far=1265.0,
         backdrop="sea and sky",
-        caveat=(
-            'the "Porin" title and the signature are pinned 10-12 units from '
-            "the eye, not out at the barrel.  No focal plane serves both, so "
-            "they leave the frame entirely during the sweep and the hologram "
-            "is the barrel alone."
-        ),
         # 3porin.pov carries no #version pragma, so POV-Ray 3.5+ rejects its
         # 2.x-syntax #declares.  Pinning the language version on the command
         # line leaves the scene file as it was written.
