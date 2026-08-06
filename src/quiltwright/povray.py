@@ -532,10 +532,11 @@ def render_pov_quilt(
         (0.3 is a good default, 0.1 for finals).  ``None`` disables
         anti-aliasing.
     :param quality: POV-Ray ``+Q`` quality level, 0-11.
-    :param jobs: Number of POV-Ray processes to run concurrently.  POV-Ray
-        already threads a single render across all cores, so the default of
-        1 is usually right; raise it only when views are small enough that
-        per-render startup dominates.
+    :param jobs: Number of POV-Ray processes to run concurrently.  Views are
+        independent, so one process per core is the efficient shape for a
+        quilt: raising this splits the machine's cores between the jobs via
+        ``+WT`` rather than letting each process claim all of them.  Pass
+        your own ``+WT`` in *extra_args* to override that split.
     :param binary: POV-Ray executable; defaults to ``POVRAY_BINARY`` or
         ``povray`` on ``PATH``.
     :param extra_args: Additional POV-Ray command-line arguments, e.g.
@@ -555,6 +556,14 @@ def render_pov_quilt(
 
     if view_cone is not None:
         spec = replace(spec, view_cone=view_cone)
+
+    # POV-Ray threads one render across every core it can see, so N concurrent
+    # processes each ask for the whole machine.  At jobs=14 on 18 cores that
+    # is 336 render threads competing for 18, which buys context switching
+    # and cache thrash rather than throughput.  Divide the cores between the
+    # jobs instead; an explicit +WT from the caller wins.
+    if jobs > 1 and not any(str(a).startswith("+WT") for a in extra_args):
+        extra_args = [*extra_args, f"+WT{max(1, (os.cpu_count() or jobs) // jobs)}"]
 
     # Match render_quilt: capture at the declared view aspect so the frustum
     # is undistorted, then let assemble_quilt resample into the tile.  These
