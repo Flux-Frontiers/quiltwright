@@ -38,6 +38,13 @@ The standalone scenes are `museum*.pov`, `worldmap.pov` and `disc1.pov`. The
 rest — `window.pov`, `picframe*.pov`, `display_base.pov` and `zdna.pov` — are
 fragments meant to be `#include`d and carry no camera of their own.
 
+`disc1.pov` renders **only on a case-insensitive filesystem** — macOS and
+Windows, where it was written. It asks for the standard includes in upper case
+(`#include "CHARS.INC"`), POV-Ray ships them lower case, and on Linux that is a
+`Cannot open include file` and nothing renders. Nothing in the scene is wrong;
+lower-casing the eight `#include` lines would fix it, at the cost of no longer
+being the file as written.
+
 ## bell_jar/
 
 | Scene | Notes |

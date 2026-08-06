@@ -63,6 +63,18 @@ povray +Ibj.pov +L/usr/share/povray-3.7/include +L../myinclude
 A missing include fails with a line number in the *wrapper*, not the scene,
 which is confusing the first time.
 
+**Include case, on Linux.** These scenes were written on case-insensitive
+filesystems, so their `#include` lines use whatever case felt natural at the
+time. POV-Ray ships its standard library lower case, and on Linux
+`#include "CHARS.INC"` is simply a missing file. `museum/disc1.pov` asks for
+eight of them in upper case and does not render on Linux at all, while being
+perfectly fine on the Mac it was written on. Diagnose it before assuming a
+file is genuinely absent — `ls` the include directory case-insensitively.
+
+A real absence looks the same from the error message. `museum/worldmap.pov`
+wanted `worldmap.inc`, which had simply not been carried across with the rest
+of the museum tree and had to be fetched from the archive.
+
 **Quality, if there is glass.** POV-Ray disables transparency and refraction
 below `+Q8`. A cheap probe of a scene with windows reports a room with no
 windows; a cheap probe of a bell jar reports a solid dome. Keep `+Q11` for
