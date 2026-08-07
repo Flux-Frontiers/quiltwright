@@ -61,7 +61,9 @@ global_settings {
 #declare DNA_CARTOON = true      // the DNA cartoon mobile
 #include "aspect.inc"
 
-#declare ASPECT= 36/24  
+// 16:9 (HDTV in aspect.inc), matching the 16" landscape panel the
+// hologram targets.  Was 36/24, a poster-print relic.
+#declare ASPECT = HDTV
 
 
 //
@@ -98,7 +100,9 @@ global_settings {
 
 #declare camera_zdna3 = camera {
   the_lens
-  location <15,20,6.0>
+  // Dollied 5 units toward the aim point (was <15,20,6>) to bring the
+  // near pedestal's jar out toward the left frame edge at 16:9.
+  location <18.4,19.9,9.7>
   look_at <58,19,53>  // 52
 }
 

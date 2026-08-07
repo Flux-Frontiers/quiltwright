@@ -143,10 +143,6 @@ SCENES = {
         near=790.0,
         far=1265.0,
         backdrop="sea and sky",
-        # 3porin.pov carries no #version pragma, so POV-Ray 3.5+ rejects its
-        # 2.x-syntax #declares.  Pinning the language version on the command
-        # line leaves the scene file as it was written.
-        extra_args=("+MV3.1",),
     ),
 }
 
@@ -207,7 +203,9 @@ def main() -> int:
         "interpolates between them, so edge noise reads as shimmer.",
     )
     parser.add_argument("--jobs", type=int, default=1, help="concurrent POV-Ray processes")
-    parser.add_argument("--out", default=None, help="output stem; defaults to out/<subject>")
+    parser.add_argument(
+        "--out", default=None, help="output stem; defaults to renders/quilts/<subject>"
+    )
     parser.add_argument("--cast", action="store_true", help="send to Looking Glass Bridge")
     parser.add_argument("--keep-views", help="directory to retain per-view PNGs in")
     args = parser.parse_args()
@@ -274,7 +272,7 @@ def main() -> int:
     )
     elapsed = time.time() - started
 
-    out = save_quilt(quilt, args.out or f"out/{args.subject}", spec)
+    out = save_quilt(quilt, args.out or f"renders/quilts/{args.subject}", spec)
     print(f"  wrote {out}  ({elapsed:.0f}s, {elapsed / spec.n_views:.1f}s/view)")
 
     if args.cast:

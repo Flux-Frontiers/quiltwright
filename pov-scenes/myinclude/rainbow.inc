@@ -1,15 +1,15 @@
 #if (DO_RAINBOW)
 
-#declare r_violet1 = colour rgbf<1.0, 0.5, 1.0, 0.9>
-#declare r_violet2 = colour rgbf<1.0, 0.5, 1.0, 0.8>
-#declare r_indigo  = colour rgbf<0.5, 0.5, 1.0, 0.8>
-#declare r_blue    = colour rgbf<0.2, 0.2, 1.0, 0.8>
-#declare r_cyan    = colour rgbf<0.2, 1.0, 1.0, 0.8>
-#declare r_green   = colour rgbf<0.2, 1.0, 0.2, 0.8>
-#declare r_yellow  = colour rgbf<1.0, 1.0, 0.2, 0.8>
-#declare r_orange  = colour rgbf<1.0, 0.5, 0.2, 0.8>
-#declare r_red1    = colour rgbf<1.0, 0.2, 0.2, 0.8>
-#declare r_red2    = colour rgbf<1.0, 0.2, 0.2, 0.9>
+#declare r_violet1 = colour rgbf<1.0, 0.5, 1.0, 0.9>;
+#declare r_violet2 = colour rgbf<1.0, 0.5, 1.0, 0.8>;
+#declare r_indigo  = colour rgbf<0.5, 0.5, 1.0, 0.8>;
+#declare r_blue    = colour rgbf<0.2, 0.2, 1.0, 0.8>;
+#declare r_cyan    = colour rgbf<0.2, 1.0, 1.0, 0.8>;
+#declare r_green   = colour rgbf<0.2, 1.0, 0.2, 0.8>;
+#declare r_yellow  = colour rgbf<1.0, 1.0, 0.2, 0.8>;
+#declare r_orange  = colour rgbf<1.0, 0.5, 0.2, 0.8>;
+#declare r_red1    = colour rgbf<1.0, 0.2, 0.2, 0.8>;
+#declare r_red2    = colour rgbf<1.0, 0.2, 0.2, 0.9>;
 
 rainbow {
     angle 42.5

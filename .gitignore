@@ -13,17 +13,19 @@ venv/
 .coverage
 htmlcov/
 
-# Rendered output
-out/
-# Quilts are never committed -- one 16" landscape quilt is 25-40 MB and they
-# regenerate from pov-scenes/ plus the scripts.  These two patterns have no
-# slash, so git applies them at every depth: a quilt is ignored wherever it is
-# written, not just at the repo root.  Overriding that needs an explicit
-# negation, which is deliberate.
+# Rendered output.  The stills (~14 MB) are committed: they are the diffable
+# reference for what each scene looks like, and regenerating them needs a
+# POV-Ray install and patience.  Quilts (25-40 MB each) are release assets,
+# rendered by .github/workflows/release.yml; views/ is local scratch.
+renders/*
+!renders/README.md
+!renders/stills/
+# Quilts are never committed -- one 16" landscape quilt is 25-40 MB.  These
+# two patterns have no slash, so git applies them at every depth: a quilt is
+# ignored wherever it is written, not just under renders/.  Overriding that
+# needs an explicit negation, which is deliberate.
 *_qs[0-9]*x[0-9]*a*.png
 *_qs[0-9]*x[0-9]*a*.mp4
-renders/quilts/
-renders/stills/
 pov-scenes/**/*.png
 
 # OS

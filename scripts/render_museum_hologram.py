@@ -46,8 +46,10 @@ INCLUDE_PATHS = [
     POV_SCENES,
 ]
 
-#: Eye position of the scene's own ``camera_zdna3``.
-EYE = (15.0, 20.0, 6.0)
+#: Eye position of the scene's own ``camera_zdna3``.  Kept in step with it by
+#: hand: this script overrides the scene's camera entirely, so a dolly in the
+#: scene file is invisible to the quilt until it is copied here.
+EYE = (18.4, 19.9, 9.7)
 #: Its aim point.  Used for direction only; the focal distance is recomputed.
 AIM = (58.0, 19.0, 53.0)
 #: Vertical FOV of the scene's ``the_lens`` (direction 1, up 1 -> 2*atan(0.5)).
@@ -60,8 +62,11 @@ FOV = 53.13
 #: occludable is accounted for.  The remaining ~6% of the frame is sky through
 #: the window, at effective infinity, and is left out of the balance on
 #: purpose — it is low-contrast and can afford the disparity.
-NEAR_DEPTH = 31.0
-FAR_DEPTH = 96.0
+#: Both shifted 5 units nearer with the eye's 5.03-unit dolly toward the aim
+#: point, since the plane sweep measures along the view axis from the eye.
+#: They were 31.0 and 96.0 when the eye sat at <15,20,6>.
+NEAR_DEPTH = 26.0
+FAR_DEPTH = 91.0
 
 #: Usable lateral eye travel along the camera's right vector, measured by
 #: rendering at candidate offsets and watching for the frame to collapse to
@@ -71,16 +76,23 @@ FAR_DEPTH = 96.0
 CLEARANCE = Clearance(left=-18.0, right=8.0, margin=2.0)
 
 
-def museum_camera() -> PovCamera:
+def museum_camera(focal_distance: float | None = None) -> PovCamera:
     """The scene's viewpoint, re-aimed and re-centred for the view sweep.
 
+    :param focal_distance: Where to put the focal plane, in scene units.
+        Defaults to the harmonic mean of the measured depths, which equalises
+        near against far.  That is only optimal when the view cone is fixed,
+        and here it is not: the cone is derived from this distance against a
+        wall-bounded eye sweep, so pushing the plane back narrows the cone and
+        pulls *everything* — including the sky, which no focal plane reaches
+        at a fixed cone — down with it.
     :return: The centre-view camera.
     """
     return PovCamera.aimed(
         EYE,
         AIM,
         fov=FOV,
-        focal_distance=focal_distance_for_range(NEAR_DEPTH, FAR_DEPTH),
+        focal_distance=focal_distance or focal_distance_for_range(NEAR_DEPTH, FAR_DEPTH),
         lateral_shift=CLEARANCE.centre,
     )
 
@@ -102,6 +114,16 @@ def main() -> int:
         "the outermost eye inside the room",
     )
     parser.add_argument(
+        "--focal",
+        type=float,
+        default=None,
+        help="focal plane distance in scene units, overriding the harmonic "
+        "mean of the measured depths.  Prefer this to --view-cone when you "
+        "want the disparity down without giving up look-around: the eye still "
+        "travels the full corridor the walls allow, and the cone narrows as a "
+        "consequence.  --view-cone instead shortens the travel itself.",
+    )
+    parser.add_argument(
         "--preview",
         action="store_true",
         help="quarter-size quilt with cheaper anti-aliasing, for iterating",
@@ -116,7 +138,7 @@ def main() -> int:
         "than grain.",
     )
     parser.add_argument("--jobs", type=int, default=1, help="concurrent POV-Ray processes")
-    parser.add_argument("--out", default="out/museum", help="output stem")
+    parser.add_argument("--out", default="renders/quilts/museum", help="output stem")
     parser.add_argument("--cast", action="store_true", help="send to Looking Glass Bridge")
     parser.add_argument("--keep-views", help="directory to retain per-view PNGs in")
     args = parser.parse_args()
@@ -125,7 +147,7 @@ def main() -> int:
         print(f"error: scene not found at {SCENE}", file=sys.stderr)
         return 1
 
-    camera = museum_camera()
+    camera = museum_camera(args.focal)
     cone = args.view_cone
     if cone is None:
         cone = CLEARANCE.cone(camera.focal_distance)

@@ -1,0 +1,71 @@
+# Render the Looking Glass quilts on CI and attach them to the release.
+#
+# Quilts are 25-40 MB each and never enter git (see .gitignore); they are
+# release assets instead.  Rendering on CI means no one's laptop ever has
+# to: each quilt gets its own 4-vCPU runner and they render in parallel.
+#
+# Cost, extrapolated from an 18-core workstation: bell-jar ~40 min, porin
+# ~80 min.  The museum is the expensive one — its full +A0.05 recursive
+# supersample does not fit the 6-hour job limit on a standard runner, so
+# CI renders it at +A0.1 (the scripts' still-quality threshold).  For the
+# full-quality museum quilt, render locally and attach it with:
+#
+#     make quilt-museum && make release-assets TAG=<tag>
+
+name: release-quilts
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: existing release tag to attach quilts to
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  quilt:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - subject: bell-jar
+            target: quilt-bell-jar
+            args: ""
+          - subject: porin
+            target: quilt-porin
+            args: ""
+          - subject: museum
+            target: quilt-museum
+            args: "--antialias 0.1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install POV-Ray
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y povray povray-includes
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install quiltwright
+        run: |
+          python -m pip install .
+
+      - name: Render ${{ matrix.subject }}
+        run: |
+          make ${{ matrix.target }} PYTHON=python JOBS=$(nproc) EXTRA_ARGS="${{ matrix.args }}"
+
+      - name: Attach to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: |
+          gh release upload "$TAG" renders/quilts/*_qs*.png --clobber

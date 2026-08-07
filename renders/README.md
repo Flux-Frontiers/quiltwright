@@ -1,9 +1,17 @@
 # Reference renders
 
-Output, not source — and none of it is committed. One 16" quilt is 25–40 MB,
-the stills add another ~14 MB, and all of it regenerates from `pov-scenes/`
-plus the scripts. This README records what to render and at what shape, so a
-scene change can be checked against a fresh reference.
+Output, not source. Everything regenerates from `pov-scenes/` plus the
+scripts, but regeneration needs a POV-Ray install and patience, so what is
+kept where follows weight:
+
+| Directory | Contents | Kept |
+|---|---|---|
+| `stills/` | Full-quality single-frame references, one per scene | committed (~14 MB) — the diffable record of what each scene looks like |
+| `quilts/` | Looking Glass quilts, written here by the render scripts | release assets (25–40 MB each) — rendered on CI by `release.yml`, or locally via `make release-assets` |
+| `views/` | Per-view captures, test frames and experiments | local scratch, never committed |
+
+`make stills`, `make quilts`, or per-scene targets (`make help`) drive all of
+it.
 
 Produced with POV-Ray 3.7 on Linux. See
 [docs/pov-workflow.md](../docs/pov-workflow.md) for the procedure and the traps.
@@ -22,9 +30,9 @@ scene is tabulated in the workflow doc.
 | `bell_jar_bdna.png` | `bell_jar/bdna.pov` | 0.75 | 900×1200 |
 | `bell_jar_yinyang.png` | `bell_jar/yinyang.pov` | 1.25 | 1500×1200 |
 | `bell_jar_bdna_variant.png` | `bell_jar/bdna/bdna.pov` | 0.5 | 600×1200 |
-| `porin_3porin.png` | `porin/3porin.pov` | 0.75 | 1200×1600 |
+| `porin_3porin.png` | `porin/3porin.pov` | 1.778 | 1920×1080 |
 | `porin_3porin2.png` | `porin/3porin2.pov` | 1.333 | 1600×1200 |
-| `museum.png` | `museum/museum.pov` | 1.5 | 1800×1200 |
+| `museum.png` | `museum/museum.pov` | 1.778 | 1920×1080 |
 | `museum_dark.png` | `museum/museum_dark.pov` | 1.333 | 1600×1200 |
 | `museum_970211.png` | `museum/museum_970211.pov` | 1.333 | 1600×1200 |
 | `museum_pg.png` | `museum/museum_pg.pov` | 1.25 | 1500×1200 |
@@ -41,7 +49,7 @@ the standard includes in upper case. See the scene README.
 ## quilts/
 
 Gitignored like everything else here — at every depth, since the `*_qs…`
-patterns carry no slash — and they land in `out/` when you render them:
+patterns carry no slash — and they land here when you render them:
 
 ```bash
 python scripts/render_still_life_hologram.py bell-jar          # 16" landscape, ~9 min

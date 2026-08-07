@@ -44,6 +44,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   handled and documented: POV-Ray disables transparency below `+Q8`, so a cheap
   probe reports a room with no windows and no sky, and the measurement has to
   be taken through the camera that will render, not the scene's own.
+- **`Makefile` for the renders.** `make stills` regenerates every reference
+  still at its scene's declared aspect, `make quilt-<subject>` / `make quilts`
+  drive the hologram scripts, `preview-*` targets render quarter-size quilts
+  for iterating, and `make release-assets TAG=...` attaches finished quilts to
+  a GitHub release. `make help` lists everything.
+- **CI quilt rendering** (`.github/workflows/release.yml`). Publishing a
+  release renders the three quilts in parallel, one runner each, and attaches
+  them as release assets, so no one's laptop has to. The museum's full
+  recursive supersample does not fit the 6-hour job limit on a standard
+  runner, so CI renders it at `+A0.1`; the full-quality version renders
+  locally and attaches with `make release-assets`.
+- **The reference stills are now committed** (`renders/stills/`, 13 PNGs,
+  ~14 MB). They are the diffable record of what each scene looks like, and
+  regenerating them needs a POV-Ray install and patience. Quilts stay out of
+  git — 25–40 MB each — and become release assets instead; `.gitignore` now
+  ignores everything under `renders/` except the README and the stills.
+- **`pov-scenes/lambda/`** — the 1998 "Lambda Repressor" poster scene from the
+  archive: the 1LMB PDB file, the mesh converted from it
+  (`lambda_complex2.inc`), the main scene with its sea, sky and chrome
+  titling, and the original render `.ini` files.
 
 ### Changed
 
@@ -102,6 +122,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   is the room — walls, columns, window, frames, pedestals — while every exhibit
   in it is the author's own. Dates in `povray.md` and `install.md` fixed to
   match the scene headers.
+- **Quilts land in `renders/quilts/` instead of `out/`.** Both render scripts'
+  `--out` defaults, the `save_quilt()` docstring example and the docs moved
+  together.
+- **`3porin.pov` now declares `#version 3.6;` and terminates its
+  `#declare`s** (two there, ten in `myinclude/rainbow.inc`), so it renders
+  as-is and the `+MV3.1` pin is gone from `render_still_life_hologram.py` and
+  the docs. 3.6 rather than 3.7 is deliberate: under 3.7's rewritten gamma
+  pipeline the scene's `assumed_gamma 2.2` renders 36% darker. Line endings
+  normalised CRLF → LF while every line was being touched anyway.
+- **`3porin.pov` and `museum.pov` reframed at 16:9** (1920×1080), matching the
+  16" landscape panel the holograms target. The porin's extra width over the
+  old 3/4 portrait frame is sea and sky. The museum camera is dollied 5 units
+  toward the aim point to bring the near jar out toward the left frame edge,
+  and `render_museum_hologram.py`'s `EYE`, `NEAR_DEPTH` (31 → 26) and
+  `FAR_DEPTH` (96 → 91) follow the dolly. Aspect tables in
+  `docs/pov-workflow.md` and `renders/README.md` updated.
 
 ## [0.1.0] — 2026-08-04
 

@@ -79,9 +79,19 @@ an empty frame.
 `.ini` is written for. `3porin2.pov` is a plain-background test cut that
 `#include`s `3porin.inc`.
 
-**`3porin.pov` carries no `#version` pragma**, so POV-Ray 3.5+ parses it as
-modern source and stops on the first semicolon-less `#declare`. Pin the
-language version instead of editing the file — see below.
+`3porin.pov` declares `#version 3.6` and terminates its `#declare`s, so it
+renders as-is with no `+MV` flag. It had carried no pragma at all, which made
+POV-Ray 3.5+ parse it as modern source and stop on the first semicolon-less
+`#declare`; the fix was twelve semicolons (two here, ten in `rainbow.inc`)
+plus the pragma.
+
+**3.6 rather than 3.7 is deliberate.** The semicolon requirement arrived in
+3.5, but 3.7 rewrote the gamma pipeline, and under it this scene's
+`assumed_gamma 2.2` renders 36% darker — the cloud texture flattens out of the
+sky and the sea goes muddy, though the barrel itself gains contrast. 3.6 is
+the last version that takes modern syntax while keeping the tone the scene was
+composed for. Raising it to 3.7 means re-grading the scene, not just bumping a
+number.
 
 ---
 
@@ -96,20 +106,12 @@ povray +Ibj.pov +Obj.png +W480 +H600 +FN +A0.3 -D \
        +L/usr/share/povray-3.7/include +L../myinclude
 ```
 
-Most of these scenes declare `#version 3.0` themselves. `3porin.pov` does not,
-and needs the language version pinned on the command line:
+Every scene here now declares its own `#version`, so none of them need a `+MV`
+flag on the command line. The bell-jar and museum scenes declare `#version 3.0`
+and still draw `Possible Parse Error` warnings for the 2.x-syntax `#declare`s
+in `myinclude/`; those are warnings, and the render is correct.
 
-```bash
-povray +I3porin.pov ... +MV3.1
-```
-
-`+MV3.1` is the non-destructive form of the `#version 3.1;` pragma described in
-[pdb2pov.md](../docs/pdb2pov.md) — same effect, but the scene file stays as it
-was written. Either way POV-Ray still prints `Possible Parse Error` warnings
-for the 2.x-syntax `#declare`s in `myinclude/`; they are warnings, and the
-render is correct.
-
-The same argument reaches the quilt renderer through `extra_args`:
+Nothing extra is needed to reach the quilt renderer:
 
 ```python
 from quiltwright import QUILT_PRESETS, PovCamera, render_pov_quilt
@@ -119,7 +121,6 @@ quilt = render_pov_quilt(
     QUILT_PRESETS["portrait"],
     PovCamera(location=(0, 0, -1100), look_at=(0, 0, 0), fov=53.13),
     include_paths=["pov-scenes/myinclude"],
-    extra_args=["+MV3.1"],
 )
 ```
 

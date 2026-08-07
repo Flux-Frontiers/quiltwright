@@ -172,7 +172,7 @@ camera = PovCamera(
 )
 spec = replace(QUILT_PRESETS["16-landscape"], view_cone=35.0)
 quilt = render_pov_quilt("crambin.pov", spec, camera, include_paths=["path/to/pdb2pov"])
-save_quilt(quilt, "out/crambin", spec)
+save_quilt(quilt, "renders/quilts/crambin", spec)
 ```
 
 Crambin at 7680×4320 takes about a minute, landing 4.5 px of adjacent-view

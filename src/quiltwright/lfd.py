@@ -461,7 +461,7 @@ def save_quilt(quilt: np.ndarray, stem: str | Path, spec: QuiltSpec) -> Path:
     :param stem: Output path *without* the quilt suffix or extension.
         Any ``.png`` extension is stripped first.
     :param spec: Quilt specification (encodes the suffix metadata).
-    :return: The path written, e.g. ``out/helix_qs8x6a0.75.png``.
+    :return: The path written, e.g. ``renders/quilts/helix_qs8x6a0.75.png``.
     """
     try:
         from PIL import Image
