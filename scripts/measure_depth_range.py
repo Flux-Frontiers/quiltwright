@@ -235,8 +235,7 @@ def main() -> int:
         action="append",
         default=[],
         metavar="ARG",
-        help="extra POV-Ray argument, e.g. +MV3.1 for a scene with no "
-        "#version pragma; repeatable.",
+        help="extra POV-Ray argument, e.g. +MV3.1 for a scene with no #version pragma; repeatable.",
     )
     args = parser.parse_args()
 
