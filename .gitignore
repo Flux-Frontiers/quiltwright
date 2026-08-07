@@ -36,6 +36,12 @@ pov-scenes/**/*.png
 
 commit.txt
 
+# POV-Ray resume state.  Written next to the output whenever a render is
+# interrupted or run with +C, consumed when the render completes -- so an
+# interrupted still leaves a multi-megabyte binary sitting where the image
+# should be.  One of these reached renders/stills/ at 16.5 MB.
+*.pov-state
+
 # Personal working material -- grant drafts, venue correspondence.
 # This is a public repository; nothing under grants/ belongs in it.
 grants/
