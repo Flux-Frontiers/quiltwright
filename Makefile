@@ -79,11 +79,15 @@ still-museum_worldmap:       DIR=museum
 still-museum_worldmap:       SCENE=worldmap.pov
 still-museum_worldmap:       SIZE=+W1600 +H1200
 
+still-lambda_main:           DIR=lambda
+still-lambda_main:           SCENE=lambda_main.pov
+still-lambda_main:           SIZE=+W1920 +H1080
+
 STILL_TARGETS := still-bell_jar_bj still-bell_jar_bj_black still-bell_jar_bdna \
                  still-bell_jar_yinyang still-bell_jar_bdna_variant \
                  still-porin_3porin still-porin_3porin2 \
                  still-museum still-museum_dark still-museum_970211 \
-                 still-museum_pg still-museum_worldmap
+                 still-museum_pg still-museum_worldmap still-lambda_main
 
 still-%:
 	@mkdir -p $(STILLS)

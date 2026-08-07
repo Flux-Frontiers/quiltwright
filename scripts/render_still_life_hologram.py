@@ -144,6 +144,24 @@ SCENES = {
         far=1265.0,
         backdrop="sea and sky",
     ),
+    "lambda": StillLife(
+        scene="lambda/lambda_main.pov",
+        # location <0,0,-70>, look_at origin, direction <0,0,1>, up <0,1,0>.
+        # Unlike the other two this one is composed 16:9 (right <HDTV>), so on
+        # a landscape panel its framing is native and --fov is not needed.
+        eye=(0.0, 0.0, -70.0),
+        aim=(0.0, 0.0, 0.0),
+        fov=53.13,
+        # The repressor's leading helix appears at 47; 95% of the complex is
+        # in by 89.  The sea never closes here either — the raw 95% rule
+        # returned the end of the sweep — so this far depth is the knee, with
+        # a 0.15%/unit backdrop creep subtracted from a 32% subject.  The
+        # title sits at depth 70 and the signature at 52, both inside these
+        # bounds, so the sweep carries them without any rework.
+        near=47.0,
+        far=89.0,
+        backdrop="sea and sky",
+    ),
 }
 
 
