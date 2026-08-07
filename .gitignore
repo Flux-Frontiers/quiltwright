@@ -35,3 +35,7 @@ pov-scenes/**/*.png
 *.o
 
 commit.txt
+
+# Personal working material -- grant drafts, venue correspondence.
+# This is a public repository; nothing under grants/ belongs in it.
+grants/
