@@ -7,7 +7,10 @@ hologram**: 2026
 
 ![The museum, centre view](museum_centre_view.png)
 
-*Centre view of the 48-view quilt, 960×720.*
+*Centre view of the 48-view quilt, 1280×720 — the view as captured, before
+`assemble_quilt` squeezes it anamorphically into the quilt's 960×720 tile.
+A raw tile is not a viewable still: 16:9 content in a 4:3 frame renders
+everything a third too tall.*
 
 ---
 
