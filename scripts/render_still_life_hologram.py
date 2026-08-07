@@ -272,7 +272,11 @@ def main() -> int:
     )
     elapsed = time.time() - started
 
-    out = save_quilt(quilt, args.out or f"renders/quilts/{args.subject}", spec)
+    # A preview is a quarter-size stand-in, not a deliverable, so it must not
+    # land on the full render's filename — iterating on one would silently
+    # destroy the other.
+    stem = args.out or f"renders/quilts/{args.subject}"
+    out = save_quilt(quilt, f"{stem}-preview" if args.preview else stem, spec)
     print(f"  wrote {out}  ({elapsed:.0f}s, {elapsed / spec.n_views:.1f}s/view)")
 
     if args.cast:

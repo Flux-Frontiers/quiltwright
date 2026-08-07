@@ -1,9 +1,14 @@
+#version 3.6;
 #include "colors.inc"
 #include "textures.inc"
 #include "metals.inc"
 #include "skies.inc"
+#include "aspect.inc"
 
-#version 3.0
+// 16:9, matching the landscape panel the hologram targets.  Was 4/3.
+#declare ASPECT = HDTV;
+
+
 global_settings { assumed_gamma 2.2 }
 
 
@@ -11,7 +16,7 @@ camera {
 	location  <0, 0, -70>
 	direction <0, 0,  1>
 	up        <0, 1,  0>
-	right   <4/3, 0,  0>
+	right   <ASPECT, 0,  0>
 	look_at   <0, 0, 0>
 }
 
@@ -23,9 +28,9 @@ light_source {<0, 177.071114, 0> color White}
 // ymin=-21.436113, ymax=21.436113
 // zmin=-19.307804, zmax=19.307804
 
-#declare DO_LAMBDA = 1
-#declare DO_SKY = 1
-#declare DO_RAINBOW = 1
+#declare DO_LAMBDA = 1;
+#declare DO_SKY = 1;
+#declare DO_RAINBOW = 1;
 
 #include "rainbow.inc"
 #include "lambda_sky.inc"

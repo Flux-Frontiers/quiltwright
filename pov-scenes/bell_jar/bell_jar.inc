@@ -47,7 +47,20 @@
    object { cyl }
    object { hemi }
    scale <1, 1.5, 1>
-   texture { T_Glass3 }
+   // T_Glass3, inlined from glass_old.inc (the named texture is
+   // deprecated and warns on every use); values are verbatim.
+   texture {
+      pigment { color rgbf <0.98, 0.98, 0.98, 0.9> }
+      finish {
+         ambient 0.1
+         diffuse 0.1
+         reflection 0.1
+         specular 0.8
+         roughness 0.003
+         phong 1
+         phong_size 400
+      }
+   }
 
   hollow
 }
@@ -73,7 +86,20 @@
    object { bell_outer }
    object { bell_cavity }
    scale <1, 1.5, 1>
-   texture { T_Glass3 }
+   // T_Glass3, inlined from glass_old.inc (the named texture is
+   // deprecated and warns on every use); values are verbatim.
+   texture {
+      pigment { color rgbf <0.98, 0.98, 0.98, 0.9> }
+      finish {
+         ambient 0.1
+         diffuse 0.1
+         reflection 0.1
+         specular 0.8
+         roughness 0.003
+         phong 1
+         phong_size 400
+      }
+   }
    hollow
 }
 

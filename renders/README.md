@@ -37,6 +37,7 @@ scene is tabulated in the workflow doc.
 | `museum_970211.png` | `museum/museum_970211.pov` | 1.333 | 1600×1200 |
 | `museum_pg.png` | `museum/museum_pg.pov` | 1.25 | 1500×1200 |
 | `museum_worldmap.png` | `museum/worldmap.pov` | 1.333 | 1600×1200 |
+| `lambda_main.png` | `lambda/lambda_main.pov` | 1.778 | 1920×1080 |
 
 `bell_jar_wall_0.06.png` and `bell_jar_wall_0.09.png` are the comparison the
 glass thickness was chosen from — `BJ_WALL` in `bell_jar/bell_jar.inc`. 0.06 is

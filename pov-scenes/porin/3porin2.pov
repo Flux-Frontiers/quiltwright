@@ -7,7 +7,7 @@
 // Auth: ?
 //
 
-#version 3
+#version 3.6;
 
 #include "colors.inc"
 

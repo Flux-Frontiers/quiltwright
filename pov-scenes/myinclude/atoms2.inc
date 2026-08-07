@@ -22,8 +22,7 @@
     ambient 0.2
     diffuse 0.0
     reflection 0.05
-    refraction 1.0
-    ior 1.0
+    // legacy `refraction 1.0 ior 1.0` dropped: ior 1.0 bends nothing
    }
 }
 
@@ -32,8 +31,8 @@
       diffuse 0.1
       specular 0.8
       reflection 0.1
-      refraction 0.9
-      ior 1.15
+      // legacy `refraction 0.9 ior 1.15` dropped from the finish; POV-Ray
+      // 3.5+ takes ior from an object-level interior{} instead
       roughness 0.0003
       phong 1 phong_size 400
 }

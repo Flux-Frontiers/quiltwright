@@ -34,3 +34,4 @@ pov-scenes/**/*.png
 # Cruft
 *.o
 
+commit.txt

@@ -34,12 +34,8 @@
 
      pigment { color rgbf <1,0.99,0.99,0.985> }
     
-#if (PC)
      finish { diffuse 0.1 specular 0.8 roughness 1/2000 phong 1 phong_size 400  }
-     interior {refraction 0.85 ior 1.45 }   
-#else
-     finish { diffuse 0.1 specular 0.8 roughness 1/2000 phong 1 phong_size 400  refraction 0.85 ior 1.45}
-#end     
+     interior { ior 1.45 }
             } // difference
 }
 
