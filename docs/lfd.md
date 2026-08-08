@@ -311,6 +311,70 @@ spec = QuiltSpec(columns=8, rows=6, quilt_width=7680, quilt_height=4320,
 
 ---
 
+## View sweeps — when the consumer is not a panel
+
+A quilt's view count is `columns × rows`, so a rectangular grid **cannot
+express a prime count**. That is a real constraint rather than a curiosity: the
+LitiHolo desktop 3D hologram printer's published input specification asks for
+**23** viewzone images per hogel, and 23 is prime. There is no grid.
+
+A single row expresses any count at all, and `sweep_spec()` builds one:
+
+```python
+from quiltwright import sweep_spec
+
+spec = sweep_spec(n_views=23, view_cone=45.0, tile_width=1600, tile_height=2000)
+spec.n_views        # 23
+```
+
+The camera sweep is **identical** to a quilt's — the same off-axis frusta, the
+same cone, the same focal plane on the camera's aim point. Only the packing
+differs, and consumers other than a light-field panel (hologram printers,
+lenticular interlacers) want the views as separate frames anyway. Pair it with
+`render_pov_views()` from [povray.md](povray.md), which writes them out
+individually instead of tiling them.
+
+`LITIHOLO_SWEEP` is that spec, preset:
+
+| Field | Value |
+|---|---|
+| Views | 23 |
+| View cone | 45°, lateral, horizontal parallax only |
+| Per-view pixels | 1600×2000 (aspect 0.8) |
+
+The view count and the cone come from the printer's published specification.
+**The per-view pixel size does not** — it is not published. 1600×2000 is a
+deliberate over-estimate: it comfortably exceeds the ~102×127 hogel grid of a
+4×5-inch plate at 1 mm hogels, and downsampling is cheap where re-rendering is
+not. Aspect 0.8 is that plate in portrait; transpose for landscape. If you use
+this preset, you are inheriting a guess on that one field and should size it
+yourself once you know the real figure.
+
+### What this does and does not establish
+
+**Nothing produced this way has been through the printer's software.** The
+claim quiltwright supports is that it *emits a sweep matching the published
+specification*. That is not the same as "compatible with the LitiHolo printer",
+and two open questions sit between them:
+
+- **Off-axis or toe-in?** Quiltwright sweeps with off-axis sheared frusta,
+  which is unambiguously correct for a lenticular panel — it is the whole point
+  of the Concept section above. But the 2003 hologram submission of one of these
+  same scenes used a *circular arc with the aim point pinned to the subject*,
+  which is toe-in. These are not interchangeable, and which one a hogel slicer
+  expects is unknown.
+- **Is 23 views over 45° too coarse?** It works out to **2.05° between adjacent
+  views** (45° over 22 intervals), against **0.74°** for a Looking Glass
+  Portrait quilt (35° over 47) — about 2.7× coarser. On a lenticular panel, that much would step visibly as you moved
+  rather than glide. Whether a hogel-based recording is more forgiving is
+  genuinely unknown.
+
+Because of the second point, run `format_depth_budget()` *before* rendering a
+sweep rather than after. Coarse angular sampling and a generous depth budget
+compound, and a sweep has less margin than a quilt, not more.
+
+---
+
 ## Framing is a depth budget
 
 Perceived depth scales with how much of each view the subject fills. A

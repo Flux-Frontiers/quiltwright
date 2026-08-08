@@ -361,6 +361,41 @@ camera's right vector.
 Returns a `uint8` RGB array; pair with `save_quilt()` and `cast_quilt()` from
 [`quiltwright.lfd`](lfd.md).
 
+### `render_pov_views(scene, spec, camera, out_dir, ...)`
+
+The same render as `render_pov_quilt()` with the assembly step removed. **The
+camera geometry is identical** — the same off-axis sheared frustum, the same
+focal plane on `look_at`, the same `view_offsets()` — and only the output
+packing differs. Frames are written into `out_dir` as `view000.png …
+viewNNN.png`, **view 0 leftmost**, and the paths come back in view order.
+
+It takes `render_pov_quilt`'s arguments minus the quilt-assembly ones, plus:
+
+| Argument | Purpose |
+|----------|---------|
+| `out_dir` | Directory for the frames; created if absent |
+| `keep_wrappers` | Also write the generated per-view `.pov` wrappers alongside the frames, for inspection |
+
+That is the form consumers other than a light-field panel ask for: a hologram
+printer slicing views into hogels, or a lenticular interlacer. Pair it with
+`sweep_spec()` / `LITIHOLO_SWEEP` from [`quiltwright.lfd`](lfd.md) when the view
+count is not a convenient rectangle — a quilt grid cannot express a prime count,
+and a single-row sweep can.
+
+```python
+from quiltwright import LITIHOLO_SWEEP, render_pov_views
+
+paths = render_pov_views("risedronate.pov", LITIHOLO_SWEEP, camera, "sweep/")
+# -> sweep/view000.png ... sweep/view022.png
+```
+
+`format_depth_budget()` applies unchanged and is worth running first. A sweep
+whose parallax exceeds what the medium resolves ghosts on a lens sheet, and
+there is no evidence that hogels are more forgiving. `LITIHOLO_SWEEP` puts 2.05°
+between adjacent views against a Portrait quilt's 0.74°, so it has *less* margin
+than a quilt — see [lfd.md](lfd.md) for what that does and does not establish
+about the printer.
+
 ### Supporting helpers in `quiltwright.lfd`
 
 - `assemble_quilt(views, spec)` — renderer-agnostic tiling; consumes views

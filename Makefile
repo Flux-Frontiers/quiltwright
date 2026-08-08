@@ -16,7 +16,39 @@
 
 POVRAY  ?= povray
 PYTHON  ?= .venv/bin/python
-JOBS    ?= $(shell sysctl -n hw.ncpu 2>/dev/null || nproc)
+
+# Rendering leaves two cores for the rest of the machine, so a multi-minute
+# quilt does not make the desktop unusable.  Override to use the whole box:
+#   make quilts RENDER_THREADS=$(NCPU)
+NCPU           ?= $(shell sysctl -n hw.ncpu 2>/dev/null || nproc 2>/dev/null || echo 4)
+RENDER_THREADS ?= $(shell n=$(NCPU); [ $$n -gt 2 ] && echo $$((n - 2)) || echo 1)
+
+# POV-Ray threads a single render across every core by default, and the only
+# way to cap that for the quilt scripts -- which invoke povray themselves -- is
+# an INI file named by POVINI.  A command-line +WT overrides it, which is why
+# JOBS stays at 1 (see below).
+#
+# POVINI *replaces* the INI POV-Ray would otherwise have read; it does not add
+# to it.  That default is what carries the Library_Path entries for the standard
+# includes, so a file containing only Work_Threads makes colors.inc unfindable
+# and every stock scene fails to parse.  The generated file is therefore a copy
+# of the default with the cap appended -- later keys win, so the append is safe.
+THREAD_INI := renders/.threads.ini
+export POVINI = $(abspath $(THREAD_INI))
+
+POV_BASE_INI ?= $(shell for f in "$$HOME/.povray/3.7/povray.ini" \
+	                     /opt/homebrew/etc/povray/3.7/povray.ini \
+	                     /usr/local/etc/povray/3.7/povray.ini \
+	                     /etc/povray/3.7/povray.ini; do \
+	                   [ -f "$$f" ] && { echo "$$f"; break; }; \
+	                 done)
+
+# Concurrent POV-Ray *processes*.  1 is both the render scripts' own default
+# and the documented recommendation (docs/povray.md section 6): POV-Ray already
+# threads one render across all cores, so extra processes buy nothing.  Raising
+# it also defeats RENDER_THREADS -- quiltwright.povray derives its own +WT when
+# jobs > 1, and a command-line +WT wins over POVINI.
+JOBS    ?= 1
 
 # +Q11: full quality.  +A0.1: final-pass anti-aliasing (stills; quilts set
 # their own).  +FN: PNG.  -D: no preview window.
@@ -24,6 +56,17 @@ POVFLAGS ?= +FN -D +Q11 +A0.1
 
 STILLS  := $(abspath renders/stills)
 INC      = ../myinclude
+
+# Regenerated every run so a changed RENDER_THREADS always takes effect.
+# renders/ is gitignored, so this never reaches the repository.
+.PHONY: $(THREAD_INI)
+$(THREAD_INI):
+	@mkdir -p $(dir $@)
+	@test -n "$(POV_BASE_INI)" || { \
+	   echo "warning: no povray.ini found; standard includes may not resolve" >&2; }
+	@if [ -n "$(POV_BASE_INI)" ]; then cat "$(POV_BASE_INI)"; fi > $@
+	@printf '\n;; appended by the quiltwright Makefile\nWork_Threads=%s\n' \
+		'$(RENDER_THREADS)' >> $@
 
 # --- STILL TARGETS ---------------------------------------------------------
 # still-<name> renders pov-scenes/$(DIR)/$(SCENE) at $(SIZE) to
@@ -89,10 +132,10 @@ STILL_TARGETS := still-bell_jar_bj still-bell_jar_bj_black still-bell_jar_bdna \
                  still-museum still-museum_dark still-museum_970211 \
                  still-museum_pg still-museum_worldmap still-lambda_main
 
-still-%:
+still-%: $(THREAD_INI)
 	@mkdir -p $(STILLS)
 	cd pov-scenes/$(DIR) && $(POVRAY) +I$(SCENE) $(addprefix +L,$(INC)) \
-		+O$(STILLS)/$*.png $(SIZE) $(POVFLAGS)
+		+O$(STILLS)/$*.png $(SIZE) $(POVFLAGS) +WT$(RENDER_THREADS)
 
 .PHONY: stills
 stills: $(STILL_TARGETS)  ## render every reference still
@@ -105,26 +148,35 @@ stills: $(STILL_TARGETS)  ## render every reference still
 #   make quilt-museum EXTRA_ARGS="--antialias 0.1"
 EXTRA_ARGS ?=
 
-.PHONY: quilt-bell-jar quilt-porin quilt-museum quilts
-quilt-bell-jar:  ## bell jar quilt, 16" landscape (~9 min on 18 cores)
+.PHONY: quilt-bell-jar quilt-porin quilt-lambda quilt-museum quilts
+quilt-bell-jar:  $(THREAD_INI)  ## bell jar quilt, 16" landscape (~3 min uncapped on 18 cores)
 	$(PYTHON) scripts/render_still_life_hologram.py bell-jar --jobs $(JOBS) $(EXTRA_ARGS)
 
-quilt-porin:  ## porin quilt, 16" landscape (~18 min on 18 cores)
+quilt-porin:  $(THREAD_INI)  ## porin quilt, 16" landscape (~2 min uncapped on 18 cores)
 	$(PYTHON) scripts/render_still_life_hologram.py porin --jobs $(JOBS) $(EXTRA_ARGS)
 
-quilt-museum:  ## museum quilt, 16" landscape (the slow one)
+# Composed 16:9 in 1998 (right <HDTV>), so its framing is native on a landscape
+# panel and no --fov correction is needed.  Its timing is the only one measured
+# under the defaults above (16 threads, JOBS=1); the other three predate the cap.
+quilt-lambda:  $(THREAD_INI)  ## lambda repressor quilt, 16" landscape (~2.5 min at 16 threads)
+	$(PYTHON) scripts/render_still_life_hologram.py lambda --jobs $(JOBS) $(EXTRA_ARGS)
+
+quilt-museum:  $(THREAD_INI)  ## museum quilt, 16" landscape (~6 min uncapped; the slow one)
 	$(PYTHON) scripts/render_museum_hologram.py --jobs $(JOBS) $(EXTRA_ARGS)
 
-quilts: quilt-bell-jar quilt-porin quilt-museum  ## all three quilts
+quilts: quilt-bell-jar quilt-porin quilt-lambda quilt-museum  ## all four quilts
 
-.PHONY: preview-bell-jar preview-porin preview-museum
-preview-bell-jar:  ## quarter-size bell jar quilt for iterating
+.PHONY: preview-bell-jar preview-porin preview-lambda preview-museum
+preview-bell-jar: $(THREAD_INI)  ## quarter-size bell jar quilt for iterating
 	$(PYTHON) scripts/render_still_life_hologram.py bell-jar --preview --jobs $(JOBS)
 
-preview-porin:  ## quarter-size porin quilt
+preview-porin: $(THREAD_INI)  ## quarter-size porin quilt
 	$(PYTHON) scripts/render_still_life_hologram.py porin --preview --jobs $(JOBS)
 
-preview-museum:  ## quarter-size museum quilt
+preview-lambda: $(THREAD_INI)  ## quarter-size lambda repressor quilt
+	$(PYTHON) scripts/render_still_life_hologram.py lambda --preview --jobs $(JOBS)
+
+preview-museum: $(THREAD_INI)  ## quarter-size museum quilt
 	$(PYTHON) scripts/render_museum_hologram.py --preview --jobs $(JOBS)
 
 # --- HOUSEKEEPING ----------------------------------------------------------

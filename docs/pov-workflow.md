@@ -369,6 +369,50 @@ cross-correlation method and the museum's measured numbers.
 
 ---
 
+## 9. If the consumer is not a panel
+
+Steps 1–8 are about getting the geometry right, and none of them change when
+the output is going somewhere other than a Looking Glass. A hologram printer or
+a lenticular interlacer wants the views as **separate frames** rather than
+tiled, which is `render_pov_views()` and a single-row spec — a quilt grid is
+`columns × rows` and cannot express a prime view count, which is exactly what
+LitiHolo's published specification asks for (23):
+
+```python
+from quiltwright import (
+    LITIHOLO_SWEEP, PovCamera, format_depth_budget, render_pov_views,
+)
+
+camera = PovCamera.aimed(location=EYE, aim=AIM, fov=FOV,
+                         focal_distance=FOCAL)
+
+# Print the budget first — see below. This costs nothing.
+print(format_depth_budget(LITIHOLO_SWEEP, camera, DEPTHS))
+
+paths = render_pov_views("risedronate.pov", LITIHOLO_SWEEP, camera, "sweep/")
+# -> sweep/view000.png ... sweep/view022.png, view 0 leftmost
+```
+
+**The budget step is not optional advice here.** `LITIHOLO_SWEEP` is 23 views
+over 45°, which is **2.05° between adjacent views** against **0.74°** on a
+Portrait quilt — about 2.7× coarser sampling. Everything § 7 says about
+disparity applies with less margin, not more, and the preset's 2000 px tile is
+taller than anything in the device table, so the same scene reports larger px
+figures than it would on a panel. Read the report before spending the render.
+
+Then verify the parallax exactly as § 8 does. The frames are ordinary PNGs in
+view order, so the same cross-correlation check applies: near and far features
+must shift in opposite directions about a stationary focal plane.
+
+What this is *not* is a verified printer input. Quiltwright emits a sweep
+matching the published specification — 23 viewzones, 45° lateral, horizontal
+parallax only. No file has been through the printer's software, and whether a
+hogel slicer expects these off-axis frusta or the toe-in circular arc a 2003
+submission of one of these scenes used is an open question. Both caveats are in
+[lfd.md](lfd.md).
+
+---
+
 ## Checklist
 
 1. `#version` present? If not, `+MV3.1`.
@@ -382,3 +426,5 @@ cross-correlation method and the museum's measured numbers.
    often pinned to the lens and cannot fuse at any focal plane.
 8. Interior? Measure the corridor and derive the cone.
 9. Print the depth budget. Then render.
+10. Not going to a panel? Same geometry, `render_pov_views()` and a single-row
+    spec — and print the budget anyway, because a sweep has less margin.

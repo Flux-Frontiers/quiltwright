@@ -8,12 +8,14 @@ import pytest
 from render_probe import can_render
 
 from quiltwright.lfd import (
+    LITIHOLO_SWEEP,
     QUILT_PRESETS,
     QuiltSpec,
     _encode_args,
     assemble_quilt,
     focal_distance_for_range,
     save_quilt,
+    sweep_spec,
     view_disparity,
     view_offsets,
 )
@@ -33,6 +35,43 @@ def portrait() -> QuiltSpec:
 def tiny_spec() -> QuiltSpec:
     """Minimal 2x2 quilt for fast rendering tests."""
     return QuiltSpec(columns=2, rows=2, quilt_width=128, quilt_height=128, aspect=1.0)
+
+
+# ---------------------------------------------------------------------------
+# View sweeps
+# ---------------------------------------------------------------------------
+
+
+class TestSweepSpec:
+    def test_prime_view_count(self):
+        """A rectangular grid cannot express 23 views; a single row can."""
+        assert sweep_spec(23, 45.0, 1600, 2000).n_views == 23
+
+    def test_tile_size_preserved(self):
+        spec = sweep_spec(23, 45.0, 1600, 2000)
+        assert (spec.tile_width, spec.tile_height) == (1600, 2000)
+        assert spec.aspect == pytest.approx(0.8)
+
+    def test_carries_view_cone(self):
+        assert sweep_spec(23, 45.0, 160, 200).view_cone == 45.0
+
+    def test_rejects_degenerate_sweep(self):
+        with pytest.raises(ValueError, match="at least 2 views"):
+            sweep_spec(1, 45.0, 160, 200)
+
+    def test_litiholo_matches_published_spec(self):
+        """23 viewzone images per hogel across a 45-degree lateral field."""
+        assert LITIHOLO_SWEEP.n_views == 23
+        assert LITIHOLO_SWEEP.view_cone == 45.0
+
+    def test_sweep_offsets_symmetric_about_centre(self):
+        """An odd view count puts one camera exactly on axis."""
+        offsets = view_offsets(LITIHOLO_SWEEP, 38.64)
+        assert len(offsets) == 23
+        assert offsets[11] == pytest.approx(0.0)
+        assert offsets[0] == pytest.approx(-offsets[-1])
+        # Monotonic left to right, so view 0 is leftmost.
+        assert np.all(np.diff(offsets) > 0)
 
 
 # ---------------------------------------------------------------------------

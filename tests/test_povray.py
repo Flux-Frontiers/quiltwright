@@ -450,3 +450,73 @@ class TestRenderPovQuilt:
         wrapper = (keep / "view000.pov").read_text()
         assert str(scene) in wrapper
         assert "camera {" in wrapper
+
+
+@requires_povray
+class TestRenderPovViews:
+    """The sweep-export path, which hologram printers consume instead of a quilt."""
+
+    @pytest.fixture
+    def scene(self, tmp_path):
+        path = tmp_path / "depth.pov"
+        path.write_text(DEPTH_SCENE)
+        return path
+
+    def test_writes_one_frame_per_view(self, scene, camera, tmp_path):
+        from quiltwright.lfd import sweep_spec
+        from quiltwright.povray import render_pov_views
+
+        spec = sweep_spec(5, 45.0, 64, 64)
+        paths = render_pov_views(scene, spec, camera, tmp_path / "sweep", progress=False)
+
+        assert [p.name for p in paths] == [f"view{i:03d}.png" for i in range(5)]
+        assert all(p.is_file() for p in paths)
+        # Wrappers stay behind unless asked for.
+        assert list((tmp_path / "sweep").glob("*.pov")) == []
+
+    def test_prime_view_count_renders(self, scene, camera, tmp_path):
+        """23 views is what LITIHOLO_SWEEP asks for and no quilt grid can supply."""
+        from quiltwright.lfd import LITIHOLO_SWEEP
+        from quiltwright.povray import render_pov_views
+
+        spec = replace(LITIHOLO_SWEEP, quilt_width=23 * 48, quilt_height=60)
+        paths = render_pov_views(scene, spec, camera, tmp_path / "sweep", progress=False)
+        assert len(paths) == 23
+
+    def test_parallax_matches_the_quilt_path(self, scene, tiny_spec, camera, tmp_path):
+        """Same camera geometry as render_pov_quilt, only the packing differs."""
+        from PIL import Image
+
+        from quiltwright.povray import render_pov_quilt, render_pov_views
+
+        keep = tmp_path / "kept"
+        render_pov_quilt(scene, tiny_spec, camera, keep_views=keep, progress=False)
+        swept = render_pov_views(scene, tiny_spec, camera, tmp_path / "sweep", progress=False)
+
+        for i, path in enumerate(swept):
+            a = np.asarray(Image.open(keep / f"view{i:03d}.png").convert("RGB")).astype(int)
+            b = np.asarray(Image.open(path).convert("RGB")).astype(int)
+            # Adaptive AA is nondeterministic across runs, so compare centroids
+            # of the emissive markers rather than pixels.
+            assert a.shape == b.shape
+            assert abs(a.mean() - b.mean()) < 1.0
+
+    def test_keep_wrappers(self, scene, camera, tmp_path):
+        from quiltwright.lfd import sweep_spec
+        from quiltwright.povray import render_pov_views
+
+        spec = sweep_spec(3, 45.0, 64, 64)
+        out = tmp_path / "sweep"
+        render_pov_views(scene, spec, camera, out, keep_wrappers=True, progress=False)
+        assert len(list(out.glob("*.pov"))) == 3
+        assert str(scene) in (out / "view000.pov").read_text()
+
+    def test_missing_scene(self, camera, tmp_path):
+        from quiltwright.lfd import sweep_spec
+        from quiltwright.povray import render_pov_views
+
+        with pytest.raises(FileNotFoundError):
+            render_pov_views(
+                tmp_path / "nope.pov", sweep_spec(3, 45.0, 64, 64), camera,
+                tmp_path / "out", progress=False,
+            )

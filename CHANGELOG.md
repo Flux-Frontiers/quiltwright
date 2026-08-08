@@ -9,6 +9,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **View sweeps, for consumers that are not a light-field panel**
+  (`sweep_spec()`, `LITIHOLO_SWEEP`, `render_pov_views()`). A quilt's view count
+  is `columns × rows`, so a rectangular grid cannot express a prime one — and
+  the LitiHolo desktop hologram printer's published input specification asks for
+  23 viewzone images per hogel. A single row expresses any count at all:
+  - `quiltwright.lfd.sweep_spec(n_views, view_cone, tile_width, tile_height)`
+    builds a single-row `QuiltSpec`. The camera sweep is identical to a quilt's;
+    only the packing differs. Raises `ValueError` below 2 views.
+  - `quiltwright.lfd.LITIHOLO_SWEEP` — 23 views across a 45° lateral field,
+    horizontal parallax only, matching the printer's published specification.
+    The per-view pixel size is *not* published, so 1600×2000 errs high
+    deliberately: it comfortably exceeds the ~102×127 hogel grid of a 4×5-inch
+    plate at 1 mm hogels, and downsampling is cheap where re-rendering is not.
+    Aspect 0.8 is that plate in portrait; transpose for landscape.
+  - `quiltwright.povray.render_pov_views()` writes `view000.png … viewNNN.png`
+    into a directory, view 0 leftmost, and returns the paths in view order.
+    Identical camera geometry to `render_pov_quilt()` — the same off-axis
+    sheared frustum, the same focal plane on `look_at` — minus the quilt
+    assembly.
+
+  What this establishes is that quiltwright **emits a sweep matching the
+  published specification**, which is a narrower claim than compatibility: no
+  file has been through the printer's software. Two questions stand between the
+  two. Whether a hogel slicer expects the off-axis sheared frusta quiltwright
+  renders — unambiguously correct for a lenticular panel — or the toe-in
+  circular arc a 2003 hologram submission of the same scene used; these are not
+  interchangeable. And whether 23 views over 45° is too coarse: at 2.05° between
+  adjacent views against a Looking Glass Portrait quilt's 0.74°, it samples
+  about 2.7× coarser, which on a lenticular panel would step visibly rather than
+  glide. Whether a hogel-based recording is more forgiving is unknown. Both are
+  documented in `docs/lfd.md` rather than settled.
 - **Scene framing helpers** in `quiltwright.povray`, promoted from
   `scripts/render_museum_hologram.py` where they were written for one scene.
   Adapting an existing scene to a sweep is the same three measurements every
@@ -49,6 +80,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   drive the hologram scripts, `preview-*` targets render quarter-size quilts
   for iterating, and `make release-assets TAG=...` attaches finished quilts to
   a GitHub release. `make help` lists everything.
+- **`make quilt-lambda` / `make preview-lambda`**, and lambda joins `make
+  quilts` — now four rather than three. The scene was already a registered
+  subject in `render_still_life_hologram.py` and `still-lambda_main` already
+  rendered its still; only the quilt targets were missing. Unlike the other two
+  still lifes it was composed 16:9 in 1998 (`right <HDTV>`), so its framing is
+  native on a landscape panel and it needs no `--fov` correction.
 - **CI quilt rendering** (`.github/workflows/release.yml`). Publishing a
   release renders the three quilts in parallel, one runner each, and attaches
   them as release assets, so no one's laptop has to. The museum's full
@@ -67,6 +104,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- **Rendering no longer takes the whole machine.** `make` left every core
+  saturated, which makes the desktop unusable for the several minutes a quilt
+  takes. `RENDER_THREADS` now defaults to `NCPU - 2` (floor 1) and
+  `make quilts RENDER_THREADS=$(NCPU)` opts back into the full box.
+
+  Capping it needs two different levers, because there are two paths. The still
+  targets invoke `povray` directly and simply gain `+WT`. The quilt scripts
+  invoke it themselves, out of reach of the Makefile's argv, so those go through
+  an INI file named by `POVINI`.
+
+  Two traps came out of doing this, both worth writing down. `POVINI`
+  *replaces* the INI POV-Ray would otherwise have read rather than adding to
+  it — and that default is what carries the `Library_Path` entries for the
+  standard includes, so an INI containing only `Work_Threads` makes
+  `colors.inc` unfindable and every stock scene fails to parse. The generated
+  file is therefore a copy of the discovered default with the cap appended.
+  And a command-line `+WT` overrides the INI, which `quiltwright.povray`
+  derives whenever `jobs > 1` — so raising `JOBS` silently defeats the cap.
+- **`JOBS` now defaults to 1 rather than the core count.** That is the render
+  scripts' own default and what `povray.md § 6` already recommended: POV-Ray
+  threads a single render across all cores, so extra processes buy nothing and
+  the old default was 18 single-threaded processes contending. It is also what
+  keeps `RENDER_THREADS` effective, per the note above.
+- **Makefile render timings corrected.** The help text advertised ~9 min for
+  the bell jar and ~18 min for porin against measured 171 s and 120 s; porin
+  was also labelled the slower of the two and is in fact the faster. Figures
+  are now measured, and each says whether it was taken capped or uncapped
+  rather than implying one condition for all four.
+- **The quilt path and the sweep path now share one implementation.** `_sweep()`
+  (the per-view render loop) and `_copy_views()` (retrieving frames from the
+  temporary working directory) were extracted so `render_pov_quilt()` and
+  `render_pov_views()` cannot drift apart in the geometry that matters.
+  `render_pov_quilt`'s `keep_views=` argument routes through `_copy_views`; its
+  behaviour is unchanged.
 - `scripts/render_museum_hologram.py` now holds only the museum's measured
   constants and calls the module. Camera, cone and reported disparities are
   unchanged.

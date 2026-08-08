@@ -40,6 +40,7 @@ from .hld import (
 )
 from .lfd import (
     BRIDGE_URL,
+    LITIHOLO_SWEEP,
     QUILT_PRESETS,
     QuiltSpec,
     assemble_quilt,
@@ -52,6 +53,7 @@ from .lfd import (
     resume_quilt,
     save_quilt,
     stop_quilt,
+    sweep_spec,
     view_disparity,
     view_offsets,
 )
@@ -62,6 +64,7 @@ from .povray import (
     depth_budget,
     format_depth_budget,
     render_pov_quilt,
+    render_pov_views,
     sweep_extent,
 )
 
@@ -72,6 +75,9 @@ __all__ = [
     "QUILT_PRESETS",
     "assemble_quilt",
     "view_offsets",
+    # View sweeps (hologram printers, lenticular interlacers)
+    "sweep_spec",
+    "LITIHOLO_SWEEP",
     # Depth budget
     "view_disparity",
     "focal_distance_for_range",
@@ -85,6 +91,7 @@ __all__ = [
     # POV-Ray backend
     "PovCamera",
     "render_pov_quilt",
+    "render_pov_views",
     "camera_block",
     # Output
     "save_quilt",

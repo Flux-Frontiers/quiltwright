@@ -576,62 +576,215 @@ def render_pov_quilt(
     offsets = view_offsets(spec, camera.focal_distance)
 
     with tempfile.TemporaryDirectory(prefix="pov_quilt_") as tmp:
-        # POV-Ray resolves #include against its working directory and the
-        # library paths, so the wrapper lives in the working directory and
-        # pulls the scene in by absolute path, with the scene's own
-        # directory on the library path for its relative includes.
         workdir = Path(tmp)
-        views = []
-        for i, offset in enumerate(offsets):
-            wrapper = workdir / f"view{i:03d}.pov"
-            wrapper.write_text(
-                f'#include "{scene_path}"\n'
-                f"// Looking Glass view {i + 1}/{spec.n_views}, "
-                f"eye offset {offset:+.6g} scene units\n"
-                + camera_block(camera, float(offset), render_aspect)
-            )
-            views.append((wrapper, workdir / f"view{i:03d}.png"))
-
-        done = 0
-
-        def run(job):
-            nonlocal done
-            wrapper, out_png = job
-            _render_view(
-                povray,
-                wrapper,
-                out_png,
-                render_w,
-                render_h,
-                library_paths,
-                antialias,
-                quality,
-                extra_args,
-                workdir,
-            )
-            done += 1
-            if progress:
-                print(f"\r  pov view {done}/{spec.n_views}", end="", flush=True)
-
-        if jobs > 1:
-            with ThreadPoolExecutor(max_workers=jobs) as pool:
-                # list() forces exceptions from workers to surface here.
-                list(pool.map(run, views))
-        else:
-            for job in views:
-                run(job)
-        if progress:
-            print()
+        views = _sweep(
+            povray,
+            scene_path,
+            spec,
+            camera,
+            offsets,
+            workdir,
+            render_w,
+            render_h,
+            render_aspect,
+            library_paths,
+            antialias,
+            quality,
+            extra_args,
+            jobs,
+            progress,
+        )
 
         quilt = assemble_quilt(
             (np.asarray(Image.open(png).convert("RGB")) for _, png in views), spec
         )
 
         if keep_views is not None:
-            dest = Path(keep_views).expanduser()
-            dest.mkdir(parents=True, exist_ok=True)
-            for wrapper, png in views:
-                shutil.copy2(wrapper, dest / wrapper.name)
-                shutil.copy2(png, dest / png.name)
+            _copy_views(views, keep_views, wrappers=True)
 
     return quilt
+
+
+def _copy_views(
+    views: Sequence[tuple[Path, Path]], dest: str | Path, *, wrappers: bool
+) -> list[Path]:
+    """Copy rendered views out of the temporary working directory.
+
+    :param views: ``(wrapper, png)`` pairs in view order.
+    :param dest: Destination directory; created if absent.
+    :param wrappers: Also copy the generated ``.pov`` wrappers.
+    :return: The copied PNG paths, in view order.
+    """
+    out = Path(dest).expanduser()
+    out.mkdir(parents=True, exist_ok=True)
+    copied = []
+    for wrapper, png in views:
+        if wrappers:
+            shutil.copy2(wrapper, out / wrapper.name)
+        copied.append(shutil.copy2(png, out / png.name))
+    return [Path(p) for p in copied]
+
+
+def _sweep(
+    povray: str,
+    scene_path: Path,
+    spec: QuiltSpec,
+    camera: PovCamera,
+    offsets,
+    workdir: Path,
+    render_w: int,
+    render_h: int,
+    render_aspect: float,
+    library_paths: Sequence[Path],
+    antialias: float | None,
+    quality: int,
+    extra_args: Sequence[str],
+    jobs: int,
+    progress: bool,
+) -> list[tuple[Path, Path]]:
+    """Ray-trace one image per view into *workdir*.
+
+    Shared by :func:`render_pov_quilt` and :func:`render_pov_views`, which
+    differ only in what they do with the frames afterwards.
+
+    :return: ``(wrapper, png)`` pairs in view order, view 0 leftmost.
+    """
+    # POV-Ray resolves #include against its working directory and the
+    # library paths, so the wrapper lives in the working directory and
+    # pulls the scene in by absolute path, with the scene's own
+    # directory on the library path for its relative includes.
+    views = []
+    for i, offset in enumerate(offsets):
+        wrapper = workdir / f"view{i:03d}.pov"
+        wrapper.write_text(
+            f'#include "{scene_path}"\n'
+            f"// view {i + 1}/{spec.n_views}, "
+            f"eye offset {offset:+.6g} scene units\n"
+            + camera_block(camera, float(offset), render_aspect)
+        )
+        views.append((wrapper, workdir / f"view{i:03d}.png"))
+
+    done = 0
+
+    def run(job):
+        nonlocal done
+        wrapper, out_png = job
+        _render_view(
+            povray,
+            wrapper,
+            out_png,
+            render_w,
+            render_h,
+            library_paths,
+            antialias,
+            quality,
+            extra_args,
+            workdir,
+        )
+        done += 1
+        if progress:
+            print(f"\r  pov view {done}/{spec.n_views}", end="", flush=True)
+
+    if jobs > 1:
+        with ThreadPoolExecutor(max_workers=jobs) as pool:
+            # list() forces exceptions from workers to surface here.
+            list(pool.map(run, views))
+    else:
+        for job in views:
+            run(job)
+    if progress:
+        print()
+
+    return views
+
+
+def render_pov_views(
+    scene: str | Path,
+    spec: QuiltSpec,
+    camera: PovCamera,
+    out_dir: str | Path,
+    *,
+    include_paths: Sequence[str | Path] = (),
+    view_cone: float | None = None,
+    antialias: float | None = 0.3,
+    quality: int = 9,
+    jobs: int = 1,
+    binary: str | None = None,
+    extra_args: Sequence[str] = (),
+    keep_wrappers: bool = False,
+    progress: bool = True,
+) -> list[Path]:
+    """Render a POV-Ray scene as a sweep of separate view images.
+
+    Identical camera geometry to :func:`render_pov_quilt` — the same off-axis
+    sheared frustum, the same focal plane on the ``look_at`` point — but the
+    frames are written out individually instead of being tiled into a quilt.
+    That is the form consumers other than a light-field panel ask for: a
+    hologram printer slicing views into hogels, or a lenticular interlacer.
+
+    Pair it with :func:`~quiltwright.lfd.sweep_spec` when the view count is
+    not a convenient rectangle::
+
+        from quiltwright.lfd import LITIHOLO_SWEEP
+        render_pov_views("risedronate.pov", LITIHOLO_SWEEP, camera, "sweep/")
+        # -> sweep/view000.png ... sweep/view022.png
+
+    The depth-budget arithmetic in :func:`format_depth_budget` still applies
+    and is still worth running first: a sweep that would ghost on a
+    lenticular panel is a sweep whose parallax exceeds what the medium can
+    resolve, and a hologram's hogels are no more forgiving than a lens sheet.
+
+    :param scene: Path to the ``.pov`` scene.  Not modified.
+    :param spec: Sweep or quilt specification supplying view count, view
+        cone, and per-view pixel size.
+    :param camera: Base camera; its ``look_at`` becomes the focal plane.
+    :param out_dir: Directory to write the frames into; created if absent.
+    :param include_paths: Extra directories searched for ``#include`` files.
+    :param view_cone: Override the spec's view cone in degrees.
+    :param antialias: POV-Ray ``+A`` threshold; ``None`` disables it.
+    :param quality: POV-Ray ``+Q`` quality level, 0-11.
+    :param jobs: Number of POV-Ray processes to run concurrently.
+    :param binary: POV-Ray executable; defaults to ``POVRAY_BINARY`` or
+        ``povray`` on ``PATH``.
+    :param extra_args: Additional POV-Ray command-line arguments.
+    :param keep_wrappers: Also write the generated per-view ``.pov`` wrappers
+        alongside the frames, for inspection.
+    :param progress: Print a progress line while rendering.
+    :return: Paths to the written frames, in view order — view 0 leftmost.
+    """
+    povray = _find_povray(binary)
+    scene_path = Path(scene).expanduser().resolve()
+    if not scene_path.is_file():
+        raise FileNotFoundError(f"POV-Ray scene not found: {scene_path}")
+
+    if view_cone is not None:
+        spec = replace(spec, view_cone=view_cone)
+
+    if jobs > 1 and not any(str(a).startswith("+WT") for a in extra_args):
+        extra_args = [*extra_args, f"+WT{max(1, (os.cpu_count() or jobs) // jobs)}"]
+
+    render_h = spec.tile_height
+    render_w = round(render_h * spec.aspect)
+
+    library_paths = [scene_path.parent, *(Path(p).expanduser().resolve() for p in include_paths)]
+    offsets = view_offsets(spec, camera.focal_distance)
+
+    with tempfile.TemporaryDirectory(prefix="pov_sweep_") as tmp:
+        views = _sweep(
+            povray,
+            scene_path,
+            spec,
+            camera,
+            offsets,
+            Path(tmp),
+            render_w,
+            render_h,
+            render_w / render_h,
+            library_paths,
+            antialias,
+            quality,
+            extra_args,
+            jobs,
+            progress,
+        )
+        return _copy_views(views, out_dir, wrappers=keep_wrappers)

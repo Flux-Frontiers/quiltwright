@@ -185,6 +185,48 @@ QUILT_PRESETS: dict[str, QuiltSpec] = {
 }
 
 
+def sweep_spec(n_views: int, view_cone: float, tile_width: int, tile_height: int) -> QuiltSpec:
+    """Geometry for a plain ordered view sweep rather than a tiled quilt.
+
+    A quilt's view count is ``columns * rows``, so a rectangular grid cannot
+    express a prime count.  A single row can express any count at all, which
+    is what consumers that want the views as separate frames — hologram
+    printers, lenticular interlacers — actually ask for.  The camera sweep is
+    identical either way; only the packing differs.
+
+    :param n_views: Number of views in the sweep.
+    :param view_cone: Total horizontal camera sweep in degrees.
+    :param tile_width: Pixel width of one view.
+    :param tile_height: Pixel height of one view.
+    :return: A single-row :class:`QuiltSpec` whose ``n_views`` is exactly
+        *n_views*.
+    """
+    if n_views < 2:
+        raise ValueError(f"a sweep needs at least 2 views, got {n_views}")
+    return QuiltSpec(
+        columns=n_views,
+        rows=1,
+        quilt_width=n_views * tile_width,
+        quilt_height=tile_height,
+        aspect=tile_width / tile_height,
+        view_cone=view_cone,
+    )
+
+
+#: Sweep matching the published input specification of the LitiHolo desktop
+#: 3D hologram printer: 23 viewzone images per hogel across a 45-degree
+#: lateral field, horizontal parallax only — the same off-axis sweep a
+#: light-field quilt is built from, differently packed.
+#:
+#: The per-view pixel size is *not* published.  1600x2000 comfortably exceeds
+#: the ~102x127 hogel grid of a 4x5-inch plate at 1 mm hogels and is cheap to
+#: downsample, so it errs high deliberately.  Aspect 0.8 matches a 4x5 plate
+#: in portrait; transpose for landscape.
+LITIHOLO_SWEEP: QuiltSpec = sweep_spec(
+    n_views=23, view_cone=45.0, tile_width=1600, tile_height=2000
+)
+
+
 # ---------------------------------------------------------------------------
 # Off-axis camera math
 # ---------------------------------------------------------------------------

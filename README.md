@@ -58,6 +58,14 @@ geometry and device presets, the depth-budget arithmetic that decides whether a
 scene will fuse before you spend an hour rendering it, filename conventions
 Looking Glass software parses, video encoding, and direct Bridge control.
 
+That middle also serves consumers that are not panels at all: `render_pov_views()`
+writes the sweep as separate frames, and `sweep_spec()` / `LITIHOLO_SWEEP` give
+the single-row layout a hologram printer's prime view count needs and a quilt
+grid cannot express — so one scene feeds a light-field panel and a hologram
+printer without being rebuilt. Nothing has been through a printer's software
+yet, so the claim is a sweep matching the published specification rather than
+verified compatibility; [docs/lfd.md](docs/lfd.md) records what is still open.
+
 ### The part that is easy to get wrong
 
 Each view must use an **off-axis (asymmetric-frustum) projection** — the camera
