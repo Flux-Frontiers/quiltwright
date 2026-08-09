@@ -18,7 +18,7 @@ setup; global-scale datasets can blow it if the near/far range isn't tamed.
 
 | Function | Type | What it is | Notes |
 |---|---|---|---|
-| `examples.download_crater_topo()` + `download_crater_imagery()` | `ImageData` + `Texture` | Mt. St. Helens crater DEM with a draped aerial GeoTIFF | PyVista's own "Topographic Map" tutorial. A real crater bowl plus a photo-realistic texture — good first candidate, controlled depth range. |
+| `examples.download_crater_topo()` + `download_crater_imagery()` | `ImageData` + `Texture` | Mt. Ruapehu (New Zealand) crater DEM with a draped aerial GeoTIFF | PyVista's own "Topographic Map" tutorial (`Ruapehu_mag_dem_15m_NZTM.vtk` — confirmed from the source file name, NZTM = NZ Transverse Mercator). A real crater bowl plus a photo-realistic texture — good first candidate, controlled depth range. |
 | `examples.download_st_helens()` | `ImageData` | Mt. St. Helens post-eruption DEM | `dataset.plot(cmap="gist_earth")`. Terrain relief alone, no texture — simpler than the crater pair above. |
 | `examples.download_topo_global()` | `PolyData` | Whole-Earth topography + bathymetry, as a sphere | Full globe, pole-to-trench depth range. Striking, but the depth range is huge — expect to need a narrow view cone or a tight focal-plane placement. |
 | `examples.download_topo_land()` | `PolyData` | Land-only global elevation | `clim=[-2000, 3000], cmap="gist_earth"`. Same globe without the ocean floor — cleaner, smaller depth budget than the full version. |
