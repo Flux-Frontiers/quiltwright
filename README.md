@@ -5,7 +5,7 @@
 [![PyPI](https://img.shields.io/pypi/v/quiltwright.svg)](https://pypi.org/project/quiltwright/)
 [![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)](https://github.com/suchanek/quiltwright/releases)
 [![Tests](https://github.com/suchanek/quiltwright/actions/workflows/tests.yml/badge.svg)](https://github.com/suchanek/quiltwright/actions/workflows/tests.yml)
-[![DOI](https://zenodo.org/badge/1323414722.svg)](https://zenodo.org/badge/latestdoi/1323414722)
+[![DOI](https://zenodo.org/badge/1323414722.svg)](https://doi.org/10.5281/zenodo.21798503)
 
 **Holographic output for scientific visualisation.**
 
@@ -258,7 +258,7 @@ on Zenodo.
   author  = {Suchanek, Eric G.},
   title   = {Quiltwright: Holographic Output for Looking Glass Displays},
   url     = {https://github.com/suchanek/quiltwright},
-  doi     = {10.5281/zenodo.21798504},
+  doi     = {10.5281/zenodo.21798503},
   version = {0.2.0},
   year    = {2026}
 }
