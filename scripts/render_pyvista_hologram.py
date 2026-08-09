@@ -11,17 +11,21 @@ download server), fed through the same off-axis quilt sweep the museum uses.
 See ``docs/pyvista-datasets.md`` for how these subjects were chosen and
 where to find more like them.
 
-Camera framing here is a generic 3/4 orbit (``reset_camera()`` then a fixed
-elevation/azimuth nudge) rather than the measured depth budget the POV-Ray
-scripts use — these are exploratory renders, not tuned deliverables. If a
-result ghosts, narrow ``--view-cone`` or check the disparity formula in
-``docs/povray.md``.
+Each subject picks a view *direction* (a generic 3/4 orbit, or an explicit
+camera position where one is documented, as for Damavand); ``_frame_and_focus()``
+then does what the POV-Ray scripts do by hand -- fit tightly to the scene and
+place the focal plane at the harmonic mean of the near/far depths -- except
+measured from exact PyVista geometry (a bounding sphere) rather than a
+rendered plane-sweep probe. The printed depth budget is the same
+adjacent-view-disparity check ``docs/povray.md`` describes; if a result still
+ghosts, narrow ``--view-cone``.
 
 Usage::
 
     python scripts/render_pyvista_hologram.py st-helens --preview
     python scripts/render_pyvista_hologram.py mouse-brain --resolution 50
     python scripts/render_pyvista_hologram.py brain --device portrait --cast
+    python scripts/render_pyvista_hologram.py damavand --still
 
 Author: Eric G. Suchanek, PhD
 """
@@ -29,14 +33,25 @@ Author: Eric G. Suchanek, PhD
 from __future__ import annotations
 
 import argparse
+import math
 import sys
 import time
 import urllib.request
 from collections.abc import Callable
 from dataclasses import dataclass, replace
+from itertools import product
 from pathlib import Path
 
-from quiltwright.lfd import QUILT_PRESETS, QuiltSpec, render_quilt, save_quilt
+import numpy as np
+
+from quiltwright.lfd import (
+    QUILT_PRESETS,
+    QuiltSpec,
+    focal_distance_for_range,
+    render_quilt,
+    save_quilt,
+    view_disparity,
+)
 
 try:
     import pyvista as pv
@@ -92,6 +107,94 @@ def _orbit_camera(p: pv.Plotter, *, elevation: float = -25.0, azimuth: float = 3
     p.camera.azimuth = azimuth
 
 
+#: Vertical FOV the final camera is locked to before framing/focus, matching
+#: render_quilt()'s own default -- computing the depth budget at any other
+#: FOV would not describe the render that actually happens.
+RENDER_FOV = 14.0
+
+#: Widest sweep used by default. Nothing bounds these subjects the way the
+#: museum's walls do, and the tight bounding-box framing that fixes "the
+#: subject reads too small" also raises disparity, so a device's native cone
+#: (up to 50 deg) routinely overruns the ~4-5px ceiling. Same cap and
+#: rationale as render_still_life_hologram.py's STANDARD_VIEW_CONE.
+STANDARD_VIEW_CONE = 35.0
+
+
+def _frame_and_focus(
+    p: pv.Plotter, *, fov: float = RENDER_FOV, margin: float = 1.15
+) -> tuple[float, float, float]:
+    """Tightly frame the scene and place the focal plane by measured depth.
+
+    ``reset_camera()`` fits the *un-tilted* bounds; once ``_orbit_camera()``
+    (or an explicit ``camera_position``) tilts the view, that framing is too
+    loose and the subject reads as small with a lot of empty margin -- ask
+    for a mountain hologram and get a speck. This re-fits from scratch at the
+    final view direction: the 8 bounding-box corners are projected onto the
+    camera's own right/up/forward axes (accounting for foreshortening -- a
+    flat, elongated DEM viewed obliquely needs far less distance than its
+    bounding *sphere* would suggest), which gives the tightest distance that
+    still keeps every corner in frame at the target FOV and window aspect.
+    The focal plane then goes at the harmonic mean of the resulting near/far
+    depths -- the same balance ``focal_distance_for_range()`` gives the
+    POV-Ray scripts, just measured from exact PyVista geometry instead of a
+    rendered plane-sweep probe.
+
+    :param p: Plotter with data added, ``window_size`` already set to the
+        final render resolution (aspect matters here), and the camera
+        already pointed in the desired direction (position/focal_point set
+        by the caller; only the *direction* survives -- position, view angle
+        and focal distance are all overwritten here).
+    :param fov: Vertical field of view to lock the camera to, in degrees.
+        Must match what the render actually uses (``render_quilt``'s own
+        default) or the printed depth budget describes a different camera
+        than the one that renders.
+    :param margin: Headroom beyond the tight corner-projected fit, as a
+        fraction (1.15 = 15% clearance), so the subject doesn't touch the
+        frame edges.
+    :return: ``(near, far, focal_distance)`` in scene units, all measured
+        from the final camera position -- the numbers `view_disparity()`
+        expects.
+    """
+    camera = p.camera
+    position = np.asarray(camera.position, dtype="d")
+    focal = np.asarray(camera.focal_point, dtype="d")
+    up = np.asarray(camera.up, dtype="d")
+    forward = focal - position
+    forward /= np.linalg.norm(forward)
+    right = np.cross(forward, up)
+    right /= np.linalg.norm(right)
+    true_up = np.cross(right, forward)
+
+    bounds = p.bounds
+    lo = np.array([bounds.x_min, bounds.y_min, bounds.z_min])
+    hi = np.array([bounds.x_max, bounds.y_max, bounds.z_max])
+    center = (lo + hi) / 2.0
+    corners = np.array(list(product(*zip(lo, hi, strict=True))))
+    offsets = corners - center
+    f = offsets @ forward  # signed depth of each corner relative to center
+    r = offsets @ right
+    u = offsets @ true_up
+
+    win_w, win_h = p.window_size
+    half_v = math.tan(math.radians(fov) / 2.0)
+    half_h = half_v * (win_w / win_h)
+
+    # Smallest distance-from-center D such that every corner's angular
+    # extent |u_i|/(D+f_i) (resp. |r_i|/half_h) still fits inside the FOV.
+    d_needed = np.concatenate([np.abs(u) / half_v - f, np.abs(r) / half_h - f])
+    distance = margin * max(float(d_needed.max()), 1.0)
+
+    camera.position = tuple(center - forward * distance)
+    camera.view_angle = fov
+    depths = distance + f  # each corner's actual distance from the new camera
+    near = float(depths.min())
+    far = float(depths.max())
+
+    focal_distance = focal_distance_for_range(near, far)
+    camera.focal_point = tuple(np.asarray(camera.position) + forward * focal_distance)
+    return near, far, focal_distance
+
+
 def _load_st_helens(p: pv.Plotter) -> None:
     """Mt. St. Helens post-eruption DEM, warped into 3-D relief."""
     dem = examples.download_st_helens()
@@ -101,10 +204,21 @@ def _load_st_helens(p: pv.Plotter) -> None:
 
 
 def _load_damavand(p: pv.Plotter) -> None:
-    """Mt. Damavand (Iran) volumetric geophysical data."""
-    vol = examples.download_damavand_volcano()
-    p.add_volume(vol, cmap="viridis", opacity="sigmoid", show_scalar_bar=False)
-    _orbit_camera(p)
+    """Mt. Damavand (Iran) magnetotelluric resistivity-anomaly probability volume.
+
+    Not topography -- a 0-100 subsurface probability field (~7% NaN outside
+    the region of interest), so a generic 3/4 orbit renders it as a
+    near-uniform slab. Follows PyVista's own docstring recipe for this
+    dataset instead: downsampled, ``reds`` colormap, default opacity, and
+    the camera position from its own example.
+    """
+    vol = examples.download_damavand_volcano().resample(0.5)
+    p.add_volume(vol, cmap="reds", show_scalar_bar=False)
+    p.camera_position = pv.CameraPosition(
+        position=(4.66316700e04, 4.32796241e06, -3.82467050e05),
+        focal_point=(5.52532740e05, 3.98017300e06, -2.47450000e04),
+        viewup=(4.10000000e-01, -2.90000000e-01, -8.60000000e-01),
+    )
 
 
 def _load_brain(p: pv.Plotter) -> None:
@@ -148,7 +262,8 @@ SUBJECTS: dict[str, Subject] = {
     ),
     "damavand": Subject(
         _load_damavand,
-        "Mt. Damavand volumetric geophysical data (examples.download_damavand_volcano)",
+        "Mt. Damavand magnetotelluric anomaly-probability volume "
+        "(examples.download_damavand_volcano)",
     ),
     "brain": Subject(
         _load_brain,
@@ -187,7 +302,17 @@ def main() -> int:
     )
     parser.add_argument("--preview", action="store_true", help="quarter-size quilt, for iterating")
     parser.add_argument(
-        "--out", default=None, help="output stem; defaults to renders/quilts/<subject>"
+        "--still",
+        action="store_true",
+        help="single centre-view screenshot instead of a quilt, saved to "
+        "renders/stills/ -- the diffable reference for what the scene looks "
+        "like, same convention as the POV-Ray scenes",
+    )
+    parser.add_argument(
+        "--out",
+        default=None,
+        help="output stem; defaults to renders/quilts/<subject> "
+        "(renders/stills/<subject> with --still)",
     )
     parser.add_argument("--cast", action="store_true", help="send to Looking Glass Bridge")
     args = parser.parse_args()
@@ -201,6 +326,13 @@ def main() -> int:
     spec: QuiltSpec = QUILT_PRESETS[device]
     if args.view_cone is not None:
         spec = replace(spec, view_cone=args.view_cone)
+    elif spec.view_cone > STANDARD_VIEW_CONE:
+        print(
+            f"  view cone        {spec.view_cone:.0f} deg native -> "
+            f"{STANDARD_VIEW_CONE:.0f} to keep the budget in range "
+            f"(--view-cone {spec.view_cone:.0f} to override)"
+        )
+        spec = replace(spec, view_cone=STANDARD_VIEW_CONE)
     if args.preview:
         spec = replace(spec, quilt_width=spec.quilt_width // 4, quilt_height=spec.quilt_height // 4)
 
@@ -211,11 +343,47 @@ def main() -> int:
         f"tiles {spec.tile_width}x{spec.tile_height}, cone {spec.view_cone:.0f} deg"
     )
 
+    if args.still:
+        # A fixed-resolution single frame at the device's aspect, independent
+        # of quilt tiling -- long edge 1920 landscape / 1600 portrait, in the
+        # same size class as the POV-Ray stills (renders/stills/).
+        if spec.aspect >= 1:
+            still_h, still_w = 1080, round(1080 * spec.aspect)
+        else:
+            still_w, still_h = 1200, round(1200 / spec.aspect)
+    else:
+        # Matches render_quilt()'s own internal window sizing exactly, so the
+        # framing computed below is the framing the actual sweep renders at.
+        still_h = spec.tile_height
+        still_w = round(still_h * spec.aspect)
+
     p = pv.Plotter(off_screen=True)
+    p.window_size = (still_w, still_h)
     subject.load(p)
+    near, far, focal_distance = _frame_and_focus(p)
+    print(
+        f"  depth budget     near {near:.0f}, focal {focal_distance:.0f}, far {far:.0f} (scene units)"
+    )
+    print(
+        f"  disparity        near {view_disparity(spec, RENDER_FOV, focal_distance, near):.1f} px, "
+        f"far {view_disparity(spec, RENDER_FOV, focal_distance, far):.1f} px "
+        "(adjacent-view shift; ~4-5px is the practical ceiling)"
+    )
+
+    if args.still:
+        p.render()
+        stem = args.out or f"renders/stills/{args.subject.replace('-', '_')}"
+        out = Path(f"{stem}.png")
+        out.parent.mkdir(parents=True, exist_ok=True)
+        p.screenshot(str(out))
+        p.close()
+        print(f"  wrote {out}  ({still_w}x{still_h})")
+        return 0
 
     started = time.time()
-    quilt = render_quilt(p, spec)
+    # fov=None: _frame_and_focus() already locked the exact FOV/distance/focal
+    # plane render_quilt would otherwise try to recompute from scratch.
+    quilt = render_quilt(p, spec, fov=None)
     p.close()
     elapsed = time.time() - started
 
