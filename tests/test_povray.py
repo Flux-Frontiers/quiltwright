@@ -517,6 +517,9 @@ class TestRenderPovViews:
 
         with pytest.raises(FileNotFoundError):
             render_pov_views(
-                tmp_path / "nope.pov", sweep_spec(3, 45.0, 64, 64), camera,
-                tmp_path / "out", progress=False,
+                tmp_path / "nope.pov",
+                sweep_spec(3, 45.0, 64, 64),
+                camera,
+                tmp_path / "out",
+                progress=False,
             )
