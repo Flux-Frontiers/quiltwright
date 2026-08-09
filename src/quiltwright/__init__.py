@@ -11,6 +11,12 @@ backends feed the same assembler:
     quiltwright.hld      Hololuminescent Displays, which play ordinary
                          2-D video rather than quilts
 
+Scene sources are separate from the backends above:
+
+    quiltwright.tvb_data  Real brain geometry from The Virtual Brain —
+                          cortical surfaces, connectomes, parcellations,
+                          downloaded on demand
+
 Every view uses an off-axis (asymmetric-frustum) projection rather than a
 "toe-in" rotation, which is the geometric requirement for a display to fuse
 the views instead of ghosting them.
@@ -67,8 +73,21 @@ from .povray import (
     render_pov_views,
     sweep_extent,
 )
+from .tvb_data import (
+    CONNECTIVITIES,
+    REGION_MAPPINGS,
+    SENSORS,
+    SURFACES,
+    Connectome,
+    connectome_polydata,
+    load_connectivity,
+    load_region_mapping,
+    load_sensors,
+    load_surface,
+    surface_polydata,
+)
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 __all__ = [
     # Quilt geometry
     "QuiltSpec",
@@ -111,4 +130,16 @@ __all__ = [
     "apply_safe_area",
     "add_floor_shadow",
     "hld_orbit_speed",
+    # Scene source: The Virtual Brain datasets
+    "SURFACES",
+    "CONNECTIVITIES",
+    "REGION_MAPPINGS",
+    "SENSORS",
+    "Connectome",
+    "load_surface",
+    "load_connectivity",
+    "load_region_mapping",
+    "load_sensors",
+    "surface_polydata",
+    "connectome_polydata",
 ]
