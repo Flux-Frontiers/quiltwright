@@ -9,6 +9,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **`quiltwright.tvb_data` — brain geometry from The Virtual Brain as a scene
+  source.** Cortical surfaces, structural connectomes, parcellations and
+  sensor positions, downloaded on demand and returned as NumPy arrays or
+  PyVista meshes ready for the LFD and HLD backends.
+
+  This sits alongside POV-Ray scenes and the PyVista example datasets as a
+  *source* of geometry, not an output backend. It arrives here rather than in
+  a consumer because the package already reaches for real subjects to put on
+  a display — `scripts/render_pyvista_hologram.py` downloads the Allen
+  Institute mouse brain atlas, and `docs/pyvista-datasets.md` is already
+  where "what is worth rendering" gets reasoned about.
+
+  `tvb-root` ships no data of its own; the datasets live in `tvb-data`, a
+  337 MB archive on Zenodo ([doi:10.5281/zenodo.10128131][tvb-doi],
+  GPL-3.0). It is fetched on first use, MD5-verified, and cached in the
+  platform's native per-user cache directory
+  (`~/Library/Caches/quiltwright/tvb` on macOS,
+  `$XDG_CACHE_HOME/quiltwright/tvb` on Linux,
+  `%LOCALAPPDATA%\quiltwright\Cache\tvb` on Windows), overridable with
+  `$QUILTWRIGHT_TVB_CACHE`. Individual files are read straight from the zip;
+  the archive is never expanded on disk.
+
+  **Nothing is vendored, and no new dependency is added.** Loading needs only
+  the standard library and NumPy; the PyVista bridge needs the existing `viz`
+  extra. Nothing in the module encodes video, so the GPL-3 `imageio-ffmpeg`
+  build stays exactly where it was — in the optional `video` group, out of
+  the default install. Downloading GPL data at runtime rather than shipping
+  it is the same line this package already draws around ffmpeg.
+
+  Covers 11 surfaces, 8 connectomes, 4 parcellations and 9 sensor sets:
+  `load_surface`, `load_connectivity`, `load_region_mapping`, `load_sensors`,
+  plus `surface_polydata` / `connectome_polydata`.
+
+  The archive is not uniformly formatted, and each quirk is handled and
+  tested. Most consequential: `cortex_2x120k` indexes triangles from 1 while
+  every other surface indexes from 0, so loading it naively yields an index
+  one past the last vertex — a silently corrupt mesh rather than an error.
+  Also absorbed: split hemispheres, folder-nested members, float-encoded
+  indices, bz2-compressed members, and an empty vertex-normals stub.
+
+  Full reference in [docs/tvb-data.md](docs/tvb-data.md).
+
+  [tvb-doi]: https://doi.org/10.5281/zenodo.10128131
+
 ### Changed
 
 ### Fixed
