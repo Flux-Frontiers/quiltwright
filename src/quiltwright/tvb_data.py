@@ -113,6 +113,8 @@ from typing import NamedTuple
 
 import numpy as np
 
+from quiltwright.cache import dataset_cache_dir
+
 __all__ = [
     "TVB_DATA_URL",
     "TVB_DATA_DOI",
@@ -266,51 +268,17 @@ class _SurfaceArrays:
 def cache_dir() -> Path:
     """Return the directory where the TVB archive is cached.
 
-    Resolution order:
-
-    1. ``$QUILTWRIGHT_TVB_CACHE`` if set — useful for shared or read-only
-       installs, CI, putting a 337 MB archive on a different volume, and
-       pointing several checkouts at one copy.
-    2. The platform's native per-user cache directory, plus ``quiltwright/tvb``
-       — see :func:`_platform_cache_root`.
+    ``$QUILTWRIGHT_TVB_CACHE`` overrides the location entirely — useful for
+    shared or read-only installs, CI, putting a 337 MB archive on a different
+    volume, and pointing several checkouts at one copy.  Otherwise the
+    platform's native cache root is used; see
+    :func:`quiltwright.cache.cache_root`.
 
     The directory is created if it does not exist.
 
     :return: Path to the cache directory.
     """
-    override = os.environ.get(_CACHE_ENV)
-    if override:
-        path = Path(override).expanduser()
-    else:
-        path = _platform_cache_root() / "tvb"
-    path.mkdir(parents=True, exist_ok=True)
-    return path
-
-
-def _platform_cache_root() -> Path:
-    """Return the per-user cache root for Quiltwright on this OS.
-
-    Uses :mod:`platformdirs` when available so the archive lands where the
-    platform expects it — ``~/Library/Caches/quiltwright`` on macOS,
-    ``%LOCALAPPDATA%\\quiltwright\\Cache`` on Windows, and
-    ``$XDG_CACHE_HOME/quiltwright`` (default ``~/.cache/quiltwright``) on
-    Linux.
-    This matches PyVista, which caches its own downloads via
-    ``pooch.os_cache``; hard-coding ``~/.cache`` would scatter a 337 MB file
-    into a non-native location on two of the three platforms.
-
-    ``platformdirs`` arrives transitively with the ``viz`` extras (pyvista →
-    pooch), so the XDG-style fallback below only runs on a core install that
-    could not render this data anyway.
-    """
-    try:
-        from platformdirs import user_cache_dir
-
-        return Path(user_cache_dir("quiltwright"))
-    except ImportError:
-        xdg = os.environ.get("XDG_CACHE_HOME")
-        base = Path(xdg).expanduser() if xdg else Path.home() / ".cache"
-        return base / "quiltwright"
+    return dataset_cache_dir("tvb", env_var=_CACHE_ENV, create=True)
 
 
 def archive_path() -> Path:

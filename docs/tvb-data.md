@@ -76,11 +76,13 @@ otherwise to the platform's native per-user cache directory:
 | Linux | `$XDG_CACHE_HOME/quiltwright/tvb`, default `~/.cache/quiltwright/tvb` |
 | Windows | `%LOCALAPPDATA%\quiltwright\Cache\tvb` |
 
-Resolved with [`platformdirs`](https://pypi.org/project/platformdirs/),
-matching PyVista — which caches its own downloads via `pooch.os_cache` and
-so puts them in `~/Library/Caches/pyvista_3` on macOS. Hard-coding
-`~/.cache` would drop a 337 MB file somewhere non-native on two of the three
-platforms.
+Resolved by `quiltwright.cache`, which every runtime download shares — the
+Allen mouse atlas in `scripts/render_pyvista_hologram.py` lands in
+`allen_ccf` beside `tvb` under the same root. It uses
+[`platformdirs`](https://pypi.org/project/platformdirs/), matching PyVista —
+which caches its own downloads via `pooch.os_cache` and so puts them in
+`~/Library/Caches/pyvista_3` on macOS. Hard-coding `~/.cache` would drop a
+337 MB file somewhere non-native on two of the three platforms.
 
 Downloads stream to a temporary file and are moved into place only after the
 MD5 check passes, so an interrupted transfer can never leave a truncated

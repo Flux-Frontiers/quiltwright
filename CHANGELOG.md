@@ -53,7 +53,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
   [tvb-doi]: https://doi.org/10.5281/zenodo.10128131
 
+- **`quiltwright.cache`** — one answer to "where do runtime downloads go",
+  shared by every downloader. `cache_root()` gives the platform's own
+  per-user cache directory; `dataset_cache_dir(name, env_var=...)` places one
+  dataset under it, with a per-dataset environment override so a large
+  download can be relocated without moving the rest.
+
 ### Changed
+
+- **The Allen mouse atlas now caches in the platform-native location.**
+  `scripts/render_pyvista_hologram.py` hard-coded
+  `~/.cache/quiltwright/allen_ccf`, which is only native on Linux; on macOS
+  these volumes belong in `~/Library/Caches`, next to where PyVista already
+  puts its own downloads. It now goes through `quiltwright.cache` like the
+  TVB archive, and honours `$QUILTWRIGHT_ALLEN_CACHE`.
+
+  An existing download at the old path is adopted rather than silently
+  re-fetched — the 10 µm template is well over a gigabyte, and this script
+  has not been in a release, so anyone holding one has it from a local run.
 
 ### Fixed
 

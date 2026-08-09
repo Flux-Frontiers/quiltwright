@@ -75,6 +75,15 @@ vol = pv.read("average_template_50.nrrd")   # -> pyvista.ImageData
 vol.plot(volume=True, cmap="bone")
 ```
 
+`scripts/render_pyvista_hologram.py mouse-brain` downloads and caches this
+for you, in the platform's native per-user cache directory
+(`~/Library/Caches/quiltwright/allen_ccf` on macOS,
+`$XDG_CACHE_HOME/quiltwright/allen_ccf` on Linux) — see
+[tvb-data.md](tvb-data.md#caching) for the full resolution order, which is
+shared with the other runtime downloads. These volumes run from ~60 MB at
+100 µm to well over a gigabyte at 10 µm, so set `$QUILTWRIGHT_ALLEN_CACHE` if
+you would rather keep them on another disk.
+
 Allen Institute data is free for non-commercial use under their terms — see
 the [data license](https://alleninstitute.org/terms-of-use/) before any
 redistribution.

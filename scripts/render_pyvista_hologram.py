@@ -44,6 +44,7 @@ from pathlib import Path
 
 import numpy as np
 
+from quiltwright.cache import dataset_cache_dir
 from quiltwright.lfd import (
     QUILT_PRESETS,
     QuiltSpec,
@@ -71,7 +72,16 @@ ALLEN_CCF_TEMPLATE_URL = (
     "http://download.alleninstitute.org/informatics-archive/current-release/"
     "mouse_ccf/average_template/average_template_{resolution}.nrrd"
 )
-ALLEN_CCF_CACHE = Path.home() / ".cache" / "quiltwright" / "allen_ccf"
+#: Where the downloaded volumes live.  Platform-native (``~/Library/Caches``
+#: on macOS, not ``~/.cache``), shared with the other Quiltwright downloaders,
+#: and relocatable with ``$QUILTWRIGHT_ALLEN_CACHE`` — these volumes run from
+#: ~60 MB at 100 µm to ~1.5 GB at 10 µm, so putting them on another disk is a
+#: reasonable thing to want.
+ALLEN_CCF_CACHE = dataset_cache_dir("allen_ccf", env_var="QUILTWRIGHT_ALLEN_CACHE")
+
+#: Pre-0.3.0 location, before the cache moved to a platform-native root.  An
+#: existing download here is adopted rather than silently re-fetched.
+_LEGACY_ALLEN_CCF_CACHE = Path.home() / ".cache" / "quiltwright" / "allen_ccf"
 
 
 def _download_allen_template(resolution: int) -> Path:
@@ -83,8 +93,16 @@ def _download_allen_template(resolution: int) -> Path:
     """
     if resolution not in (10, 25, 50, 100):
         raise ValueError(f"resolution must be one of 10/25/50/100, got {resolution}")
+
+    filename = f"average_template_{resolution}.nrrd"
+
+    legacy = _LEGACY_ALLEN_CCF_CACHE / filename
+    if legacy.exists() and legacy.parent != ALLEN_CCF_CACHE:
+        print(f"  using existing download {legacy}")
+        return legacy
+
     ALLEN_CCF_CACHE.mkdir(parents=True, exist_ok=True)
-    dest = ALLEN_CCF_CACHE / f"average_template_{resolution}.nrrd"
+    dest = ALLEN_CCF_CACHE / filename
     if not dest.exists():
         url = ALLEN_CCF_TEMPLATE_URL.format(resolution=resolution)
         print(f"  downloading {url}")
