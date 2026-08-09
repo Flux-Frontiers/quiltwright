@@ -1,56 +1,63 @@
-# Release Notes — v0.1.0
+# Release Notes — v0.2.0
 
-> Released: 2026-08-04
+> Released: 2026-08-08
 
-Quiltwright 0.1.0 is the first release: a Python library that turns rendered
-scenes into **quilts** — the tiled multi-view images that Looking Glass
-lenticular light-field displays fuse into real, glasses-free depth. It renders
-from PyVista/VTK or POV-Ray, does the off-axis projection correctly in both
-backends, and drives Looking Glass Bridge directly. The code was extracted
-from [WaveRider](https://github.com/Flux-Frontiers/waverider) 0.12.0, where it
-grew as `waverider.lfd` / `waverider.hld`; it now stands alone so that
-manifold visualisation, molecular rendering, and scene archives can share it
-without depending on each other.
+Quiltwright 0.2.0 widens the output side and hardens the render side. A scene
+can now feed a hologram printer as well as a light-field panel, without being
+rebuilt; and rendering a quilt no longer means handing the desktop over to
+POV-Ray for several minutes.
 
-## What's here
+## What changed
 
-**Correct off-axis projection.** Each view slides the camera laterally while
-continuing to face the same direction, with the image plane sheared back onto
-the original view axis. The intuitive alternative — swivelling each camera to
-keep the subject centred — introduces vertical parallax the display cannot
-fuse, and is the single most common way light-field renders go wrong. Both
-backends get this right, at full float64 precision, because the shear term is
-a small correction to a large vector and single precision measurably moves
-the focal plane in large scenes.
+**Sweeps, for consumers that aren't a panel.** A quilt packs views into a
+rectangular grid, which cannot express a prime view count — and the LitiHolo
+desktop hologram printer's published specification asks for 23. `sweep_spec()`
+builds a single-row layout instead, `LITIHOLO_SWEEP` presets it to the
+printer's published field of view, and `render_pov_views()` writes the frames
+out individually with the same off-axis camera geometry `render_pov_quilt()`
+uses, minus the tiling. This is a narrower claim than compatibility — no file
+has been through the printer's own software yet — and `docs/lfd.md` records
+what's still open, including whether a hogel slicer wants the off-axis frusta
+this renders or the toe-in arc an earlier hologram submission used.
 
-**A POV-Ray backend for ray-traced holograms.** `render_pov_quilt()` renders
-quilts from existing `.pov` scenes without modifying them: each view wraps
-the scene with `#include` and appends one off-axis camera, which POV-Ray
-honours because it uses the last camera it parses. Thirty-year-old scenes
-render as holograms unchanged — the repo ships a complete 1994 museum
-interior under `pov-scenes/` as a worked example, with
-`scripts/render_museum_hologram.py` driving it end-to-end from measured
-depth and wall-clearance data.
+**Scene-framing helpers, promoted out of a script.** `PovCamera.aimed()`,
+`Clearance`, `sweep_extent()`, and `depth_budget()` / `format_depth_budget()`
+now live in `quiltwright.povray` instead of being rewritten per scene. They
+make adapting an existing POV-Ray scene to a sweep or quilt the same three
+measurements every time: the camera's own eye/aim/lens, the lateral corridor
+the room actually clears, and the disparity at labelled depths, including a
+warning when a sweep would carry the camera through a wall.
 
-**The depth-budget arithmetic.** Whether a hologram fuses or ghosts comes
-down to adjacent-view disparity. `view_disparity()` predicts it to within 2%
-of ray-traced ground truth, and `focal_distance_for_range()` places the focal
-plane at the harmonic mean of the depth range, where near and far content
-are equally penalised. You know before rendering whether a scene will fuse.
+**Rendering stops saturating the machine.** `make` used to pin every core for
+the several minutes a quilt takes; `RENDER_THREADS` now defaults to `NCPU-2`
+and `JOBS` defaults to 1 (POV-Ray threads a single render across all cores
+itself, so extra processes were only adding contention). `make
+quilts RENDER_THREADS=$(NCPU)` opts back into the full box when you want it.
 
-**Driving the glass.** `QUILT_PRESETS` carries verified quilt settings for
-Portrait, Go, and the 16″/27″/32″/65″ panels; `cast_quilt()` and friends
-speak Bridge's HTTP orchestration protocol directly, and saved filenames
-carry the `_qs<cols>x<rows>a<aspect>` suffix that Studio and Bridge parse
-automatically. The `quiltwright.hld` module targets the Hololuminescent
-line, which plays ordinary video rather than quilts.
+**Test coverage for previously-untested paths.** The Looking Glass Bridge
+transport layer (`cast_quilt`, `pause_quilt`, `resume_quilt`, `stop_quilt`)
+had no tests at all, which left a prior fix — avoiding the `delete_playlist`
+call that hung Bridge 2.6.3 twice in testing — resting on nothing but a commit
+message; it's now pinned and verified by mutation. The Gen3 16″ Landscape
+preset, the awkward one whose tiles are stored anamorphically, is pinned
+against real Bridge output.
 
-## Installing
+**Documentation and assets caught up to what the code does.** The README is
+reframed around the two pipelines Quiltwright actually serves rather than a
+generic projection-fixing pitch, and its hero caption now names the display
+targets — Looking Glass light-field and hololuminescent panels, plus Litiholo
+printers in development. The museum scene's depth range was re-measured
+rather than estimated, correcting figures that had drifted since the original
+render, and reference stills are now committed so what each scene looks like
+is diffable without a local POV-Ray install.
 
-`pip install quiltwright` for the core; add `[viz]` for the PyVista backend,
-`[video]` for encoding. The POV-Ray backend needs a `povray` binary and
-Bridge ≥ 2.2 drives the display — the full stack is covered in
-[docs/install.md](docs/install.md).
+## Upgrading
+
+No breaking changes. If you render quilts locally, `make quilts` now runs
+capped and single-threaded by default — pass `RENDER_THREADS=$(NCPU)` if you
+want the old full-machine behaviour back. New code wanting a hologram-printer
+sweep instead of a quilt should start from `quiltwright.lfd.sweep_spec()` or
+`LITIHOLO_SWEEP`.
 
 ---
 

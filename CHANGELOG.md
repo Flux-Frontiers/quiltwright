@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+## [0.2.0] — 2026-08-08
+
+### Added
+
 - **View sweeps, for consumers that are not a light-field panel**
   (`sweep_spec()`, `LITIHOLO_SWEEP`, `render_pov_views()`). A quilt's view count
   is `columns × rows`, so a rectangular grid cannot express a prime one — and
@@ -101,6 +111,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   archive: the 1LMB PDB file, the mesh converted from it
   (`lambda_complex2.inc`), the main scene with its sea, sky and chrome
   titling, and the original render `.ini` files.
+- **Test coverage for the Looking Glass Bridge transport layer**
+  (`cast_quilt`, `pause_quilt`, `resume_quilt`, `stop_quilt`, `_bridge_post`,
+  `_enter_orchestration`), previously untested. A `FakeBridge` stands in for
+  `urllib.request.urlopen` and pins the endpoint sequence — including that
+  `stop_quilt` never calls `delete_playlist`, which hung Bridge 2.6.3 twice in
+  testing and needed a `kill -9` to recover; that fix had rested on a commit
+  message alone until now. Verified by mutation: reintroducing
+  `delete_playlist` fails two tests with a legible diff. `lfd.py` coverage
+  83% → 94%.
 
 ### Changed
 
