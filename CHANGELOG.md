@@ -209,6 +209,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   and `render_museum_hologram.py`'s `EYE`, `NEAR_DEPTH` (31 → 26) and
   `FAR_DEPTH` (96 → 91) follow the dolly. Aspect tables in
   `docs/pov-workflow.md` and `renders/README.md` updated.
+- **README hero caption names its display targets.** The museum quilt is now
+  described as output for Looking Glass light-field and hololuminescent
+  displays, plus Litiholo holographic printers (in development), rather than
+  just "a 48-view light-field quilt".
 
 ## [0.1.0] — 2026-08-04
 
