@@ -1,7 +1,12 @@
 """Tests for the Looking Glass quilt renderer (quiltwright.lfd)."""
 
+import json
 import math
+import sys
+import types
+import urllib.request
 from dataclasses import replace
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -13,8 +18,13 @@ from quiltwright.lfd import (
     QuiltSpec,
     _encode_args,
     assemble_quilt,
+    cast_quilt,
+    find_ffmpeg,
     focal_distance_for_range,
+    pause_quilt,
+    resume_quilt,
     save_quilt,
+    stop_quilt,
     sweep_spec,
     view_disparity,
     view_offsets,
@@ -631,3 +641,214 @@ class TestRenderQuiltVideo:
         )
         p.close()
         assert seen == [0, 1, 2]
+
+
+# ---------------------------------------------------------------------------
+# Looking Glass Bridge transport
+#
+# Bridge is HTTP, so the whole control layer is testable without hardware by
+# standing in for urllib.  These tests exist because the casting layer had no
+# coverage at all, and because the v0.13.0 stop_quilt() fix -- avoiding
+# delete_playlist, which hangs Bridge 2.6.3 -- was verified only by hand
+# against a live device.  A regression there costs a kill -9, so it gets a
+# test that pins the endpoint sequence rather than the end state.
+# ---------------------------------------------------------------------------
+
+
+class FakeBridge:
+    """Records the Bridge calls a function makes, and answers them.
+
+    Stands in for ``urllib.request.urlopen``.  ``enter_orchestration`` gets
+    the token-bearing response Bridge really sends; everything else gets a
+    bare success.
+    """
+
+    def __init__(self, token: str = "tok-1", orchestration_payload=None):
+        self.token = token
+        self.calls: list[tuple[str, dict]] = []
+        self._orchestration_payload = orchestration_payload
+
+    @property
+    def endpoints(self) -> list[str]:
+        return [endpoint for endpoint, _ in self.calls]
+
+    def payload_for(self, endpoint: str) -> dict:
+        """The payload of the (single) call to ``endpoint``."""
+        matches = [p for e, p in self.calls if e == endpoint]
+        assert len(matches) == 1, f"expected exactly one {endpoint} call, got {len(matches)}"
+        return matches[0]
+
+    def __call__(self, req, timeout=None):
+        endpoint = req.full_url.rsplit("/", 1)[-1]
+        payload = json.loads(req.data.decode())
+        self.calls.append((endpoint, payload))
+        assert req.method == "PUT", (
+            f"{endpoint} sent {req.method}; Bridge answers POST with an empty "
+            "200 body, so the wrong verb fails silently"
+        )
+
+        if endpoint == "enter_orchestration":
+            body = (
+                self._orchestration_payload
+                if self._orchestration_payload is not None
+                else {"payload": {"value": self.token}}
+            )
+        else:
+            body = {"status": 0}
+        return _FakeResponse(json.dumps(body).encode())
+
+
+class _FakeResponse:
+    def __init__(self, body: bytes):
+        self._body = body
+
+    def read(self) -> bytes:
+        return self._body
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+
+@pytest.fixture
+def bridge(monkeypatch) -> FakeBridge:
+    fake = FakeBridge()
+    monkeypatch.setattr(urllib.request, "urlopen", fake)
+    return fake
+
+
+class TestStopQuilt:
+    """v0.13.0 regression guard: delete_playlist hangs Bridge 2.6.3."""
+
+    def test_never_calls_delete_playlist(self, bridge):
+        stop_quilt()
+        assert "delete_playlist" not in bridge.endpoints, (
+            "delete_playlist hung Bridge 2.6.3 twice in testing, each time "
+            "requiring kill -9; stop_quilt() must not reintroduce it even "
+            "though bridge.js documents it as the way to stop a playlist"
+        )
+
+    def test_pauses_then_hides_the_window(self, bridge):
+        stop_quilt()
+        assert bridge.endpoints == [
+            "enter_orchestration",
+            "transport_control_pause",
+            "show_window",
+        ]
+
+    def test_hides_rather_than_shows(self, bridge):
+        stop_quilt()
+        assert bridge.payload_for("show_window")["show_window"] is False
+
+    def test_returns_the_show_window_response(self, bridge):
+        assert stop_quilt() == {"status": 0}
+
+
+class TestTransportControls:
+    def test_pause_uses_transport_control(self, bridge):
+        pause_quilt()
+        assert bridge.endpoints == ["enter_orchestration", "transport_control_pause"]
+
+    def test_resume_uses_transport_control(self, bridge):
+        resume_quilt()
+        assert bridge.endpoints == ["enter_orchestration", "transport_control_play"]
+
+    def test_no_guessed_playlist_endpoints(self, bridge):
+        """Bridge has no pause_playlist/stop_playlist; both silently 200."""
+        pause_quilt()
+        resume_quilt()
+        stop_quilt()
+        assert not {"pause_playlist", "stop_playlist"} & set(bridge.endpoints)
+
+    @pytest.mark.parametrize("fn", [pause_quilt, resume_quilt, stop_quilt])
+    def test_every_call_carries_the_token(self, bridge, fn):
+        fn()
+        for endpoint, payload in bridge.calls:
+            if endpoint != "enter_orchestration":
+                assert payload["orchestration"] == bridge.token, (
+                    f"{endpoint} sent without the orchestration token"
+                )
+
+
+class TestEnterOrchestration:
+    def test_rejects_a_missing_token(self, monkeypatch):
+        """An empty token means every later call is a silent no-op."""
+        monkeypatch.setattr(
+            urllib.request, "urlopen", FakeBridge(orchestration_payload={"payload": {}})
+        )
+        with pytest.raises(RuntimeError, match="no orchestration token"):
+            pause_quilt()
+
+    def test_rejects_an_empty_response(self, monkeypatch):
+        monkeypatch.setattr(urllib.request, "urlopen", FakeBridge(orchestration_payload={}))
+        with pytest.raises(RuntimeError, match="no orchestration token"):
+            stop_quilt()
+
+    def test_session_name_is_default(self, bridge):
+        pause_quilt()
+        assert bridge.payload_for("enter_orchestration")["name"] == "default"
+
+
+class TestCastQuilt:
+    def test_orchestration_sequence(self, bridge, tmp_path, tiny_spec):
+        quilt = tmp_path / "q.png"
+        quilt.touch()
+        cast_quilt(quilt, tiny_spec)
+        assert bridge.endpoints == [
+            "enter_orchestration",
+            "show_window",
+            "instance_playlist",
+            "insert_playlist_entry",
+            "play_playlist",
+        ]
+
+    def test_entry_describes_the_spec(self, bridge, tmp_path, tiny_spec):
+        quilt = tmp_path / "q.png"
+        quilt.touch()
+        cast_quilt(quilt, tiny_spec)
+        entry = bridge.payload_for("insert_playlist_entry")
+        assert (entry["rows"], entry["cols"]) == (tiny_spec.rows, tiny_spec.columns)
+        assert entry["aspect"] == pytest.approx(tiny_spec.aspect)
+        assert entry["view_count"] == tiny_spec.n_views
+
+    def test_uri_is_absolute(self, bridge, tmp_path, tiny_spec, monkeypatch):
+        """Bridge resolves the path on its own host, so relative breaks it."""
+        quilt = tmp_path / "q.png"
+        quilt.touch()
+        monkeypatch.chdir(tmp_path)
+        cast_quilt("q.png", tiny_spec)
+        assert Path(bridge.payload_for("insert_playlist_entry")["uri"]).is_absolute()
+
+    def test_playlist_name_is_used(self, bridge, tmp_path, tiny_spec):
+        quilt = tmp_path / "q.png"
+        quilt.touch()
+        cast_quilt(quilt, tiny_spec, playlist="custom")
+        assert bridge.payload_for("instance_playlist")["name"] == "custom"
+        assert bridge.payload_for("play_playlist")["name"] == "custom"
+
+    def test_shows_the_window(self, bridge, tmp_path, tiny_spec):
+        quilt = tmp_path / "q.png"
+        quilt.touch()
+        cast_quilt(quilt, tiny_spec)
+        assert bridge.payload_for("show_window")["show_window"] is True
+
+
+class TestFindFfmpeg:
+    def test_prefers_the_system_binary(self, monkeypatch):
+        monkeypatch.setattr("shutil.which", lambda _: "/usr/bin/ffmpeg")
+        assert find_ffmpeg() == "/usr/bin/ffmpeg"
+
+    def test_falls_back_to_imageio(self, monkeypatch):
+        monkeypatch.setattr("shutil.which", lambda _: None)
+        module = types.ModuleType("imageio_ffmpeg")
+        module.get_ffmpeg_exe = lambda: "/bundled/ffmpeg"
+        monkeypatch.setitem(sys.modules, "imageio_ffmpeg", module)
+        assert find_ffmpeg() == "/bundled/ffmpeg"
+
+    def test_raises_when_neither_is_available(self, monkeypatch):
+        monkeypatch.setattr("shutil.which", lambda _: None)
+        monkeypatch.setitem(sys.modules, "imageio_ffmpeg", None)
+        with pytest.raises(RuntimeError, match="requires ffmpeg"):
+            find_ffmpeg()
