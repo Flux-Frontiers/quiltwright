@@ -1,90 +1,51 @@
-# Release Notes — v0.3.0
+# Release Notes — v0.3.1
 
 > Released: 2026-08-10
 
-Quiltwright 0.3.0 adds a scene source. Until now the package took geometry you
-already had — a POV-Ray scene, a PyVista mesh — and put it on a display.
-`quiltwright.tvb_data` goes and fetches some: real cortical surfaces,
-structural connectomes and parcellations from
-[The Virtual Brain](https://www.thevirtualbrain.org/), downloaded on demand
-and handed over as ordinary meshes.
+A documentation release. The view sweep that feeds a hologram printer has been
+in the package since 0.2.0, but the README treated it as an aside — one
+paragraph tucked in after two display technologies had already had their say.
+It is now a third output: a branch in the pipeline diagram, a section in the
+quick start, and a status said out loud rather than implied. In development.
 
 ## What changed
 
-**Brain geometry, as a scene source.** `quiltwright.tvb_data` covers 11
-surfaces, 8 connectomes, 4 parcellations and 9 sensor sets — human and
-macaque — through `load_surface()`, `load_connectivity()`,
-`load_region_mapping()` and `load_sensors()`, plus `surface_polydata()` and
-`connectome_polydata()` for meshes that drop straight into a plotter. It sits
-alongside the POV-Ray and PyVista paths as a *source* of geometry and says
-nothing about how that geometry reaches a display.
+**The LitiHolo path reads as an output.** The diagram gained a branch for it
+and a `view sweeps` line in the middle box, and the column it sits in is
+labelled "outputs" rather than "displays", because a printer is not a display.
+A new *Send it to a hologram printer* section runs `LITIHOLO_SWEEP` through
+`render_pov_views()` end to end — why 23 views cannot be a quilt grid, where
+the frames land, and what the sweep is and is not.
 
-This belongs here for the same reason `scripts/render_pyvista_hologram.py`
-already downloads the Allen Institute mouse atlas: choosing subjects with real
-depth structure, and going and getting them, is something this package was
-already doing. `docs/pyvista-datasets.md` was already the place that thinking
-lived.
+What it is not travels with it, in each place a reader might stop: quiltwright
+emits a sweep matching LitiHolo's published specification, which is a narrower
+claim than compatibility with the printer. Nothing has been through the
+printer's software. Whether a hogel slicer wants off-axis frusta or a toe-in
+arc is still open, and so is whether 2.05° between views is too coarse. This
+path is POV-Ray only.
 
-**The data is fetched, never shipped.** `tvb-root` contains no data of its
-own; the datasets live in `tvb-data`, a 337 MB archive on Zenodo
-([doi:10.5281/zenodo.10128131](https://doi.org/10.5281/zenodo.10128131)),
-licensed GPL-3.0. It is downloaded on first use, MD5-verified, and cached.
-Nothing is vendored into this BSD-3 tree. That is the same line the package
-already draws around ffmpeg — a GPL artefact is something we fetch on request,
-never something we ship — now applied to data as well as binaries.
+**The worked example fails on purpose.** It prints `format_depth_budget()`
+before it renders anything, and the museum at a 45° cone reports ~43 px of
+adjacent-view disparity against an ~8 px ghosting threshold. That is the report
+doing its job — a number worth having before the ray-tracer starts, not after —
+and it seemed more useful than an example framed to look effortless.
 
-No new dependency comes with it. Loading needs only the standard library and
-NumPy, both already core; the PyVista bridge uses the existing `viz` extra.
-Nothing in the module encodes video, so `imageio-ffmpeg` stays exactly where
-it was, in the optional `video` group, and a test asserts the module source
-never reaches for it.
-
-**One answer for where downloads go.** `quiltwright.cache` gives every runtime
-download the platform's own cache directory — `~/Library/Caches/quiltwright`
-on macOS, `$XDG_CACHE_HOME/quiltwright` on Linux, `%LOCALAPPDATA%` on Windows
-— matching PyVista, which caches through `pooch.os_cache` and so has always
-put its own downloads in `~/Library/Caches` on a Mac. The Allen atlas
-downloader had hard-coded `~/.cache/quiltwright/allen_ccf`, which is only
-native on Linux; it now shares the same root, honours
-`$QUILTWRIGHT_ALLEN_CACHE`, and adopts an existing download at the old path
-rather than silently re-fetching a volume that runs well over a gigabyte at
-10 µm.
-
-**The archive's inconsistencies are absorbed, not passed on.** `tvb-data` is
-not uniformly formatted, and one of its quirks fails silently: `cortex_2x120k`
-indexes triangles from 1 while every other surface indexes from 0, so a naive
-load produces an index one past the last vertex — a corrupt mesh rather than
-an error. That is detected and rebased, as are split hemispheres,
-folder-nested members, indices written in float notation, bz2-compressed
-members, and a 1-byte vertex-normals stub. Each has a test.
-
-Decimating a parcellated surface re-assigns its region labels by nearest
-neighbour, because quadric decimation discards point data and interpolating
-between region 3 and region 70 would mean nothing.
+**A consistency pass over the surrounding docs.** LitiHolo is spelled with the
+capital H the company uses, in all five places it appears. The coarse-sampling
+ratio is 2.75×, not the 2.7× that four files had rounded it down to; 45° over
+22 intervals against 35° over 47 is 2.747. `render_pov_views()`'s docstring had
+asserted that hogels are "no more forgiving than a lens sheet" while all three
+prose docs hold that question open, so it now hedges the way they do. The
+README's scene-source paragraph finally mentions `quiltwright.tvb_data`, which
+0.3.0 added without the README following, and `docs/gallery.md` — which nothing
+in the repository linked to — joins the documentation table.
 
 ## Upgrading
 
-Nothing breaks. This release is additive: no existing signature changed, and
-the only behavioural change is where the Allen atlas caches, which migrates
-itself.
+Nothing to do. No behaviour changed: one docstring was reworded, and every
+signature, preset and rendered pixel is identical to 0.3.0. Upgrade only if you
+want the version metadata to match.
 
-If you keep large downloads on a separate volume, the new environment
-variables are `$QUILTWRIGHT_TVB_CACHE` and `$QUILTWRIGHT_ALLEN_CACHE`.
+---
 
-## Getting started
-
-```python
-import pyvista as pv
-from quiltwright import QUILT_PRESETS, render_quilt, save_quilt
-from quiltwright.tvb_data import surface_polydata
-
-cortex = surface_polydata("cortex_16384", region_mapping="regionMapping_16k_76")
-p = pv.Plotter(off_screen=True)
-p.add_mesh(cortex, scalars="region", cmap="turbo", show_scalar_bar=False)
-
-spec = QUILT_PRESETS["portrait"]
-save_quilt(render_quilt(p, spec), "cortex", spec)
-```
-
-See [docs/tvb-data.md](docs/tvb-data.md) for the dataset reference, cache
-layout and licensing.
+_Full changelog: [CHANGELOG.md](CHANGELOG.md)_

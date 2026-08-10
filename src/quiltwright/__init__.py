@@ -87,7 +87,7 @@ from .tvb_data import (
     surface_polydata,
 )
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 __all__ = [
     # Quilt geometry
     "QuiltSpec",

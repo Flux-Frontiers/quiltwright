@@ -11,6 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+### Fixed
+
+### Removed
+
+## [0.3.1] — 2026-08-10
+
+### Changed
+
 - **The README documents the LitiHolo sweep as a third output, marked in
   development.** The pipeline diagram gained a branch for it and a `view
   sweeps` line in the middle box; the column header reads "outputs" rather
@@ -49,8 +57,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   sheet", while `docs/lfd.md`, `docs/povray.md` and `docs/pov-workflow.md` all
   hold that question open. The docstring now hedges the way the documentation
   does.
-
-### Removed
 
 ## [0.3.0] — 2026-08-10
 
