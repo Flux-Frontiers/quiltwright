@@ -13,6 +13,19 @@ venv/
 .coverage
 htmlcov/
 
+# DocKG local index -- reproducible from docs/ via `dockg build`.  Granular
+# rather than a blanket `.dockg/`, matching doc_kg's own .gitignore: a bare
+# `**/.dockg/` would also swallow `.dockg/snapshots/`, which is meant to stay
+# tracked if this repo ever starts committing snapshots.
+**/.dockg/lancedb/
+**/.dockg/lancedb-*
+**/.dockg/*.sqlite
+**/.dockg/*.sqlite-shm
+**/.dockg/*.sqlite-wal
+**/.dockg/*.db
+**/.dockg/models
+**/.dockg/embeddings.json
+
 # Rendered output.  The stills (~14 MB) are committed: they are the diffable
 # reference for what each scene looks like, and regenerating them needs a
 # POV-Ray install and patience.  Quilts (25-40 MB each) are release assets,
