@@ -395,7 +395,7 @@ paths = render_pov_views("risedronate.pov", LITIHOLO_SWEEP, camera, "sweep/")
 
 **The budget step is not optional advice here.** `LITIHOLO_SWEEP` is 23 views
 over 45°, which is **2.05° between adjacent views** against **0.74°** on a
-Portrait quilt — about 2.7× coarser sampling. Everything § 7 says about
+Portrait quilt — about 2.75× coarser sampling. Everything § 7 says about
 disparity applies with less margin, not more, and the preset's 2000 px tile is
 taller than anything in the device table, so the same scene reports larger px
 figures than it would on a panel. Read the report before spending the render.

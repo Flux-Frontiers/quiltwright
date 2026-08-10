@@ -365,9 +365,9 @@ and two open questions sit between them:
   expects is unknown.
 - **Is 23 views over 45° too coarse?** It works out to **2.05° between adjacent
   views** (45° over 22 intervals), against **0.74°** for a Looking Glass
-  Portrait quilt (35° over 47) — about 2.7× coarser. On a lenticular panel, that much would step visibly as you moved
-  rather than glide. Whether a hogel-based recording is more forgiving is
-  genuinely unknown.
+  Portrait quilt (35° over 47) — about 2.75× coarser. On a lenticular panel,
+  that much would step visibly as you moved rather than glide. Whether a
+  hogel-based recording is more forgiving is genuinely unknown.
 
 Because of the second point, run `format_depth_budget()` *before* rendering a
 sweep rather than after. Coarse angular sampling and a generous depth budget

@@ -11,7 +11,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- **The README documents the LitiHolo sweep as a third output, marked in
+  development.** The pipeline diagram gained a branch for it and a `view
+  sweeps` line in the middle box; the column header reads "outputs" rather
+  than "displays", since one target is not a display. A new *Send it to a
+  hologram printer* section in the quick start runs `LITIHOLO_SWEEP` through
+  `render_pov_views()` end to end, with `format_depth_budget()` printed first
+  and what the museum actually reports at a 45° cone — ~43 px of adjacent-view
+  disparity against an ~8 px ghosting threshold, which is the report doing its
+  job rather than an example worth copying unchanged.
+
+  The narrow claim travels with it: what quiltwright emits is a sweep matching
+  the published specification, not a verified printer input, and this path is
+  POV-Ray only. Both links now point into the relevant sections of
+  `docs/lfd.md` rather than at the top of the file.
+
+- **README housekeeping the 0.3.0 release left behind.** The scene-source
+  paragraph mentions `quiltwright.tvb_data` and the PyVista example datasets,
+  which 0.3.0 added while the README still described only the two upstream
+  pipelines. `docs/gallery.md` joins the documentation table — nothing in the
+  repository linked to it — and the `docs/lfd.md` row names the view sweeps it
+  covers.
+
 ### Fixed
+
+- **The vendor's name is spelled LitiHolo throughout.** It appeared both ways
+  across the README, `docs/brand.md` and this changelog; the company styles it
+  with the capital H.
+
+- **The coarse-sampling figure is 2.75×, not 2.7×.** 45° over 22 intervals
+  against 35° over 47 is 2.747. The inputs — 2.05° and 0.74° — were already
+  consistent in all four places that quote them; only the ratio was rounded
+  down.
+
+- **`render_pov_views()` no longer overstates what is known about hogels.** Its
+  docstring asserted that a hologram's hogels are "no more forgiving than a lens
+  sheet", while `docs/lfd.md`, `docs/povray.md` and `docs/pov-workflow.md` all
+  hold that question open. The docstring now hedges the way the documentation
+  does.
 
 ### Removed
 
@@ -114,7 +151,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   circular arc a 2003 hologram submission of the same scene used; these are not
   interchangeable. And whether 23 views over 45° is too coarse: at 2.05° between
   adjacent views against a Looking Glass Portrait quilt's 0.74°, it samples
-  about 2.7× coarser, which on a lenticular panel would step visibly rather than
+  about 2.75× coarser, which on a lenticular panel would step visibly rather than
   glide. Whether a hogel-based recording is more forgiving is unknown. Both are
   documented in `docs/lfd.md` rather than settled.
 - **Scene framing helpers** in `quiltwright.povray`, promoted from
@@ -297,7 +334,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   `docs/pov-workflow.md` and `renders/README.md` updated.
 - **README hero caption names its display targets.** The museum quilt is now
   described as output for Looking Glass light-field and hololuminescent
-  displays, plus Litiholo holographic printers (in development), rather than
+  displays, plus LitiHolo holographic printers (in development), rather than
   just "a 48-view light-field quilt".
 
 ## [0.1.0] — 2026-08-04

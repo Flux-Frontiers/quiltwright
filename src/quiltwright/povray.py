@@ -732,7 +732,8 @@ def render_pov_views(
     The depth-budget arithmetic in :func:`format_depth_budget` still applies
     and is still worth running first: a sweep that would ghost on a
     lenticular panel is a sweep whose parallax exceeds what the medium can
-    resolve, and a hologram's hogels are no more forgiving than a lens sheet.
+    resolve, and there is no evidence that a hologram's hogels are more
+    forgiving than a lens sheet.
 
     :param scene: Path to the ``.pov`` scene.  Not modified.
     :param spec: Sweep or quilt specification supplying view count, view

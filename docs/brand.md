@@ -12,7 +12,7 @@ what Quiltwright does.
 ## Brand DNA
 
 The whole point of the pipeline is driving real holographic hardware
-(Looking Glass, HLD, Litiholo) — a scene comes in, an off-axis camera sweep
+(Looking Glass, HLD, LitiHolo) — a scene comes in, an off-axis camera sweep
 produces a set of views, those views assemble into a tiled "quilt," and the
 quilt is what makes the hardware show depth. The logo has to end in an
 actual hologram-like glyph, not just illustrate the quilting metaphor in the
