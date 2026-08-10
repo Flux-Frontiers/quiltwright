@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+### Changed
+
+### Fixed
+
+### Removed
+
+## [0.3.0] — 2026-08-10
+
+### Added
+
 - **`quiltwright.tvb_data` — brain geometry from The Virtual Brain as a scene
   source.** Cortical surfaces, structural connectomes, parcellations and
   sensor positions, downloaded on demand and returned as NumPy arrays or
@@ -71,10 +81,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   An existing download at the old path is adopted rather than silently
   re-fetched — the 10 µm template is well over a gigabyte, and this script
   has not been in a release, so anyone holding one has it from a local run.
-
-### Fixed
-
-### Removed
 
 ## [0.2.0] — 2026-08-08
 
