@@ -51,7 +51,7 @@ from __future__ import annotations
 import json
 import math
 import urllib.request
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, replace
 from pathlib import Path
 
@@ -312,6 +312,124 @@ def focal_distance_for_range(near: float, far: float) -> float:
     if math.isinf(far):
         return 2.0 * near
     return 2.0 / (1.0 / near + 1.0 / far)
+
+
+#: Labels used by :func:`depth_report` for the three depths it measures
+#: itself.  Deliberately neutral — a corpus renderer calls its far extent
+#: "farthest foliage", a CAD one "back wall"; pass *labels* to say so.
+DEPTH_LABELS: tuple[str, str, str] = (
+    "nearest geometry",
+    "focal plane (display surface)",
+    "farthest geometry",
+)
+
+
+def scene_depths(
+    plotter,
+    *,
+    fov: float | None = 14.0,
+    zoom: float | None = None,
+    labels: tuple[str, str, str] = DEPTH_LABELS,
+) -> dict[str, float]:
+    """Near, focal and far distances for the scene, as :func:`render_quilt` will see them.
+
+    Measures the plotter's bounding box along the view axis, then applies the
+    same framing :func:`render_quilt` applies before sweeping — narrowing the
+    FOV and dollying back, then the optional zoom dolly.  Reading the camera
+    as-is instead is the tempting shortcut and it is wrong: the render's FOV
+    and focal distance are both different by then, so the disparity computed
+    from them describes a picture nobody is going to make.  Nothing is
+    mutated; the arithmetic is done on copies.
+
+    :param plotter: A ``pv.Plotter`` with the scene composed and the camera
+        positioned as it will be for the render.
+    :param fov: The vertical FOV that will be passed to :func:`render_quilt`.
+        ``None`` keeps the plotter's current FOV, matching that argument.
+    :param zoom: The zoom that will be passed to :func:`render_quilt`.
+    :param labels: Names for the near, focal and far entries, in that order.
+    :return: Labelled distances from the render camera, in scene units,
+        ready to hand to :func:`~quiltwright.povray.format_depth_budget`.
+    """
+    _require_pyvista("scene_depths")
+    camera = plotter.camera
+    pos, focal, _right, _up, distance = _camera_frame(camera)
+    forward = (focal - pos) / distance
+
+    # Mirror render_quilt's framing: narrow the FOV, dolly back to preserve
+    # the framing, then apply the zoom dolly (VTK divides the distance).
+    final_distance = distance
+    if fov is not None:
+        half_height = distance * math.tan(math.radians(camera.view_angle) / 2.0)
+        final_distance = half_height / math.tan(math.radians(fov) / 2.0)
+    if zoom is not None and zoom != 1.0:
+        final_distance /= zoom
+
+    # The camera retreats along -forward, so every measured depth grows by
+    # the same shift; the focal plane sits at the new distance by definition.
+    shift = final_distance - distance
+    xmin, xmax, ymin, ymax, zmin, zmax = plotter.bounds
+    corners = np.array(
+        [[x, y, z] for x in (xmin, xmax) for y in (ymin, ymax) for z in (zmin, zmax)],
+        dtype="d",
+    )
+    along = (corners - pos) @ forward
+    return {
+        labels[0]: float(along.min()) + shift,
+        labels[1]: final_distance,
+        labels[2]: float(along.max()) + shift,
+    }
+
+
+def depth_report(
+    plotter,
+    spec: QuiltSpec,
+    *,
+    fov: float | None = 14.0,
+    zoom: float | None = None,
+    labels: tuple[str, str, str] = DEPTH_LABELS,
+    extra_depths: Mapping[str, float] | None = None,
+    soft_px: float = 5.5,
+) -> str:
+    """Depth budget for a PyVista scene, as a report to print before rendering.
+
+    The PyVista counterpart to
+    :func:`~quiltwright.povray.format_depth_budget`, which takes a POV-Ray
+    camera.  Without this, every PyVista caller has to measure the scene by
+    hand and then build a throwaway ``PovCamera`` purely to carry two floats
+    — which is exactly what two separate consumers ended up doing.
+
+    Pass the same *fov* and *zoom* you will pass to :func:`render_quilt`, so
+    the numbers describe the render you are about to make.
+
+    :param plotter: Plotter with the scene composed and the camera framed.
+    :param spec: Quilt specification.
+    :param fov: FOV that will be used for the render; see :func:`render_quilt`.
+    :param zoom: Zoom that will be used for the render.
+    :param labels: Names for the near, focal and far depths.
+    :param extra_depths: Further labelled depths to include, e.g.
+        ``{"sky": math.inf}`` for a backdrop at infinity.
+    :param soft_px: Disparity above which a row is flagged as soft.
+    :return: Multi-line report.
+    """
+    # Imported here, not at module scope: povray imports this module, so a
+    # top-level import would close the cycle.
+    from quiltwright.povray import PovCamera, format_depth_budget
+
+    depths = scene_depths(plotter, fov=fov, zoom=zoom, labels=labels)
+    if extra_depths:
+        depths.update(extra_depths)
+
+    camera = plotter.camera
+    pos, focal, _right, up, distance = _camera_frame(camera)
+    forward = (focal - pos) / distance
+    focal_distance = depths[labels[1]]
+    pov_camera = PovCamera(
+        location=tuple(focal - forward * focal_distance),
+        look_at=tuple(focal),
+        sky=tuple(up),
+        fov=camera.view_angle if fov is None else fov,
+    )
+    return format_depth_budget(spec, pov_camera, depths, soft_px=soft_px)
 
 
 def _camera_frame(camera) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, float]:

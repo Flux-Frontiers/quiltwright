@@ -13,17 +13,20 @@ import pytest
 from render_probe import can_render
 
 from quiltwright.lfd import (
+    DEPTH_LABELS,
     LITIHOLO_SWEEP,
     QUILT_PRESETS,
     QuiltSpec,
     _encode_args,
     assemble_quilt,
     cast_quilt,
+    depth_report,
     find_ffmpeg,
     focal_distance_for_range,
     pause_quilt,
     resume_quilt,
     save_quilt,
+    scene_depths,
     stop_quilt,
     sweep_spec,
     view_disparity,
@@ -852,3 +855,131 @@ class TestFindFfmpeg:
         monkeypatch.setitem(sys.modules, "imageio_ffmpeg", None)
         with pytest.raises(RuntimeError, match="requires ffmpeg"):
             find_ffmpeg()
+
+
+# ---------------------------------------------------------------------------
+# Depth reporting for PyVista scenes
+# ---------------------------------------------------------------------------
+
+
+class _StubCamera:
+    """The four camera attributes ``scene_depths`` reads, and nothing else."""
+
+    def __init__(self, position, focal_point, up, view_angle):
+        self.position = position
+        self.focal_point = focal_point
+        self.up = up
+        self.view_angle = view_angle
+
+
+class _StubPlotter:
+    """A plotter's measurable surface: a camera and a bounding box.
+
+    Using a stub rather than a real ``pv.Plotter`` keeps these tests on the
+    framing arithmetic, which is the part that was wrong in two downstream
+    copies, and lets them run without a GL stack.
+    """
+
+    def __init__(self, camera, bounds):
+        self.camera = camera
+        self.bounds = bounds
+
+
+def _stub(view_angle=30.0, distance=10.0):
+    """Camera on -Y looking at the origin, with a unit cube at the focal plane.
+
+    :param view_angle: Vertical FOV in degrees.
+    :param distance: Distance from camera to focal point.
+    :return: A ``_StubPlotter``.
+    """
+    camera = _StubCamera(
+        position=(0.0, -distance, 0.0),
+        focal_point=(0.0, 0.0, 0.0),
+        up=(0.0, 0.0, 1.0),
+        view_angle=view_angle,
+    )
+    return _StubPlotter(camera, (-1.0, 1.0, -1.0, 1.0, -1.0, 1.0))
+
+
+class TestSceneDepths:
+    def test_measures_the_scene_along_the_view_axis(self):
+        """With no reframing, near/far are the bounding box projected on the axis."""
+        depths = scene_depths(_stub(distance=10.0), fov=None)
+        near, focal, far = (depths[label] for label in DEPTH_LABELS)
+
+        assert focal == pytest.approx(10.0)
+        assert near == pytest.approx(9.0)  # front face of the unit cube
+        assert far == pytest.approx(11.0)  # back face
+
+    def test_fov_narrowing_dollies_back(self):
+        """Narrowing the FOV pushes the camera back, exactly as render_quilt does.
+
+        new_distance = (distance * tan(view/2)) / tan(fov/2)
+        """
+        depths = scene_depths(_stub(view_angle=30.0, distance=10.0), fov=14.0)
+        expected = 10.0 * math.tan(math.radians(15.0)) / math.tan(math.radians(7.0))
+
+        assert depths[DEPTH_LABELS[1]] == pytest.approx(expected)
+        assert expected > 10.0, "a narrower FOV must retreat, not advance"
+
+    def test_reframing_shifts_every_depth_equally(self):
+        """The camera moves, the scene does not: depth *spread* is invariant."""
+        plain = scene_depths(_stub(), fov=None)
+        framed = scene_depths(_stub(), fov=14.0)
+
+        spread = lambda d: d[DEPTH_LABELS[2]] - d[DEPTH_LABELS[0]]  # noqa: E731
+        assert spread(framed) == pytest.approx(spread(plain))
+        shift = framed[DEPTH_LABELS[1]] - plain[DEPTH_LABELS[1]]
+        assert framed[DEPTH_LABELS[0]] - plain[DEPTH_LABELS[0]] == pytest.approx(shift)
+
+    def test_zoom_divides_the_distance(self):
+        """VTK's Dolly divides the camera distance, so the focal plane closes in."""
+        no_zoom = scene_depths(_stub(), fov=14.0)
+        zoomed = scene_depths(_stub(), fov=14.0, zoom=2.0)
+
+        assert zoomed[DEPTH_LABELS[1]] == pytest.approx(no_zoom[DEPTH_LABELS[1]] / 2.0)
+
+    def test_zoom_of_one_changes_nothing(self):
+        assert scene_depths(_stub(), zoom=1.0) == scene_depths(_stub(), zoom=None)
+
+    def test_custom_labels_are_used(self):
+        labels = ("front of subject", "glass", "back of subject")
+        assert set(scene_depths(_stub(), labels=labels)) == set(labels)
+
+    def test_nothing_is_mutated(self):
+        """The report must not disturb a camera the caller is about to render with."""
+        plotter = _stub()
+        before = (plotter.camera.position, plotter.camera.view_angle)
+        scene_depths(plotter, fov=14.0, zoom=1.5)
+
+        assert (plotter.camera.position, plotter.camera.view_angle) == before
+
+
+class TestDepthReport:
+    def test_reports_every_depth_including_extras(self):
+        report = depth_report(_stub(), QUILT_PRESETS["portrait"], extra_depths={"sky": math.inf})
+
+        for label in DEPTH_LABELS:
+            assert label in report
+        assert "sky" in report
+
+    def test_the_focal_plane_has_no_disparity(self):
+        """Content on the display surface is the fixed point of the sweep."""
+        report = depth_report(_stub(), QUILT_PRESETS["portrait"])
+        focal_line = next(ln for ln in report.splitlines() if DEPTH_LABELS[1] in ln)
+
+        assert "0.00" in focal_line
+
+    def test_it_answers_for_the_render_not_the_current_camera(self):
+        """Reporting the un-reframed camera describes a picture nobody will make.
+
+        render_quilt narrows the FOV and dollies back before sweeping, so a
+        budget taken from the plotter as-is is computed at the wrong FOV and
+        the wrong focal distance. This is the bug the function exists to stop
+        each caller from reproducing.
+        """
+        spec = QUILT_PRESETS["portrait"]
+        as_rendered = depth_report(_stub(view_angle=30.0), spec, fov=14.0)
+        as_composed = depth_report(_stub(view_angle=30.0), spec, fov=None)
+
+        assert as_rendered != as_composed

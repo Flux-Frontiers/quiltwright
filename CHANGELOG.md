@@ -9,7 +9,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **`depth_report()` and `scene_depths()` — the depth budget for a PyVista
+  scene.** `format_depth_budget()` has always done the arithmetic, but it
+  takes a `PovCamera`, so every PyVista caller had to measure the scene by
+  hand and then build a throwaway POV-Ray camera purely to carry a FOV and a
+  focal distance. Two separate downstream consumers each wrote that same
+  forty-line helper. `depth_report(plotter, spec)` replaces it: it reads the
+  plotter's bounds and camera, and returns the report.
+
+  It also takes the `fov` and `zoom` you intend to pass to `render_quilt()`,
+  and models them — which the hand-rolled copies did not. `render_quilt()`
+  narrows the FOV and dollies back before sweeping, so a budget measured from
+  the plotter as-composed is computed at the wrong FOV *and* the wrong focal
+  distance, and describes a picture nobody is going to make. On a torus at
+  the default framing the two differ by about 15%; the direction depends on
+  the scene, because the dolly-back partly offsets the magnification.
+
+  `scene_depths()` exposes the measurement on its own for callers that want
+  the numbers rather than the report, and `DEPTH_LABELS` supplies neutral
+  defaults ("nearest geometry" rather than any one domain's vocabulary).
+  Neither mutates the plotter.
+
 ### Changed
+
+- **Python 3.13 is supported: `requires-python` is now `>=3.12,<3.14`.** The
+  old `<3.13` ceiling had no recorded rationale and no dependency behind it —
+  numpy, pillow and pyvista all support 3.13 — but it forced every consumer
+  on a `<3.14` project to declare quiltwright marker-gated
+  (`"quiltwright>=0.3.1; python_version < '3.13'"`), because an unmarked
+  declaration made Poetry reject the whole resolution. That marker can now be
+  dropped. CI runs the suite on both 3.12 and 3.13, so the classifier is a
+  tested claim rather than an assertion.
 
 ### Fixed
 
