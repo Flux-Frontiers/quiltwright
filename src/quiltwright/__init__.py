@@ -46,11 +46,13 @@ from .hld import (
 )
 from .lfd import (
     BRIDGE_URL,
+    DEPTH_LABELS,
     LITIHOLO_SWEEP,
     QUILT_PRESETS,
     QuiltSpec,
     assemble_quilt,
     cast_quilt,
+    depth_report,
     find_ffmpeg,
     focal_distance_for_range,
     pause_quilt,
@@ -58,6 +60,7 @@ from .lfd import (
     render_quilt_video,
     resume_quilt,
     save_quilt,
+    scene_depths,
     stop_quilt,
     sweep_spec,
     view_disparity,
@@ -100,6 +103,7 @@ __all__ = [
     # Depth budget
     "view_disparity",
     "focal_distance_for_range",
+    "scene_depths",
     "depth_budget",
     "format_depth_budget",
     "sweep_extent",
@@ -117,7 +121,9 @@ __all__ = [
     "find_ffmpeg",
     # Looking Glass Bridge
     "BRIDGE_URL",
+    "DEPTH_LABELS",
     "cast_quilt",
+    "depth_report",
     "pause_quilt",
     "resume_quilt",
     "stop_quilt",

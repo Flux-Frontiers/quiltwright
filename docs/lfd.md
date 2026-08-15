@@ -377,6 +377,41 @@ compound, and a sweep has less margin than a quilt, not more.
 
 ## Framing is a depth budget
 
+Before committing to a 48-view render, ask what the disparity will be:
+
+```python
+import math
+from quiltwright import QUILT_PRESETS, depth_report
+
+spec = QUILT_PRESETS["16-landscape"]
+print(depth_report(plotter, spec, fov=14.0, zoom=1.6,
+                   extra_depths={"sky": math.inf}))
+```
+
+```
+  focal plane      18.4 units
+  view cone        50.0 deg over 48 views
+  adjacent-view disparity:
+    nearest geometry       16.4   7.19 px  <- soft
+    focal plane (display surface)     18.4   0.00 px
+    farthest geometry      20.4   5.76 px  <- soft
+```
+
+Roughly 4–5 px is the practical ceiling; past ~8 px expect visible
+ghosting. Content *at* the focal plane has zero disparity by definition,
+which is why the focal point belongs in the middle of the subject.
+
+**Pass the same `fov` and `zoom` you will pass to `render_quilt()`.**
+`render_quilt()` narrows the FOV and dollies back before it sweeps, so a
+budget measured from the plotter as-composed is computed at the wrong FOV
+and the wrong focal distance — it describes a picture you are not about to
+make. `depth_report()` models that reframing; reading the camera yourself
+does not. Use `scene_depths()` if you want the numbers rather than the
+report. Neither touches the plotter.
+
+For POV-Ray scenes the equivalent is `format_depth_budget()`, which takes a
+`PovCamera` directly.
+
 Perceived depth scales with how much of each view the subject fills. A
 volume occupying a third of the frame delivers roughly a third of the
 parallax the panel can show, and wastes most of the per-view resolution —

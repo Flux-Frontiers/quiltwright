@@ -8,12 +8,18 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    # Both supported interpreters: requires-python allows 3.13, so claiming it
+    # without testing it would be a claim, not a fact.
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
     steps:
       - uses: actions/checkout@v7
 
       - uses: actions/setup-python@v7
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
 
       # VTK needs a GL stack and an X server; povray exercises the ray-traced
       # backend.  Without these the relevant tests skip rather than fail, but
