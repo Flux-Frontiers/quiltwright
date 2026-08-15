@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-08-14
+
 ### Added
 
 - **`depth_report()` and `scene_depths()` — the depth budget for a PyVista
@@ -40,10 +42,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   declaration made Poetry reject the whole resolution. That marker can now be
   dropped. CI runs the suite on both 3.12 and 3.13, so the classifier is a
   tested claim rather than an assertion.
-
-### Fixed
-
-### Removed
 
 ## [0.3.1] — 2026-08-10
 

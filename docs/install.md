@@ -17,7 +17,7 @@ this page goes layer by layer, and each section says who can skip it.
 
 ## 1. The Python package
 
-Requires Python 3.12.
+Requires Python 3.12 or 3.13.
 
 ```bash
 pip install quiltwright              # core: quilt geometry + Bridge control
