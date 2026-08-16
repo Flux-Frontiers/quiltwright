@@ -75,7 +75,7 @@ export needs no VTK at all.
 
 ```python
 from quiltwright.lfd import QUILT_PRESETS, save_quilt
-from quiltwright.povgen import PovScene, Sphere, Texture, lights_from_bounds
+from quiltwright.povgen import PovScene, Sphere, Texture, lights_from_bounds, to_pov
 from quiltwright.povray import render_pov_quilt, PovCamera
 
 scene = PovScene(background="#101018")
@@ -85,12 +85,20 @@ for light in lights_from_bounds(*scene.bounds()):
 path = scene.write("ball.pov")
 
 spec = QUILT_PRESETS["portrait"]
-camera = PovCamera(location=(0, 0, -8), look_at=(0, 0, 0), fov=40)
+camera = PovCamera(location=to_pov((0, 0, 8)), look_at=to_pov((0, 0, 0)), fov=40)
 save_quilt(render_pov_quilt(path, spec, camera), "ball", spec)
 ```
 
-Coordinates are written **right-handed** — the same convention as PyVista,
-VTK and NumPy — and converted on emission. See §3.
+Scene coordinates are written **right-handed** — the same convention as
+PyVista, VTK and NumPy — and converted on emission. See §3.
+
+Note the `to_pov` around the camera. **A `PovCamera` is not converted for
+you**: only `pov_camera_from_plotter` does that, and `camera_block` emits
+whatever it is handed. A hand-built camera has to be converted by the caller,
+or it will aim into the mirrored half of the world. This example would survive
+the mistake — the ball is at the origin, so its *z* is zero and a flip is
+invisible — which is exactly why it is worth spelling out here rather than
+leaving to be discovered on a scene where it matters.
 
 ## 2. Carrying a plotter's viewpoint over
 
@@ -117,9 +125,26 @@ want when comparing them.
 
 PyVista, VTK and NumPy are right-handed. **POV-Ray is left-handed.** `povgen`
 authors everything right-handed and negates *z* on emission — the same
-correction `pypdb2pov` applies to PDB coordinates. The conversion is applied to
-the camera as well as the geometry, so the two agree and the image *matches*
-the PyVista render rather than mirroring it.
+correction `pypdb2pov` applies to PDB coordinates. `pov_camera_from_plotter`
+applies the same conversion to the camera, so the two agree and the image
+*matches* the PyVista render rather than mirroring it.
+
+**`PovCamera` itself holds POV-Ray coordinates, already converted.** It
+predates `povgen` and knows nothing about handedness; `camera_block` emits it
+verbatim. Build one by hand and the conversion is yours to apply:
+
+```python
+camera = PovCamera(
+    location=to_pov((0.0, -8.0, 3.0)),   # right-handed, +z up
+    look_at=to_pov((0.0, 0.0, 3.0)),
+    sky=to_pov((0.0, 0.0, 1.0)),         # -> (0, 0, -1)
+)
+```
+
+Forget it and the geometry sits at negative *z* while the lens aims at
+positive *z*. POV-Ray renders a clean picture of empty space, the scene file
+looks perfect, and any assertion comparing the camera against the
+right-handed bounds it came from passes.
 
 Pass `handedness="none"` to author directly in POV-Ray coordinates. If you do,
 use it consistently for the scene *and* the camera bridge.
@@ -150,6 +175,20 @@ POV-Ray does not reproduce and which looks flat when ray-traced anyway.
 `lights_from_bounds` gives a serviceable two-light rig sized to the scene so a
 transcoded scene renders legibly, and then you should light it properly —
 area lights are most of what makes ray-tracing visibly better than VTK.
+
+**Tell it which way is up.** The rig places its key light "above and to the
+right," and `up` defaults to `+y` — right for a VTK scene, wrong for a `+z`-up
+one such as anything from `kg_utils.viz3d`. Left at the default there, the key
+light lands at `centre_z − 1.4·radius`: below the ground, lighting the subject
+from underneath.
+
+```python
+lights_from_bounds(*scene.bounds(), up=(0, 0, 1))
+```
+
+Only the up axis is inferred. Which side counts as "front" follows from `up`
+and cannot know where your camera is, so a scene needing the key on a
+particular side should place its own lights.
 
 ## 5. Swept paths
 

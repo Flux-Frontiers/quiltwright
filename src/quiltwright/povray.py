@@ -122,10 +122,36 @@ class PovCamera:
     whatever should sit on the surface of the glass.  Geometry closer to the
     camera floats out of the display; geometry beyond it recedes.
 
-    :param location: Eye position ``(x, y, z)`` in scene units.
-    :param look_at: Point the camera is aimed at.  Becomes the focal plane.
+    **Coordinates here are POV-Ray's own — left-handed — not the right-handed
+    world :mod:`quiltwright.povgen` authors scenes in.**  Nothing converts a
+    camera you construct yourself: :func:`camera_block` emits it verbatim.
+    Only :func:`~quiltwright.povgen.pov_camera_from_plotter` converts, by
+    running :func:`~quiltwright.povgen.to_pov` over the plotter's position,
+    focal point and up vector.
+
+    So a scene written with the default ``handedness="flip-z"`` needs its
+    camera converted too::
+
+        from quiltwright.povgen import to_pov
+
+        camera = PovCamera(
+            location=to_pov((0.0, -8.0, 3.0)),   # right-handed, +z up
+            look_at=to_pov((0.0, 0.0, 3.0)),
+            sky=to_pov((0.0, 0.0, 1.0)),
+        )
+
+    Skip that and the geometry sits at negative *z* while the lens aims at
+    positive *z*: POV-Ray renders a clean picture of empty space.  Nothing in
+    the scene file looks wrong, and any check comparing the camera against the
+    right-handed bounds it was derived from will pass.
+
+    :param location: Eye position ``(x, y, z)``, in POV-Ray coordinates.
+    :param look_at: Point the camera is aimed at, in POV-Ray coordinates.
+        Becomes the focal plane.
     :param sky: Up-hint used to build the camera basis, matching POV-Ray's
-        ``sky`` vector.  Must not be parallel to the view direction.
+        ``sky`` vector, in POV-Ray coordinates.  Must not be parallel to the
+        view direction.  A ``+z``-up right-handed scene wants ``(0, 0, -1)``
+        here, which is what ``to_pov((0, 0, 1))`` returns.
     :param fov: *Vertical* field of view in degrees.  Looking Glass
         recommends ~14° for object-centric content, where the camera is
         dollied in until the subject fills the frame.  Do not carry that

@@ -28,10 +28,18 @@ isosurfaces, imported meshes).
 **Handedness.**  PyVista, VTK and NumPy are right-handed; POV-Ray is
 left-handed.  Everything here is authored in right-handed world coordinates
 and converted on emission by negating *z* (:func:`to_pov`), which is the same
-correction ``pypdb2pov`` applies to PDB coordinates.  The conversion is
-applied to the camera as well as the geometry, so the two agree and the
-rendered image matches the PyVista one rather than mirroring it.  Pass
-``handedness="none"`` to author directly in POV-Ray coordinates.
+correction ``pypdb2pov`` applies to PDB coordinates.
+:func:`pov_camera_from_plotter` applies the same conversion to the camera, so
+the two agree and the rendered image matches the PyVista one rather than
+mirroring it.  Pass ``handedness="none"`` to author directly in POV-Ray
+coordinates.
+
+A :class:`~quiltwright.povray.PovCamera` you build yourself is **not**
+converted — it holds POV-Ray coordinates, and
+:func:`~quiltwright.povray.camera_block` emits it verbatim.  Run
+:func:`to_pov` over its location, look-at and sky yourself, or the geometry
+lands at negative *z* while the lens aims at positive *z* and POV-Ray renders
+an immaculate picture of empty space.
 
 (The reflection also reverses triangle winding.  That does not matter for the
 analytic primitives here, none of which have a winding, but a future
@@ -72,10 +80,19 @@ import math
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import numpy as np
 
-from quiltwright.povray import PovCamera
+if TYPE_CHECKING:  # pragma: no cover - typing only
+    from quiltwright.povray import PovCamera
+
+# ``PovCamera`` lives in :mod:`quiltwright.povray`, which imports
+# :mod:`quiltwright.lfd` for the quilt assembler, which imports PyVista when it
+# is installed.  Importing it at module scope would therefore drag the whole
+# rendering stack into a module whose entire point is not needing one — so it
+# is imported inside :func:`pov_camera_from_plotter`, the only function here
+# that constructs one, and which by definition already has a live plotter.
 
 __author__ = "Eric G. Suchanek, PhD"
 
@@ -861,6 +878,8 @@ def pov_camera_from_plotter(
     :return: A camera whose ``look_at`` is the plotter's focal point, so the
         holographic focal plane lands where PyVista's does.
     """
+    from quiltwright.povray import PovCamera  # deferred; see the note on imports
+
     camera = plotter.camera
     return PovCamera(
         location=to_pov(camera.position, handedness),
@@ -870,10 +889,34 @@ def pov_camera_from_plotter(
     )
 
 
+def _rig_frame(up: Sequence[float]) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Build the ``(right, up, front)`` frame the light rig is placed in.
+
+    *front* is ``cross(up, right)``, which reproduces the historical ``+y``-up
+    offsets exactly when *up* is ``(0, 1, 0)``.
+
+    :param up: World up direction; need not be normalised.
+    :return: Three orthonormal ``(3,)`` vectors.
+    :raises ValueError: If *up* is degenerate.
+    """
+    up_hat = np.asarray(up, dtype=float)
+    norm = float(np.linalg.norm(up_hat))
+    if norm < 1e-9:
+        raise ValueError(f"up vector is degenerate: {tuple(up)}")
+    up_hat = up_hat / norm
+
+    # Prefer +x for "right"; fall back to +y when up is (nearly) the x axis.
+    seed = np.array([1.0, 0.0, 0.0]) if abs(up_hat[0]) < 0.9 else np.array([0.0, 1.0, 0.0])
+    right = seed - up_hat * float(seed @ up_hat)
+    right /= np.linalg.norm(right)
+    return right, up_hat, np.cross(up_hat, right)
+
+
 def lights_from_bounds(
     lo: Sequence[float],
     hi: Sequence[float],
     *,
+    up: Sequence[float] = (0.0, 1.0, 0.0),
     intensity: float = 1.0,
     fill: bool = True,
 ) -> list[LightSource]:
@@ -885,29 +928,43 @@ def lights_from_bounds(
     plus an optional shadowless fill opposite it — enough that a transcoded
     scene renders legibly before anyone tunes the lighting properly.
 
+    **"Upper" means along** *up*, **which defaults to** ``+y``.  That default
+    is right for a VTK scene and wrong for a ``+z``-up one — and ``+z``-up is
+    what :mod:`kg_utils.viz3d` builds, so the mismatch is not hypothetical.
+    Left unchanged there, the key light lands at ``centre_z - 1.4·radius``:
+    below the ground, lighting the subject from underneath. Pass
+    ``up=(0, 0, 1)`` and it goes overhead where it belongs.
+
+    Only the up axis is inferred.  Which side of the subject counts as "front"
+    follows from *up* and cannot know where your camera is, so a scene that
+    needs the key on a particular side should place its own lights rather than
+    lean on this.
+
     :param lo: Lower bound corner, right-handed.
     :param hi: Upper bound corner, right-handed.
+    :param up: World up direction.  Defaults to ``+y`` for backward
+        compatibility; ``(0, 0, 1)`` for a ``+z``-up scene.
     :param intensity: Key light brightness multiplier.
     :param fill: Add the shadowless fill light.
     :return: The light sources, key first.
+    :raises ValueError: If *up* is degenerate.
     """
     lo_a = np.asarray(lo, dtype=float)
     hi_a = np.asarray(hi, dtype=float)
     centre = (lo_a + hi_a) / 2.0
     radius = float(np.linalg.norm(hi_a - lo_a)) / 2.0 or 1.0
+    right, up_hat, front = _rig_frame(up)
+
+    def place(r: float, u: float, f: float) -> tuple[float, ...]:
+        return tuple(centre + (right * r + up_hat * u + front * f) * radius)
 
     key_level = intensity
-    lights = [
-        LightSource(
-            position=tuple(centre + np.array([1.4, 1.6, -1.4]) * radius),
-            color=(key_level, key_level, key_level),
-        )
-    ]
+    lights = [LightSource(position=place(1.4, 1.6, 1.4), color=(key_level, key_level, key_level))]
     if fill:
         fill_level = intensity * 0.35
         lights.append(
             LightSource(
-                position=tuple(centre + np.array([-1.6, 0.6, -1.2]) * radius),
+                position=place(-1.6, 0.6, 1.2),
                 color=(fill_level, fill_level, fill_level),
                 shadowless=True,
             )

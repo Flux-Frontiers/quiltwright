@@ -2,6 +2,8 @@
 
 import math
 import re
+import subprocess
+import sys
 
 import numpy as np
 import pytest
@@ -388,3 +390,139 @@ def test_fov_horizontal_to_vertical_is_identity_at_square():
 def test_fov_horizontal_to_vertical_matches_the_trig():
     expected = math.degrees(2 * math.atan(math.tan(math.radians(30.0)) / 1.5))
     assert fov_horizontal_to_vertical(60.0, 1.5) == pytest.approx(expected)
+
+
+# ---------------------------------------------------------------------------
+# lights_from_bounds: which way is up
+# ---------------------------------------------------------------------------
+
+
+def test_the_default_rig_is_unchanged():
+    """The +y-up offsets are load-bearing for existing callers; `up` is additive."""
+    lo, hi = np.array([-1.0, -1.0, 0.0]), np.array([1.0, 1.0, 10.0])
+    centre = (lo + hi) / 2.0
+    radius = float(np.linalg.norm(hi - lo)) / 2.0
+    key, fill = lights_from_bounds(lo, hi)
+    assert np.allclose(key.position, centre + np.array([1.4, 1.6, -1.4]) * radius)
+    assert np.allclose(fill.position, centre + np.array([-1.6, 0.6, -1.2]) * radius)
+
+
+@pytest.mark.parametrize(
+    "up, axis",
+    [((0.0, 1.0, 0.0), 1), ((0.0, 0.0, 1.0), 2), ((1.0, 0.0, 0.0), 0)],
+)
+def test_the_key_light_is_above_the_subject_for_any_up_axis(up, axis):
+    """
+    The bug this parameter exists for: a +z-up scene lit by the +y-up defaults
+    puts its key light at centre - 1.4*radius along z, below the ground, so the
+    subject is lit from underneath. Whatever `up` says, the key goes over it.
+    """
+    lo, hi = np.array([-2.0, -2.0, 0.0]), np.array([2.0, 2.0, 20.0])
+    key = lights_from_bounds(lo, hi, up=up)[0]
+    assert key.position[axis] > hi[axis]
+
+
+def test_the_rig_rotates_rigidly_with_up():
+    """Only the frame turns — distances from the subject are unchanged."""
+    lo, hi = np.array([-2.0, -1.0, 0.0]), np.array([2.0, 3.0, 20.0])
+    centre = (lo + hi) / 2.0
+    spans = [
+        np.linalg.norm(np.asarray(light.position) - centre)
+        for up in ((0.0, 1.0, 0.0), (0.0, 0.0, 1.0), (1.0, 0.0, 0.0))
+        for light in lights_from_bounds(lo, hi, up=up)
+    ]
+    assert np.allclose(spans[0::2], spans[0])  # every key at one radius
+    assert np.allclose(spans[1::2], spans[1])  # every fill at one radius
+
+
+def test_the_fill_crosses_to_the_other_side_and_stays_lower_than_the_key():
+    """
+    "Opposite" is only across the *right* axis — the fill stays on the same
+    side in up and front, and lower, which is what a fill is. It is dimmer and
+    shadowless besides.
+    """
+    lo, hi = np.array([-2.0, -2.0, 0.0]), np.array([2.0, 2.0, 20.0])
+    centre = (lo + hi) / 2.0
+    for up, right_axis, up_axis in (((0.0, 1.0, 0.0), 0, 1), ((0.0, 0.0, 1.0), 0, 2)):
+        key, fill = lights_from_bounds(lo, hi, up=up)
+        to_key = np.asarray(key.position) - centre
+        to_fill = np.asarray(fill.position) - centre
+        assert to_key[right_axis] * to_fill[right_axis] < 0.0, f"same side for up={up}"
+        assert 0.0 < to_fill[up_axis] < to_key[up_axis], f"fill not below key for up={up}"
+        assert fill.color[0] < key.color[0]
+        assert fill.shadowless and not key.shadowless
+
+
+def test_a_degenerate_up_is_an_error_not_a_nan():
+    with pytest.raises(ValueError, match="degenerate"):
+        lights_from_bounds((-1, -1, -1), (1, 1, 1), up=(0.0, 0.0, 0.0))
+
+
+# ---------------------------------------------------------------------------
+# povgen is reachable without a rendering stack
+# ---------------------------------------------------------------------------
+
+
+def test_importing_povgen_pulls_in_no_rendering_stack():
+    """
+    povgen is NumPy-only by design, but it used to arrive with VTK attached:
+    the package __init__ re-exported lfd eagerly, and povgen imported povray
+    for PovCamera, and povray imports lfd. Both links are deferred now.
+
+    A subprocess, because sys.modules is shared across the test session.
+    """
+    probe = (
+        "import sys;"
+        "from quiltwright.povgen import PovScene, Sphere, lights_from_bounds;"
+        "assert 'pyvista' not in sys.modules, 'povgen pulled in pyvista';"
+        "assert 'quiltwright.lfd' not in sys.modules, 'povgen pulled in lfd';"
+        "assert 'quiltwright.povray' not in sys.modules, 'povgen pulled in povray';"
+        "print('OK')"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", probe], capture_output=True, text=True, check=False
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_the_lazy_package_still_exports_everything_it_advertises():
+    import quiltwright
+
+    missing = [name for name in quiltwright.__all__ if not hasattr(quiltwright, name)]
+    assert not missing, f"__all__ names unreachable through __getattr__: {missing}"
+    assert set(quiltwright.__all__) <= set(dir(quiltwright))
+
+
+def test_an_unknown_attribute_still_raises_attribute_error():
+    import quiltwright
+
+    with pytest.raises(AttributeError, match="no attribute"):
+        getattr(quiltwright, "definitely_not_a_real_export")  # noqa: B009
+
+
+# ---------------------------------------------------------------------------
+# PovCamera lives in POV-Ray coordinates
+# ---------------------------------------------------------------------------
+
+
+def test_pov_camera_from_plotter_is_the_thing_that_converts():
+    """
+    Documents the convention a consumer got wrong: PovCamera holds POV-Ray
+    coordinates. The bridge converts; a hand-built camera does not, so callers
+    must run to_pov themselves. Pinned here so the docstring has a test behind
+    it rather than only prose.
+    """
+    pv = pytest.importorskip("pyvista")
+    from quiltwright.povgen import pov_camera_from_plotter
+
+    plotter = pv.Plotter(off_screen=True)
+    plotter.camera.position = (1.0, -2.0, 3.0)
+    plotter.camera.focal_point = (0.0, 0.0, 4.0)
+    plotter.camera.up = (0.0, 0.0, 1.0)
+    camera = pov_camera_from_plotter(plotter)
+    plotter.close()
+
+    # z negated on all three, exactly as to_pov does it.
+    assert camera.location == pytest.approx(to_pov((1.0, -2.0, 3.0)))
+    assert camera.look_at == pytest.approx(to_pov((0.0, 0.0, 4.0)))
+    assert camera.sky == pytest.approx((0.0, 0.0, -1.0))
