@@ -7,6 +7,73 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **`quiltwright.povgen` — write POV-Ray scenes from analytic primitives.**
+  The package had two backends that never met: `lfd` sweeps a live
+  `pv.Plotter`, `povray` sweeps a `.pov` file on disk. `povgen` produces the
+  second from the first, so a scene composed in Python can be ray-traced
+  instead of rasterised by VTK.
+
+  It re-emits *intent* rather than dumping triangles. A `pv.Plotter` holds
+  tessellated geometry — `pv.Sphere` is a triangulated ball, a swept tube is a
+  strip of quads — and a `mesh2` dump of that keeps VTK's facets while costing
+  a great deal of text, re-parsed once per view, 48 times for a Portrait
+  quilt. A limb is instead a `sphere_sweep` and a leaf a `sphere`. Measured on
+  a 3000-leaf organic tree (192k triangles once tessellated): 839 KB of
+  analytic SDL against roughly 12.5 MB for the equivalent `mesh2`, 15× to 25×
+  smaller depending on how much per-leaf orientation is kept — and with exact
+  silhouettes at any zoom, which is the reason to leave VTK in the first
+  place.
+
+  Exports `PovScene`, `Texture`, `Finish`, `LightSource`, the primitives
+  `Sphere` / `Cylinder` / `Box` / `SphereSweep` / `Union` / `Instance`, the
+  bulk constructors `sphere_sweeps_from_paths` / `spheres_from_points` /
+  `instances_from_frames`, and the helpers `to_pov`, `parse_color`,
+  `lights_from_bounds`, `pov_camera_from_plotter` and
+  `fov_horizontal_to_vertical`. `mesh2` remains unimplemented, as the fallback
+  for geometry with no analytic description.
+
+  Four decisions that are easy to get wrong and are made for the caller:
+
+  - **Handedness.** PyVista, VTK and NumPy are right-handed and POV-Ray is
+    left-handed, so scenes are authored right-handed and `z` is negated on
+    emission — applied to the camera as well as the geometry, so the image
+    matches the PyVista render rather than mirroring it. Box corners are
+    re-sorted and `Instance` rotations conjugated by the reflection.
+  - **No camera is emitted.** `render_pov_quilt` appends one off-axis camera
+    per view and POV-Ray uses the last one parsed, so a camera written here
+    would be silently overridden. `pov_camera_from_plotter` carries the
+    viewpoint across instead; VTK's `view_angle` and `PovCamera.fov` are both
+    *vertical* degrees, so the lens maps one-to-one.
+  - **Opacity becomes `transmit`, not `filter`.** `transmit` passes light
+    through unchanged, which is the analogue of VTK's alpha; `filter` tints
+    everything seen through the surface and would quietly recolour the scene.
+  - **`SphereSweep` defaults to `linear_spline`,** which interpolates its
+    control points, because callers hand over paths that have already been
+    smoothed and a second approximating spline would pull the surface off the
+    geometry PyVista tubed.
+
+- **`tests/test_povgen_parity.py` — dual-render verification.** Renders the
+  same scene through both backends at a matched camera and compares
+  silhouettes, with flat emissive surfaces so the comparison isolates geometry
+  from the two renderers' different lighting models. Measured agreement on the
+  reference scene is IoU ≈ 0.95 with identical silhouette bounding boxes; the
+  residual is antialiasing at the rim.
+
+  The fixture is deliberately asymmetric in depth, because a scene straddling
+  the focal plane renders almost identically whether or not `z` was flipped
+  and so cannot detect the most damaging bug the module could have. One sphere
+  sits well in front of the focal plane and another well behind it at the same
+  radius, so mirroring depth swaps which one perspective makes larger and IoU
+  collapses to ~0. Confirmed by mutation rather than assumed — reverting the
+  flip fails five parity tests, and one test tilts the camera specifically
+  because every other one leaves `up` at `(0, 1, 0)`, whose `z` is zero, where
+  a bridge that forgot to convert `sky` passes unnoticed.
+
+- **`docs/povgen.md`** — the transcoding guide, including the gotcha list and
+  the mutation-testing table.
+
 ## [0.4.0] — 2026-08-14
 
 ### Added

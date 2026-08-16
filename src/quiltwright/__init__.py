@@ -34,61 +34,108 @@ Typical usage::
 Author: Eric G. Suchanek, PhD
 """
 
-from .hld import (
-    HLD_RESOLUTION,
-    HLD_SAFE_MARGINS,
-    add_floor_shadow,
-    apply_safe_area,
-    hld_orbit_speed,
-    render_hld_still,
-    render_hld_video,
-    style_plotter_for_hld,
-)
-from .lfd import (
-    BRIDGE_URL,
-    DEPTH_LABELS,
-    LITIHOLO_SWEEP,
-    QUILT_PRESETS,
-    QuiltSpec,
-    assemble_quilt,
-    cast_quilt,
-    depth_report,
-    find_ffmpeg,
-    focal_distance_for_range,
-    pause_quilt,
-    render_quilt,
-    render_quilt_video,
-    resume_quilt,
-    save_quilt,
-    scene_depths,
-    stop_quilt,
-    sweep_spec,
-    view_disparity,
-    view_offsets,
-)
-from .povray import (
-    Clearance,
-    PovCamera,
-    camera_block,
-    depth_budget,
-    format_depth_budget,
-    render_pov_quilt,
-    render_pov_views,
-    sweep_extent,
-)
-from .tvb_data import (
-    CONNECTIVITIES,
-    REGION_MAPPINGS,
-    SENSORS,
-    SURFACES,
-    Connectome,
-    connectome_polydata,
-    load_connectivity,
-    load_region_mapping,
-    load_sensors,
-    load_surface,
-    surface_polydata,
-)
+# ---------------------------------------------------------------------------
+# Lazy re-exports (PEP 562)
+#
+# ``lfd`` imports PyVista when it is installed, and ``povray`` imports ``lfd``
+# for the quilt assembler.  Eager re-exports here meant that reaching for
+# ``quiltwright.povgen`` — a NumPy-only module whose whole purpose is writing
+# scenes without a rendering stack — loaded VTK on the way past.  Binding the
+# names on first use instead keeps the public API identical while letting the
+# analytic path stay as light as it claims to be.
+# ---------------------------------------------------------------------------
+
+_LAZY: dict[str, str] = {
+    "BRIDGE_URL": "lfd",
+    "Box": "povgen",
+    "CONNECTIVITIES": "tvb_data",
+    "Clearance": "povray",
+    "Connectome": "tvb_data",
+    "Cylinder": "povgen",
+    "DEPTH_LABELS": "lfd",
+    "Finish": "povgen",
+    "HLD_RESOLUTION": "hld",
+    "HLD_SAFE_MARGINS": "hld",
+    "Instance": "povgen",
+    "LITIHOLO_SWEEP": "lfd",
+    "LightSource": "povgen",
+    "PovCamera": "povray",
+    "PovScene": "povgen",
+    "Primitive": "povgen",
+    "QUILT_PRESETS": "lfd",
+    "QuiltSpec": "lfd",
+    "REGION_MAPPINGS": "tvb_data",
+    "SENSORS": "tvb_data",
+    "SURFACES": "tvb_data",
+    "Sphere": "povgen",
+    "SphereSweep": "povgen",
+    "Texture": "povgen",
+    "Union": "povgen",
+    "add_floor_shadow": "hld",
+    "apply_safe_area": "hld",
+    "assemble_quilt": "lfd",
+    "camera_block": "povray",
+    "cast_quilt": "lfd",
+    "connectome_polydata": "tvb_data",
+    "depth_budget": "povray",
+    "depth_report": "lfd",
+    "find_ffmpeg": "lfd",
+    "focal_distance_for_range": "lfd",
+    "format_depth_budget": "povray",
+    "fov_horizontal_to_vertical": "povgen",
+    "hld_orbit_speed": "hld",
+    "instances_from_frames": "povgen",
+    "lights_from_bounds": "povgen",
+    "load_connectivity": "tvb_data",
+    "load_region_mapping": "tvb_data",
+    "load_sensors": "tvb_data",
+    "load_surface": "tvb_data",
+    "parse_color": "povgen",
+    "pause_quilt": "lfd",
+    "pov_camera_from_plotter": "povgen",
+    "render_hld_still": "hld",
+    "render_hld_video": "hld",
+    "render_pov_quilt": "povray",
+    "render_pov_views": "povray",
+    "render_quilt": "lfd",
+    "render_quilt_video": "lfd",
+    "resume_quilt": "lfd",
+    "save_quilt": "lfd",
+    "scene_depths": "lfd",
+    "sphere_sweeps_from_paths": "povgen",
+    "spheres_from_points": "povgen",
+    "stop_quilt": "lfd",
+    "style_plotter_for_hld": "hld",
+    "surface_polydata": "tvb_data",
+    "sweep_extent": "povray",
+    "sweep_spec": "lfd",
+    "to_pov": "povgen",
+    "view_disparity": "lfd",
+    "view_offsets": "lfd",
+}
+
+
+def __getattr__(name: str):
+    """Import the submodule owning *name* on first access.
+
+    :param name: Attribute being looked up.
+    :return: The re-exported object.
+    :raises AttributeError: If *name* is not a public export.
+    """
+    module = _LAZY.get(name)
+    if module is None:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+    import importlib
+
+    value = getattr(importlib.import_module(f".{module}", __name__), name)
+    globals()[name] = value  # bind, so this runs once per name
+    return value
+
+
+def __dir__() -> list[str]:
+    """:return: Public names, so tab completion still sees the lazy ones."""
+    return sorted(set(globals()) | set(_LAZY))
+
 
 __version__ = "0.4.0"
 __all__ = [
@@ -116,6 +163,26 @@ __all__ = [
     "render_pov_quilt",
     "render_pov_views",
     "camera_block",
+    # POV-Ray scene generation
+    "PovScene",
+    "Primitive",
+    "Texture",
+    "Finish",
+    "Sphere",
+    "Cylinder",
+    "Box",
+    "SphereSweep",
+    "Union",
+    "Instance",
+    "LightSource",
+    "to_pov",
+    "parse_color",
+    "sphere_sweeps_from_paths",
+    "spheres_from_points",
+    "instances_from_frames",
+    "lights_from_bounds",
+    "pov_camera_from_plotter",
+    "fov_horizontal_to_vertical",
     # Output
     "save_quilt",
     "find_ffmpeg",
