@@ -3,7 +3,7 @@
 [![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](LICENSE)
 [![PyPI](https://img.shields.io/pypi/v/quiltwright.svg)](https://pypi.org/project/quiltwright/)
-[![Version](https://img.shields.io/badge/version-0.5.0-blue.svg)](https://github.com/suchanek/quiltwright/releases)
+[![Version](https://img.shields.io/badge/version-0.6.0-blue.svg)](https://github.com/suchanek/quiltwright/releases)
 [![Tests](https://github.com/suchanek/quiltwright/actions/workflows/tests.yml/badge.svg)](https://github.com/suchanek/quiltwright/actions/workflows/tests.yml)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21798503.svg)](https://doi.org/10.5281/zenodo.21798503)
 
@@ -30,6 +30,13 @@ panels, or into 2-D video for Hololuminescent displays. A third output — a
 ---
 
 ## Latest news
+
+**v0.6.0 — 2026-08-16.** `save_and_cast_quilt()` composes save + cast in one
+call — `save_quilt` takes the array and `cast_quilt` takes a path, and mixing
+them up only surfaces minutes into a ray-traced render. A failed cast is
+returned, not raised, so a Bridge that isn't running never costs the render.
+`QuiltSpec.scaled()` shrinks a quilt for faster Bridge loads while keeping the
+dimensions a multiple of the tile grid, so views stay pixel-aligned.
 
 **v0.5.0 — 2026-08-16.** `quiltwright.povgen` writes POV-Ray scenes from
 analytic primitives, so a scene composed in Python — or grown by a geometry
@@ -323,7 +330,7 @@ on Zenodo.
   title   = {Quiltwright: Holographic Output for Looking Glass Displays},
   url     = {https://github.com/suchanek/quiltwright},
   doi     = {10.5281/zenodo.21798503},
-  version = {0.5.0},
+  version = {0.6.0},
   year    = {2026}
 }
 ```

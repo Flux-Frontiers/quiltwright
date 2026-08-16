@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.6.0] — 2026-08-16
+
 ### Added
 
 - **`save_and_cast_quilt()` — write a quilt, then hand Bridge the path to it.**
@@ -21,6 +23,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   running never costs the render. Consumers had been writing this wrapper
   themselves; `gutenberg_kg` had it as a private helper with the ndarray
   mistake documented in its docstring.
+
+- **`QuiltSpec.scaled()` — shrink a quilt without breaking its tiling.**
+  Casting at full preset size costs little to render but a lot to load:
+  Bridge's load time scales with PNG area, so halving the linear size
+  quarters it. Scaling naively breaks the tiling — the quilt stops dividing
+  evenly into the view grid and every view lands on a fractional pixel
+  boundary, smearing the light field. `scaled(factor)` rounds the new
+  dimensions down to a multiple of the tile grid so the views stay
+  pixel-aligned, and raises rather than returning a spec too small to hold
+  one pixel per tile.
 
 ## [0.5.0] — 2026-08-16
 
