@@ -17,21 +17,23 @@ hand-built scenes. See [Why molecules are the easy case](#why-molecules-are-the-
 > prototyped C17 and emits POV-Ray 3.7. If you are on v1.19, see
 > [Working with v1.19](#working-with-v119) at the foot of this page.
 
-> **There are now two implementations.** The C program, and a Python port in
-> the same repository's `python/` directory. They write byte-identical scenes
-> from the same flags — the port's test suite diffs them — so everything on
-> this page about output, geometry and framing applies to both. The port
-> additionally reads mmCIF, which is the only format large structures are
-> distributed in, and offers an importable API that removes the shell step
-> from this pipeline entirely. See [Choosing one](#1-choosing-one).
+> **There are now two implementations.** The C program `pdb2pov`, and
+> `pypdb2pov`, a Python port in the same repository's `python/` directory.
+> They write byte-identical scenes from the same flags — the port's test suite
+> diffs them — so everything on this page about output, geometry and framing
+> applies to both, and the two commands differ only in name, so both can sit
+> on one `PATH`. The port additionally reads mmCIF, which is the only format
+> large structures are distributed in, and offers an importable API that
+> removes the shell step from this pipeline entirely. See
+> [Choosing one](#1-choosing-one).
 
 ---
 
 ## 1. Choosing one
 
-**Use the Python port** unless you have a reason not to. It reads everything
-the C reads, plus PDBx/mmCIF and compressed files, and it can be called from
-the same script that renders the quilt:
+**Use `pypdb2pov`, the Python port**, unless you have a reason not to. It
+reads everything the C reads, plus PDBx/mmCIF and compressed files, and it can
+be called from the same script that renders the quilt:
 
 ```bash
 git clone https://github.com/suchanek/pdb2pov
@@ -39,11 +41,14 @@ pip install ./pdb2pov/python
 ```
 
 No compiler, no dependencies beyond the standard library, and the POV-Ray
-include files ship inside the package — `pdb2pov --include-dir` prints where,
-which is exactly what `render_pov_quilt`'s `include_paths` wants.
+include files ship inside the package — `pypdb2pov --include-dir` prints
+where, which is exactly what `render_pov_quilt`'s `include_paths` wants.
 
-**Use the C program** when you want the 1993 binary itself, or a build with no
-Python at all:
+The command is `pypdb2pov`, not `pdb2pov`: the C program owns that name, and
+the two are meant to coexist. Everything after the command is identical.
+
+**Use `pdb2pov`, the C program**, when you want the 1993 binary itself, or a
+build with no Python at all:
 
 ```bash
 git clone https://github.com/suchanek/pdb2pov
@@ -59,6 +64,14 @@ parser changes leave crambin's output unchanged, and renders one atom of every
 element to prove the element table and the include files agree. `make test`
 in `python/` runs the port's suite, which includes the differential tests
 against the C.
+
+`pypdb2pov` carries its own version — 0.1.0, since the package is new —
+alongside the pdb2pov release it implements. Scene headers name both, on the
+line that already varies between runs:
+
+```
+// Prepared by pypdb2pov 0.1.0 (pdb2pov 2.2) from 4hhb.cif.gz on 2026-08-16 …
+```
 
 ### What differs
 
@@ -91,8 +104,8 @@ flags, so the file the wwPDB gave you is the file you convert — compressed,
 mmCIF, and multi-model included:
 
 ```bash
-pdb2pov 4hhb.cif.gz hemoglobin -b -o --chain A --no-water
-pdb2pov 1cbn.pdb crambin --info          # what is in here, before converting
+pypdb2pov 4hhb.cif.gz hemoglobin -b -o --chain A --no-water
+pypdb2pov 1cbn.pdb crambin --info          # what is in here, before converting
 ```
 
 | Instead of | Use |
@@ -302,13 +315,13 @@ statement instantiating anything — so something has to supply all three.
 from dataclasses import replace
 from pathlib import Path
 
-import pdb2pov
-from pdb2pov import ParseOptions, SceneOptions, find_bonds, prepare_structure, write_scene
+import pypdb2pov
+from pypdb2pov import ParseOptions, SceneOptions, find_bonds, prepare_structure, write_scene
 from quiltwright.lfd import QUILT_PRESETS, focal_distance_for_range, save_quilt
 from quiltwright.povray import PovCamera, render_pov_quilt
 
 # Straight from the wwPDB: compressed mmCIF, one chain, no waters.
-structure, stats = pdb2pov.read_structure(
+structure, stats = pypdb2pov.read_structure(
     "4hhb.cif.gz", ParseOptions(chains="A", keep_water=False)
 )
 print("\n".join(stats.lines()) or "  nothing skipped")
@@ -332,14 +345,14 @@ object {{ hemoglobin_a }}
 """)
 
 # The depth budget, without parsing a comment out of the file we just wrote.
-radius = structure.enclosing_radius() * (1.0 + pdb2pov.SPHERE_FUDGE)
+radius = structure.enclosing_radius() * (1.0 + pypdb2pov.SPHERE_FUDGE)
 distance = 3.0 * radius                                   # framing is yours with -o
 focal = focal_distance_for_range(distance - radius, distance + radius)
 
 camera = PovCamera(location=(0, 0, -distance), look_at=(0, 0, -distance + focal), fov=53.13)
 spec = replace(QUILT_PRESETS["16-landscape"], view_cone=35.0)
 quilt = render_pov_quilt(
-    "scene.pov", spec, camera, include_paths=[pdb2pov.include_dir()]
+    "scene.pov", spec, camera, include_paths=[pypdb2pov.include_dir()]
 )
 save_quilt(quilt, "renders/quilts/hemoglobin_a", spec)
 ```
@@ -482,7 +495,7 @@ by element radius, emit split-coloured cylinders per bond, colour by element.
 One targets a ray-tracer and one targets VTK. Both now terminate at the same
 place — [`assemble_quilt`](povray.md#5-api) — by different routes.
 
-The Python port (2026) closes the loop a third time. It is the 1993 program
-again — same arithmetic, same output, verified byte for byte — but reachable
-by `import`, which is what puts a thirty-year-old C program and a
+`pypdb2pov` (2026) closes the loop a third time. It is the 1993 program again
+— same arithmetic, same output, verified byte for byte — but reachable by
+`import`, which is what puts a thirty-year-old C program and a
 `render_pov_quilt` call in the same script.

@@ -129,24 +129,26 @@ install time. Check with `ffmpeg -h encoder=libx265`.
 Optional; feeds the POV-Ray backend with molecular structures. There are two
 implementations, writing byte-identical scenes.
 
-**Python port** — no compiler, no dependencies, reads mmCIF, and importable
-from the same script that renders the quilt:
+**`pypdb2pov`, the Python port** — no compiler, no dependencies, reads mmCIF,
+and importable from the same script that renders the quilt:
 
 ```bash
 git clone https://github.com/suchanek/pdb2pov
 pip install ./pdb2pov/python
 ```
 
-**The C program** — the 1993 original, whose portability fixes now live
-upstream, so a fresh clone just builds:
+**`pdb2pov`, the C program** — the 1993 original, whose portability fixes now
+live upstream, so a fresh clone just builds:
 
 ```bash
 git clone https://github.com/suchanek/pdb2pov
 cd pdb2pov && make pdb2pov
 ```
 
+The two commands differ only in name, so both can sit on one `PATH`.
+
 Either way the scenes reference POV-Ray include files that must be on the
-library path. `pdb2pov --include-dir` prints where the Python package keeps
+library path. `pypdb2pov --include-dir` prints where the Python package keeps
 them; with the C program they sit in the clone.
 
 See [pdb2pov.md](pdb2pov.md) for which to choose, the build notes, and the

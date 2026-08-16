@@ -285,8 +285,8 @@ tests skip when no `povray` binary is present. Under a headless CI runner, use
 - [pdb2pov](https://github.com/suchanek/pdb2pov) — PDB and mmCIF to POV-Ray
   converter, written in C in 1993 and still building from a fresh clone. It
   produced the molecular models in the image above, and still feeds the
-  POV-Ray backend. Its Python port writes byte-identical scenes and imports,
-  so a conversion and a quilt render fit in one script.
+  POV-Ray backend. `pypdb2pov`, its Python port, writes byte-identical scenes
+  and imports, so a conversion and a quilt render fit in one script.
 - [proteusPy](https://github.com/suchanek/proteusPy) — protein disulfide bond
   analysis and rendering.
 
