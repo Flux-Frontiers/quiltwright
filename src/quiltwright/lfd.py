@@ -881,6 +881,50 @@ def cast_quilt(
     )
 
 
+def save_and_cast_quilt(
+    quilt: np.ndarray,
+    stem: str | Path,
+    spec: QuiltSpec,
+    *,
+    cast: bool = True,
+    bridge_url: str = BRIDGE_URL,
+    timeout: float = 10.0,
+) -> tuple[Path, str | None]:
+    """Write a quilt to disk, then hand Bridge the **path** to it.
+
+    The two calls this composes take different argument types, and the mistake
+    is invisible until a panel is connected: :func:`save_quilt` takes the
+    array, :func:`cast_quilt` takes a path.  Passing the array to the caster
+    raises ``argument should be a str or an os.PathLike object ... not
+    'ndarray'`` — after the render, which for a ray-traced quilt is minutes
+    later and the worst possible moment to find out.
+
+    The file is confirmed on disk before Bridge is contacted, and a failed
+    cast is *returned* rather than raised, so losing the display never costs
+    the render.
+
+    :param quilt: RGB array from :func:`render_quilt` or :func:`assemble_quilt`.
+    :param stem: Output path *without* the quilt suffix or extension.
+    :param spec: Quilt specification, used for both the filename and Bridge.
+    :param cast: Whether to push the written file to the Looking Glass.
+        ``False`` writes and returns without contacting Bridge.
+    :param bridge_url: Base URL of the Bridge HTTP API.
+    :param timeout: HTTP timeout in seconds per Bridge request.
+    :return: ``(written path, error message or None)``.  The path is always
+        real; a non-None error means the file is on disk but is not showing.
+    """
+    out = save_quilt(quilt, stem, spec)
+    if not cast:
+        return out, None
+    if not out.exists():
+        return out, f"{out} was not written"
+    try:
+        cast_quilt(out, spec, bridge_url=bridge_url, timeout=timeout)
+    except Exception as exc:  # noqa: BLE001 - the quilt file is kept regardless
+        return out, str(exc)
+    return out, None
+
+
 def pause_quilt(*, bridge_url: str = BRIDGE_URL, timeout: float = 10.0) -> dict:
     """Pause playback on the connected Looking Glass.
 

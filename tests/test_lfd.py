@@ -25,6 +25,7 @@ from quiltwright.lfd import (
     focal_distance_for_range,
     pause_quilt,
     resume_quilt,
+    save_and_cast_quilt,
     save_quilt,
     scene_depths,
     stop_quilt,
@@ -836,6 +837,46 @@ class TestCastQuilt:
         quilt.touch()
         cast_quilt(quilt, tiny_spec)
         assert bridge.payload_for("show_window")["show_window"] is True
+
+
+class TestSaveAndCastQuilt:
+    """The whole point is that a lost display never costs the render."""
+
+    def test_writes_then_casts_the_path(self, bridge, tmp_path, tiny_spec):
+        pytest.importorskip("PIL")
+        quilt = np.zeros((128, 128, 3), dtype=np.uint8)
+        out, error = save_and_cast_quilt(quilt, tmp_path / "scene", tiny_spec)
+        assert error is None
+        assert out.exists()
+        # The caster got a path on disk, not the array it was rendered from.
+        assert Path(bridge.payload_for("insert_playlist_entry")["uri"]) == out.resolve()
+
+    def test_cast_false_never_contacts_bridge(self, bridge, tmp_path, tiny_spec):
+        pytest.importorskip("PIL")
+        quilt = np.zeros((128, 128, 3), dtype=np.uint8)
+        out, error = save_and_cast_quilt(quilt, tmp_path / "scene", tiny_spec, cast=False)
+        assert (error, bridge.endpoints) == (None, [])
+        assert out.exists()
+
+    def test_a_failed_cast_returns_the_error_and_keeps_the_file(
+        self, tmp_path, tiny_spec, monkeypatch
+    ):
+        pytest.importorskip("PIL")
+
+        def boom(*_args, **_kwargs):
+            raise ConnectionRefusedError("Bridge is not running")
+
+        monkeypatch.setattr(urllib.request, "urlopen", boom)
+        quilt = np.zeros((128, 128, 3), dtype=np.uint8)
+        out, error = save_and_cast_quilt(quilt, tmp_path / "scene", tiny_spec)
+        assert error is not None and "Bridge is not running" in error
+        assert out.exists(), "the render must survive a display that does not"
+
+    def test_returns_the_convention_filename(self, bridge, tmp_path, tiny_spec):
+        pytest.importorskip("PIL")
+        quilt = np.zeros((128, 128, 3), dtype=np.uint8)
+        out, _ = save_and_cast_quilt(quilt, tmp_path / "scene", tiny_spec)
+        assert out.name == "scene_qs2x2a1.png"
 
 
 class TestFindFfmpeg:

@@ -104,6 +104,7 @@ _LAZY: dict[str, str] = {
     "render_quilt": "lfd",
     "render_quilt_video": "lfd",
     "resume_quilt": "lfd",
+    "save_and_cast_quilt": "lfd",
     "save_quilt": "lfd",
     "scene_depths": "lfd",
     "sphere_sweeps_from_paths": "povgen",
@@ -193,6 +194,7 @@ __all__ = [
     "fov_horizontal_to_vertical",
     # Output
     "save_quilt",
+    "save_and_cast_quilt",
     "find_ffmpeg",
     # Looking Glass Bridge
     "BRIDGE_URL",
