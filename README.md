@@ -5,7 +5,7 @@
 [![PyPI](https://img.shields.io/pypi/v/quiltwright.svg)](https://pypi.org/project/quiltwright/)
 [![Version](https://img.shields.io/badge/version-0.5.0-blue.svg)](https://github.com/suchanek/quiltwright/releases)
 [![Tests](https://github.com/suchanek/quiltwright/actions/workflows/tests.yml/badge.svg)](https://github.com/suchanek/quiltwright/actions/workflows/tests.yml)
-[![DOI](https://zenodo.org/badge/1323414722.svg)](https://doi.org/10.5281/zenodo.21798503)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21798503.svg)](https://doi.org/10.5281/zenodo.21798503)
 
 **Holographic output for scientific visualisation.**
 
@@ -26,6 +26,28 @@ ray-traces it into a 48-view light-field quilt for Looking Glass light-field
 panels, or into 2-D video for Hololuminescent displays. A third output — a
 23-view sweep for LitiHolo's desktop hologram printer — is in development.*
 [About the image →](docs/about-the-image.md)
+
+---
+
+## Latest news
+
+**v0.5.0 — 2026-08-16.** `quiltwright.povgen` writes POV-Ray scenes from
+analytic primitives, so a scene composed in Python — or grown by a geometry
+engine — can be ray-traced instead of rasterised by VTK. It re-emits *intent*
+rather than triangles: a limb becomes a `sphere_sweep`, a leaf a `sphere`. On a
+3000-leaf tree that is 839 KB of SDL against roughly 12.5 MB for the equivalent
+`mesh2` dump, with exact silhouettes at any zoom.
+
+**v0.4.0 — 2026-08-14.** `depth_report()` brings the depth budget to PyVista
+scenes without building a throwaway `PovCamera`, and models the `fov` and `zoom`
+`render_quilt()` will actually sweep at — which the hand-rolled copies it
+replaces did not. Python 3.13 joined the tested matrix.
+
+**v0.3.x — 2026-08-10.** Brain geometry from The Virtual Brain as a scene
+source, and the LitiHolo view sweep documented as a third output.
+
+_Full history: [CHANGELOG.md](CHANGELOG.md) ·
+[releases](https://github.com/suchanek/quiltwright/releases)_
 
 ---
 
