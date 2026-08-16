@@ -366,6 +366,33 @@ def test_scene_bounds_none_when_unmeasurable():
     assert PovScene().add(Instance("Leaf", translate=(1, 1, 1))).bounds() is None
 
 
+def test_instances_do_not_widen_the_bounds_they_sit_outside_of():
+    """
+    The trap the docstring warns about, made concrete: instancing is what this
+    method cannot see and also the reason to use this module, so a scene whose
+    subject *is* the instances measures as the one prop that happens to be a
+    real primitive.  Lights and cameras derived from these bounds would sit
+    inside the scene.
+
+    A tree escapes this because its swept wood reaches the crown; nothing in
+    the API guarantees that, so it is worth pinning rather than assuming.
+    """
+    scene = PovScene().add(Sphere((0.0, 0.0, 0.0), 1.0))  # the marker post
+    for x in (-50.0, 50.0):
+        scene.add(Instance("Boulder", translate=(x, 0.0, 0.0), scale=8.0))
+
+    lo, hi = scene.bounds()
+    assert lo[0] == pytest.approx(-1.0)
+    assert hi[0] == pytest.approx(1.0)
+
+    # The documented escape hatch: an untextured Box is invisible to a render
+    # but measurable here, so it hands the bounds back their real extent.
+    scene.add(Box((-58.0, -8.0, -8.0), (58.0, 8.0, 8.0)))
+    lo, hi = scene.bounds()
+    assert lo[0] == pytest.approx(-58.0)
+    assert hi[0] == pytest.approx(58.0)
+
+
 def test_lights_from_bounds_scale_with_the_scene():
     near = lights_from_bounds((-1, -1, -1), (1, 1, 1))
     far = lights_from_bounds((-10, -10, -10), (10, 10, 10))

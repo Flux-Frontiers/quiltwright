@@ -190,6 +190,17 @@ Only the up axis is inferred. Which side counts as "front" follows from `up`
 and cannot know where your camera is, so a scene needing the key on a
 particular side should place its own lights.
 
+**`scene.bounds()` cannot see instances**, and instancing is the reason to use
+this module — so check the two don't collide before feeding bounds to a light
+rig or a camera. A tree gets away with it: its wood is swept and reaches the
+crown, so the bounds cover the subject even though every leaf is an instance.
+A scene whose subject *is* the instances does not — ten thousand instanced
+boulders around one measurable marker post return the bounds of the post, and
+an entirely instanced scene returns `None`. Either keep one measurable
+primitive spanning the subject (an untextured `Box` is invisible to a render
+but visible to `bounds()`), or track the extent as you place the instances and
+skip `bounds()` entirely.
+
 ## 5. Swept paths
 
 `SphereSweep` is the analytic replacement for `spline.tube(...)`. It defaults

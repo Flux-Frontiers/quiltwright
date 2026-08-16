@@ -811,6 +811,21 @@ class PovScene:
         and is skipped.  Useful for placing lights and for handing
         ``focal_distance_for_range`` a real depth range.
 
+        **Instancing is what this method cannot see, and instancing is the
+        reason to use this module** — so check that the two do not collide in
+        your scene.  A tree gets away with it: its wood is swept and reaches
+        the crown, so the bounds cover the subject even though every leaf is an
+        instance.  A scene whose subject *is* the instances does not.  Ten
+        thousand instanced boulders around one measurable marker post return
+        the bounds of the post, and lights placed from that land inside the
+        scene while a camera framed from it fills the tile with one prop.  An
+        entirely instanced scene returns ``None``.
+
+        Two ways out: keep one measurable primitive that spans the subject —
+        a :class:`Box` with no texture is invisible to a render but visible
+        here — or track the extent as you place the instances, which the
+        producer usually knows anyway, and skip this.
+
         :return: ``(lo, hi)`` as ``(3,)`` arrays, or ``None`` if nothing
             measurable is in the scene.
         """
