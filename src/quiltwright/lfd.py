@@ -158,6 +158,34 @@ class QuiltSpec:
         """
         return replace(self, columns=columns, rows=rows)
 
+    def scaled(self, factor: float) -> QuiltSpec:
+        """Same view grid at a fraction of the pixel size.
+
+        Casting at full preset size is rarely what you want: rendering costs
+        about a second, but the wait is Bridge loading the resulting PNG, and
+        that scales with its area.  Halving the linear size quarters it.
+
+        The scaled dimensions are rounded **down to a multiple of the tile
+        grid**, which is the part that is easy to get wrong: scale naively and
+        the quilt no longer divides evenly into tiles, so every view lands on a
+        fractional pixel boundary and the whole light field smears.
+
+        :param factor: Linear scale factor, e.g. ``0.5`` for quarter the pixels.
+        :return: A new :class:`QuiltSpec` at the scaled size, tiles intact.
+        :raises ValueError: If *factor* is not positive, or scales the quilt
+            below one pixel per tile.
+        """
+        if factor <= 0:
+            raise ValueError(f"scale factor must be positive, got {factor}")
+        width = int(self.quilt_width * factor) // self.columns * self.columns
+        height = int(self.quilt_height * factor) // self.rows * self.rows
+        if width < self.columns or height < self.rows:
+            raise ValueError(
+                f"scale factor {factor} leaves a {width}x{height} quilt, "
+                f"too small for a {self.columns}x{self.rows} tile grid"
+            )
+        return replace(self, quilt_width=width, quilt_height=height)
+
 
 #: Standard ("ideal") quilt settings per Looking Glass device, from the
 #: official docs: https://lfdocs.lookingglassfactory.com/keyconcepts/quilts
@@ -879,6 +907,50 @@ def cast_quilt(
         {"orchestration": token, "name": playlist, "head_index": -1},
         timeout,
     )
+
+
+def save_and_cast_quilt(
+    quilt: np.ndarray,
+    stem: str | Path,
+    spec: QuiltSpec,
+    *,
+    cast: bool = True,
+    bridge_url: str = BRIDGE_URL,
+    timeout: float = 10.0,
+) -> tuple[Path, str | None]:
+    """Write a quilt to disk, then hand Bridge the **path** to it.
+
+    The two calls this composes take different argument types, and the mistake
+    is invisible until a panel is connected: :func:`save_quilt` takes the
+    array, :func:`cast_quilt` takes a path.  Passing the array to the caster
+    raises ``argument should be a str or an os.PathLike object ... not
+    'ndarray'`` — after the render, which for a ray-traced quilt is minutes
+    later and the worst possible moment to find out.
+
+    The file is confirmed on disk before Bridge is contacted, and a failed
+    cast is *returned* rather than raised, so losing the display never costs
+    the render.
+
+    :param quilt: RGB array from :func:`render_quilt` or :func:`assemble_quilt`.
+    :param stem: Output path *without* the quilt suffix or extension.
+    :param spec: Quilt specification, used for both the filename and Bridge.
+    :param cast: Whether to push the written file to the Looking Glass.
+        ``False`` writes and returns without contacting Bridge.
+    :param bridge_url: Base URL of the Bridge HTTP API.
+    :param timeout: HTTP timeout in seconds per Bridge request.
+    :return: ``(written path, error message or None)``.  The path is always
+        real; a non-None error means the file is on disk but is not showing.
+    """
+    out = save_quilt(quilt, stem, spec)
+    if not cast:
+        return out, None
+    if not out.exists():
+        return out, f"{out} was not written"
+    try:
+        cast_quilt(out, spec, bridge_url=bridge_url, timeout=timeout)
+    except Exception as exc:  # noqa: BLE001 - the quilt file is kept regardless
+        return out, str(exc)
+    return out, None
 
 
 def pause_quilt(*, bridge_url: str = BRIDGE_URL, timeout: float = 10.0) -> dict:

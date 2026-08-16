@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **`save_and_cast_quilt()` — write a quilt, then hand Bridge the path to it.**
+  `save_quilt` takes the array and `cast_quilt` takes a path, and confusing
+  them is invisible until a display is connected: the caster raises
+  `argument should be a str or an os.PathLike object ... not 'ndarray'`, which
+  for a ray-traced quilt arrives minutes into the render. Composing the two
+  correctly is now a single call.
+
+  It confirms the file is on disk before contacting Bridge, and *returns* a
+  failed cast as `(path, error)` rather than raising, so a Bridge that isn't
+  running never costs the render. Consumers had been writing this wrapper
+  themselves; `gutenberg_kg` had it as a private helper with the ndarray
+  mistake documented in its docstring.
+
 ## [0.5.0] — 2026-08-16
 
 ### Added

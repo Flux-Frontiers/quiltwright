@@ -25,6 +25,7 @@ from quiltwright.lfd import (
     focal_distance_for_range,
     pause_quilt,
     resume_quilt,
+    save_and_cast_quilt,
     save_quilt,
     scene_depths,
     stop_quilt,
@@ -174,6 +175,36 @@ class TestQuiltSpec:
         assert dense.aspect == portrait.aspect
         assert dense.tile_width < portrait.tile_width  # views cost resolution
         assert dense.filename("x") == "x_qs11x6a0.75.png"
+
+    def test_scaled_keeps_the_view_grid(self, portrait):
+        half = portrait.scaled(0.5)
+        assert (half.columns, half.rows) == (portrait.columns, portrait.rows)
+        assert half.n_views == portrait.n_views
+        assert half.aspect == portrait.aspect
+
+    def test_scaled_stays_on_the_tile_grid(self):
+        """The reason this is a method: naive scaling smears every view."""
+        for name, spec in QUILT_PRESETS.items():
+            for factor in (0.75, 0.5, 0.33):
+                small = spec.scaled(factor)
+                assert small.quilt_width % small.columns == 0, (name, factor)
+                assert small.quilt_height % small.rows == 0, (name, factor)
+
+    def test_scaled_rounds_down_never_up(self, portrait):
+        small = portrait.scaled(0.5)
+        assert small.quilt_width <= portrait.quilt_width * 0.5
+        assert small.quilt_height <= portrait.quilt_height * 0.5
+
+    def test_scaled_by_one_is_a_noop_on_even_grids(self, portrait):
+        assert portrait.scaled(1.0) == portrait
+
+    def test_scaled_rejects_a_nonpositive_factor(self, portrait):
+        with pytest.raises(ValueError, match="must be positive"):
+            portrait.scaled(0)
+
+    def test_scaled_rejects_collapsing_the_tiles(self, portrait):
+        with pytest.raises(ValueError, match="too small"):
+            portrait.scaled(0.0001)
 
 
 # ---------------------------------------------------------------------------
@@ -836,6 +867,46 @@ class TestCastQuilt:
         quilt.touch()
         cast_quilt(quilt, tiny_spec)
         assert bridge.payload_for("show_window")["show_window"] is True
+
+
+class TestSaveAndCastQuilt:
+    """The whole point is that a lost display never costs the render."""
+
+    def test_writes_then_casts_the_path(self, bridge, tmp_path, tiny_spec):
+        pytest.importorskip("PIL")
+        quilt = np.zeros((128, 128, 3), dtype=np.uint8)
+        out, error = save_and_cast_quilt(quilt, tmp_path / "scene", tiny_spec)
+        assert error is None
+        assert out.exists()
+        # The caster got a path on disk, not the array it was rendered from.
+        assert Path(bridge.payload_for("insert_playlist_entry")["uri"]) == out.resolve()
+
+    def test_cast_false_never_contacts_bridge(self, bridge, tmp_path, tiny_spec):
+        pytest.importorskip("PIL")
+        quilt = np.zeros((128, 128, 3), dtype=np.uint8)
+        out, error = save_and_cast_quilt(quilt, tmp_path / "scene", tiny_spec, cast=False)
+        assert (error, bridge.endpoints) == (None, [])
+        assert out.exists()
+
+    def test_a_failed_cast_returns_the_error_and_keeps_the_file(
+        self, tmp_path, tiny_spec, monkeypatch
+    ):
+        pytest.importorskip("PIL")
+
+        def boom(*_args, **_kwargs):
+            raise ConnectionRefusedError("Bridge is not running")
+
+        monkeypatch.setattr(urllib.request, "urlopen", boom)
+        quilt = np.zeros((128, 128, 3), dtype=np.uint8)
+        out, error = save_and_cast_quilt(quilt, tmp_path / "scene", tiny_spec)
+        assert error is not None and "Bridge is not running" in error
+        assert out.exists(), "the render must survive a display that does not"
+
+    def test_returns_the_convention_filename(self, bridge, tmp_path, tiny_spec):
+        pytest.importorskip("PIL")
+        quilt = np.zeros((128, 128, 3), dtype=np.uint8)
+        out, _ = save_and_cast_quilt(quilt, tmp_path / "scene", tiny_spec)
+        assert out.name == "scene_qs2x2a1.png"
 
 
 class TestFindFfmpeg:
