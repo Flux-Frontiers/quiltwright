@@ -76,6 +76,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **`docs/povgen.md`** — the transcoding guide, including the gotcha list and
   the mutation-testing table.
 
+- **`swept_scene` and `instances_by_color` — the composer that makes a new
+  consumer cheap.** Named for its geometry rather than for any subject: it
+  knows swept tubes, oriented instances and scattered spheres, and nothing
+  about what they depict. A tree is one caller — limbs, leaves, annotation
+  clouds — but so is any producer with the same three shapes, and the name does
+  not mislead a future one.
+
+  What it saves is not the primitives, which were already here, but the
+  assembly: prototype declaration, colour grouping, light rig, floor, and the
+  order those go in. **Lights are placed before the ground**, which is the one
+  piece of that order a caller cannot guess: the rig is sized from the scene
+  bounds and the floor is wider than the subject, so measuring after laying it
+  makes the "scene radius" the slab's half-diagonal, pushing the key light far
+  enough out to flatten the subject and shrink its shadow to nothing. The
+  failure is silent — the scene is structurally perfect and looks dead.
+
+  `instances_by_color` is the grouping on its own, for callers composing by
+  hand: a crown of ten thousand blades in five colours becomes five textures
+  and five unions, not ten thousand of each.
+
+  `lights_from_bounds` gains `rim=` for the dim back light that separates an
+  intricate silhouette from a dark background. Off by default; it is wasted on
+  a solid form against a bright ground.
+
+  A test asserts that importing `povgen` pulls in no `kg_utils` and no KG
+  package. The seam is arrays in both directions, and it has to stay that way.
+
 - **`ground_slab` and `pov_camera_from_frame`** — the two pieces a caller with
   no plotter needs, and the reason `gutenberg_kg` had written its own.
 

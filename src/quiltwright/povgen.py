@@ -78,7 +78,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Iterable, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -934,6 +934,7 @@ def lights_from_bounds(
     up: Sequence[float] = (0.0, 1.0, 0.0),
     intensity: float = 1.0,
     fill: bool = True,
+    rim: bool = False,
 ) -> list[LightSource]:
     """A serviceable two-light rig sized to a scene's bounds.
 
@@ -961,6 +962,10 @@ def lights_from_bounds(
         compatibility; ``(0, 0, 1)`` for a ``+z``-up scene.
     :param intensity: Key light brightness multiplier.
     :param fill: Add the shadowless fill light.
+    :param rim: Add a dim shadowless light behind the subject, so it separates
+        from the background instead of silhouetting into it.  Worth it when the
+        background is dark or the subject is intricate at its edges — a canopy,
+        a wireframe — and wasted on a solid form against a bright ground.
     :return: The light sources, key first.
     :raises ValueError: If *up* is degenerate.
     """
@@ -981,6 +986,15 @@ def lights_from_bounds(
             LightSource(
                 position=place(-1.6, 0.6, 1.2),
                 color=(fill_level, fill_level, fill_level),
+                shadowless=True,
+            )
+        )
+    if rim:
+        rim_level = intensity * 0.25
+        lights.append(
+            LightSource(
+                position=place(-0.3, 1.3, -1.7),
+                color=(rim_level, rim_level, rim_level),
                 shadowless=True,
             )
         )
@@ -1119,3 +1133,193 @@ def pov_camera_from_frame(
         sky=to_pov(up, handedness),
         fov=float(fov),
     )
+
+
+def instances_by_color(
+    name: str,
+    points: np.ndarray,
+    directions: np.ndarray | None,
+    palette: Sequence[str | Sequence[float]],
+    index: Sequence[int],
+    *,
+    scale: Sequence[float] | float | None = None,
+    finish: Finish | None = None,
+    prefix: str = "Tint",
+) -> tuple[list[tuple[str, Texture]], list[Union]]:
+    """Group instances of one prototype into a union per colour.
+
+    A crown of ten thousand blades in five colours is five textures and five
+    unions, not ten thousand of each.  POV-Ray parses each texture once and
+    every instance is then a single line.
+
+    :param name: Declared prototype identifier the instances reference.
+    :param points: ``(M, 3)`` positions, right-handed.
+    :param directions: ``(M, 3)`` aim vectors, or ``None`` for unoriented.
+    :param palette: Colours to declare, one texture each.
+    :param index: ``(M,)`` index into *palette*, one per point.
+    :param scale: Per-axis or scalar scale applied to the prototype.
+    :param finish: Finish shared by every declared texture.
+    :param prefix: Identifier stem for the declared textures.
+    :return: ``(declarations, unions)`` — declare each ``(name, texture)`` on
+        the scene, then add the unions.
+    :raises ValueError: If *index* does not match *points* in length.
+    """
+    pts = np.atleast_2d(np.asarray(points, dtype=float))
+    if pts.size == 0:
+        return [], []
+    idx = np.asarray(index, dtype=int)
+    if idx.shape[0] != pts.shape[0]:
+        raise ValueError(f"index length {idx.shape[0]} does not match {pts.shape[0]} points")
+
+    dirs = None if directions is None else np.atleast_2d(np.asarray(directions, dtype=float))
+    kwargs = {} if finish is None else {"finish": finish}
+    declarations = [
+        (f"{prefix}{i}", Texture(color=colour, **kwargs)) for i, colour in enumerate(palette)
+    ]
+
+    unions: list[Union] = []
+    for i, (texture_name, _) in enumerate(declarations):
+        mask = idx == i
+        if not mask.any():
+            continue
+        members = instances_from_frames(
+            name, pts[mask], None if dirs is None else dirs[mask], texture=texture_name
+        )
+        if scale is not None:
+            members = [replace(m, scale=scale) for m in members]
+        unions.append(Union(members))
+    return declarations, unions
+
+
+def swept_scene(
+    sweeps: Iterable[tuple[np.ndarray, np.ndarray]],
+    *,
+    sweep_color: str | Sequence[float] = "#6b4a2f",
+    sweep_finish: Finish | None = None,
+    instances: tuple[np.ndarray, np.ndarray | None] | None = None,
+    instance_shape: Sequence[float] = (1.0, 1.0, 1.0),
+    instance_radius: float = 1.0,
+    instance_palette: Sequence[str | Sequence[float]] = (),
+    instance_index: Sequence[int] | None = None,
+    instance_finish: Finish | None = None,
+    clouds: Iterable[tuple[np.ndarray, float, str | Sequence[float], float]] = (),
+    cloud_finish: Finish | None = None,
+    up: Sequence[float] = (0.0, 0.0, 1.0),
+    sky: str | Sequence[float] | None = None,
+    ambient: str | Sequence[float] | None = None,
+    rim_light: bool = False,
+    ground: float = 0.0,
+    ground_color: str | Sequence[float] = "#2d4a1e",
+    ground_finish: Finish | None = None,
+    brightness: float = 1.0,
+    comment: str = "",
+) -> PovScene:
+    """Compose a lit scene from swept paths, instanced glyphs and point clouds.
+
+    Named for its geometry rather than for any subject: it knows swept tubes,
+    oriented instances and scattered spheres, and nothing about what they
+    depict.  A tree is one caller — limbs are the sweeps, leaves the instances,
+    annotation clouds the spheres — but so is any producer with the same three
+    shapes.  It imports no domain package and its arguments are arrays and
+    colours throughout.
+
+    What it saves a caller is not the primitives, which are already here, but
+    the assembly: prototype declaration, colour grouping, light rig, floor, and
+    the order those go in.
+
+    **Lights are placed before the ground.**  The rig is sized from the scene
+    bounds and the floor is deliberately wider than the subject, so measuring
+    after laying it makes the "scene radius" the slab's half-diagonal — which
+    pushes the key light far enough out to flatten the subject and shrink its
+    shadow to nothing.  Getting that order wrong is silent; the scene is
+    structurally perfect and looks dead.
+
+    :param sweeps: ``[(points, radii), ...]`` swept paths.
+    :param sweep_color: Colour for every sweep.
+    :param sweep_finish: Finish for the sweeps.
+    :param instances: ``(points, directions)``; *directions* may be ``None``.
+    :param instance_shape: Per-axis shape of the instanced prototype, before
+        *instance_radius* scales it.  ``(1, 1, 1)`` is a ball.
+    :param instance_radius: Prototype radius.
+    :param instance_palette: Colours for the instances.
+    :param instance_index: Per-instance index into *instance_palette*; ``None``
+        puts every instance in the first colour.
+    :param instance_finish: Finish shared by the instance textures.
+    :param clouds: ``[(points, radius, colour, opacity), ...]`` scattered
+        spheres — annotation, typically.
+    :param cloud_finish: Finish for the clouds.
+    :param up: World up direction, for the light rig and the floor.
+    :param sky: Background colour, or ``None`` for POV-Ray's default black.
+    :param ambient: Global ambient light colour, or ``None``.
+    :param ground: Floor edge as a multiple of the subject's width; ``0`` omits
+        it.  See :func:`ground_slab` for why a contact shadow matters.
+    :param ground_color: Floor colour.
+    :param ground_finish: Floor finish.  Remember it is multiplied by
+        *brightness*: a diffuse tuned for a unit key clips at a high one.
+    :param brightness: Key-light multiplier.
+    :param rim_light: Add the back light; see :func:`lights_from_bounds`.
+    :param comment: Free text for the file header.
+    :return: The composed :class:`PovScene`.
+    """
+    scene = PovScene(background=sky, ambient_light=ambient, comment=comment)
+
+    bark = Texture(color=sweep_color, **({} if sweep_finish is None else {"finish": sweep_finish}))
+    scene.declare_texture("SweptTex", bark)
+    swept = sphere_sweeps_from_paths(sweeps, texture="SweptTex")
+    if swept:
+        scene.add(Union(swept))
+
+    if instances is not None:
+        points, directions = instances
+        points = np.atleast_2d(np.asarray(points, dtype=float))
+        if points.size:
+            scene.declare("Glyph", Sphere(centre=(0.0, 0.0, 0.0), radius=1.0))
+            palette = list(instance_palette) or [sweep_color]
+            index = (
+                np.zeros(points.shape[0], dtype=int)
+                if instance_index is None
+                else np.asarray(instance_index, dtype=int)
+            )
+            declarations, unions = instances_by_color(
+                "Glyph",
+                points,
+                directions,
+                palette,
+                index,
+                scale=tuple(float(instance_radius) * a for a in instance_shape),
+                finish=instance_finish,
+            )
+            for texture_name, texture in declarations:
+                scene.declare_texture(texture_name, texture)
+            scene.add(unions)
+
+    for cloud_points, radius, colour, opacity in clouds:
+        texture = Texture(
+            color=colour,
+            opacity=opacity,
+            **({} if cloud_finish is None else {"finish": cloud_finish}),
+        )
+        spheres = spheres_from_points(cloud_points, radius, texture)
+        if spheres:
+            scene.add(Union(spheres))
+
+    bounds = scene.bounds()
+    if bounds is None:
+        return scene
+
+    for light in lights_from_bounds(*bounds, up=up, intensity=brightness, rim=rim_light):
+        scene.add_light(light)
+
+    if ground > 0:
+        scene.add(
+            ground_slab(
+                *bounds,
+                up=up,
+                size=ground,
+                texture=Texture(
+                    color=ground_color,
+                    **({} if ground_finish is None else {"finish": ground_finish}),
+                ),
+            )
+        )
+    return scene

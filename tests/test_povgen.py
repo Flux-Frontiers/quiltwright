@@ -23,6 +23,7 @@ from quiltwright.povgen import (
     _frame_from_direction,
     fov_horizontal_to_vertical,
     ground_slab,
+    instances_by_color,
     instances_from_frames,
     lights_from_bounds,
     parse_color,
@@ -30,6 +31,7 @@ from quiltwright.povgen import (
     pov_camera_from_plotter,
     sphere_sweeps_from_paths,
     spheres_from_points,
+    swept_scene,
     to_pov,
 )
 
@@ -657,3 +659,119 @@ def test_zoom_dollies_toward_the_focal_point_without_moving_it():
 def test_a_non_positive_zoom_is_an_error_not_a_flipped_camera():
     with pytest.raises(ValueError, match="zoom"):
         pov_camera_from_frame(_Frame(), zoom=0.0)
+
+
+# ---------------------------------------------------------------------------
+# swept_scene — the composer that makes a new consumer cheap
+# ---------------------------------------------------------------------------
+
+
+def _subject(n_glyphs=40, seed=0):
+    rng = np.random.default_rng(seed)
+    sweeps = [(np.array([[0.0, 0, 0], [0, 0, 10.0], [1.0, 0, 18.0]]), np.array([0.5, 0.3, 0.1]))]
+    pts = rng.normal(0, 1, (n_glyphs, 3)) * np.array([2.0, 2, 3.0]) + np.array([0, 0, 16.0])
+    dirs = rng.normal(0, 1, (n_glyphs, 3))
+    dirs /= np.linalg.norm(dirs, axis=1, keepdims=True)
+    return sweeps, pts, dirs
+
+
+def test_swept_scene_emits_each_part_once():
+    sweeps, pts, dirs = _subject()
+    sdl = swept_scene(
+        sweeps,
+        instances=(pts, dirs),
+        instance_palette=["#90EE90", "#5FBF5F"],
+        instance_index=np.arange(len(pts)) % 2,
+        clouds=[(pts[:5], 0.3, "#FFD700", 0.4)],
+        ground=3.0,
+    ).sdl()
+    assert sdl.count("sphere_sweep {") == 1
+    assert sdl.count("object { Glyph ") == len(pts)
+    assert sdl.count("#declare Glyph =") == 1  # prototype declared once
+    assert sdl.count("#declare Tint") == 2  # one texture per colour
+    assert sdl.count("box {") == 1
+
+
+def test_swept_scene_groups_instances_by_colour_not_one_union_each():
+    """The point of instancing: five colours cost five unions, not ten thousand."""
+    sweeps, pts, dirs = _subject(n_glyphs=200)
+    sdl = swept_scene(
+        sweeps,
+        instances=(pts, dirs),
+        instance_palette=["#a", "#b", "#c"][:3] and ["#aa0000", "#00aa00", "#0000aa"],
+        instance_index=np.arange(len(pts)) % 3,
+    ).sdl()
+    assert sdl.count("union {") == 1 + 3  # the sweeps, plus one per colour
+
+
+def test_swept_scene_lights_the_subject_before_laying_the_floor():
+    """
+    Regression the composer exists to make unrepeatable. The rig is sized from
+    scene bounds and the slab is wider than the subject, so measuring after
+    laying it makes the scene radius the slab's half-diagonal — flattening the
+    subject and shrinking its shadow to nothing.
+    """
+    sweeps, pts, dirs = _subject()
+    lit = re.findall(
+        r"light_source \{ <([^>]*)>", swept_scene(sweeps, instances=(pts, dirs), ground=8.0).sdl()
+    )
+    bare = re.findall(
+        r"light_source \{ <([^>]*)>", swept_scene(sweeps, instances=(pts, dirs), ground=0).sdl()
+    )
+    assert lit == bare
+
+
+def test_swept_scene_only_the_key_casts():
+    sweeps, pts, dirs = _subject()
+    lights = re.findall(r"light_source \{.*", swept_scene(sweeps, instances=(pts, dirs)).sdl())
+    assert sum("shadowless" not in light for light in lights) == 1
+
+
+def test_swept_scene_rim_light_is_opt_in():
+    sweeps, pts, dirs = _subject()
+    plain = swept_scene(sweeps, instances=(pts, dirs)).sdl()
+    rimmed = swept_scene(sweeps, instances=(pts, dirs), rim_light=True).sdl()
+    assert rimmed.count("light_source") == plain.count("light_source") + 1
+
+
+def test_swept_scene_brightness_scales_the_rig():
+    sweeps, pts, dirs = _subject()
+
+    def levels(sdl):
+        return [float(m) for m in re.findall(r"light_source \{ <[^>]*> color rgb <([\d.]+)", sdl)]
+
+    dim = levels(swept_scene(sweeps, instances=(pts, dirs), brightness=1.0).sdl())
+    bright = levels(swept_scene(sweeps, instances=(pts, dirs), brightness=3.0).sdl())
+    assert bright == pytest.approx([v * 3.0 for v in dim])
+
+
+def test_swept_scene_needs_no_instances_or_clouds():
+    sweeps, _, _ = _subject()
+    sdl = swept_scene(sweeps).sdl()
+    assert "sphere_sweep {" in sdl
+    assert "object { Glyph" not in sdl
+
+
+def test_swept_scene_of_nothing_is_empty_not_a_crash():
+    scene = swept_scene([])
+    assert "light_source" not in scene.sdl()
+
+
+def test_instances_by_color_rejects_a_mismatched_index():
+    _, pts, dirs = _subject()
+    with pytest.raises(ValueError, match="does not match"):
+        instances_by_color("Glyph", pts, dirs, ["#fff"], [0, 1, 2])
+
+
+def test_swept_scene_knows_nothing_about_any_kg_package():
+    """Layer 2 must not import layer 1 or any consumer; the seam is arrays."""
+    probe = (
+        "import sys, quiltwright.povgen;"
+        "bad = [m for m in sys.modules if m.split('.')[0] in "
+        "('kg_utils', 'gutenberg_kg', 'pycode_kg', 'diary_kg', 'doc_kg')];"
+        "assert not bad, bad"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", probe], capture_output=True, text=True, check=False
+    )
+    assert result.returncode == 0, result.stderr
