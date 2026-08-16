@@ -176,6 +176,36 @@ class TestQuiltSpec:
         assert dense.tile_width < portrait.tile_width  # views cost resolution
         assert dense.filename("x") == "x_qs11x6a0.75.png"
 
+    def test_scaled_keeps_the_view_grid(self, portrait):
+        half = portrait.scaled(0.5)
+        assert (half.columns, half.rows) == (portrait.columns, portrait.rows)
+        assert half.n_views == portrait.n_views
+        assert half.aspect == portrait.aspect
+
+    def test_scaled_stays_on_the_tile_grid(self):
+        """The reason this is a method: naive scaling smears every view."""
+        for name, spec in QUILT_PRESETS.items():
+            for factor in (0.75, 0.5, 0.33):
+                small = spec.scaled(factor)
+                assert small.quilt_width % small.columns == 0, (name, factor)
+                assert small.quilt_height % small.rows == 0, (name, factor)
+
+    def test_scaled_rounds_down_never_up(self, portrait):
+        small = portrait.scaled(0.5)
+        assert small.quilt_width <= portrait.quilt_width * 0.5
+        assert small.quilt_height <= portrait.quilt_height * 0.5
+
+    def test_scaled_by_one_is_a_noop_on_even_grids(self, portrait):
+        assert portrait.scaled(1.0) == portrait
+
+    def test_scaled_rejects_a_nonpositive_factor(self, portrait):
+        with pytest.raises(ValueError, match="must be positive"):
+            portrait.scaled(0)
+
+    def test_scaled_rejects_collapsing_the_tiles(self, portrait):
+        with pytest.raises(ValueError, match="too small"):
+            portrait.scaled(0.0001)
+
 
 # ---------------------------------------------------------------------------
 # Gen3 16" Landscape — the device these renders target

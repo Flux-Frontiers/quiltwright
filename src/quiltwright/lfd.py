@@ -158,6 +158,34 @@ class QuiltSpec:
         """
         return replace(self, columns=columns, rows=rows)
 
+    def scaled(self, factor: float) -> QuiltSpec:
+        """Same view grid at a fraction of the pixel size.
+
+        Casting at full preset size is rarely what you want: rendering costs
+        about a second, but the wait is Bridge loading the resulting PNG, and
+        that scales with its area.  Halving the linear size quarters it.
+
+        The scaled dimensions are rounded **down to a multiple of the tile
+        grid**, which is the part that is easy to get wrong: scale naively and
+        the quilt no longer divides evenly into tiles, so every view lands on a
+        fractional pixel boundary and the whole light field smears.
+
+        :param factor: Linear scale factor, e.g. ``0.5`` for quarter the pixels.
+        :return: A new :class:`QuiltSpec` at the scaled size, tiles intact.
+        :raises ValueError: If *factor* is not positive, or scales the quilt
+            below one pixel per tile.
+        """
+        if factor <= 0:
+            raise ValueError(f"scale factor must be positive, got {factor}")
+        width = int(self.quilt_width * factor) // self.columns * self.columns
+        height = int(self.quilt_height * factor) // self.rows * self.rows
+        if width < self.columns or height < self.rows:
+            raise ValueError(
+                f"scale factor {factor} leaves a {width}x{height} quilt, "
+                f"too small for a {self.columns}x{self.rows} tile grid"
+            )
+        return replace(self, quilt_width=width, quilt_height=height)
+
 
 #: Standard ("ideal") quilt settings per Looking Glass device, from the
 #: official docs: https://lfdocs.lookingglassfactory.com/keyconcepts/quilts
