@@ -22,11 +22,16 @@ from quiltwright.povgen import (
     Union,
     _frame_from_direction,
     fov_horizontal_to_vertical,
+    ground_slab,
+    instances_by_color,
     instances_from_frames,
     lights_from_bounds,
     parse_color,
+    pov_camera_from_frame,
+    pov_camera_from_plotter,
     sphere_sweeps_from_paths,
     spheres_from_points,
+    swept_scene,
     to_pov,
 )
 
@@ -486,6 +491,74 @@ def test_a_degenerate_up_is_an_error_not_a_nan():
 
 
 # ---------------------------------------------------------------------------
+# lights_from_bounds: which side the camera is on
+# ---------------------------------------------------------------------------
+
+
+def test_the_key_lands_on_the_side_the_caller_names():
+    """
+    The bug this parameter exists for, and the one `up=` does not cover: the
+    derived side for a +z-up scene is +y, and a frame_tree camera stands off
+    along -y. So the rig lit the back of the tree and the lens looked at its
+    shadow — a scene that is structurally perfect and renders dark.
+    """
+    lo, hi = np.array([-2.0, -2.0, 0.0]), np.array([2.0, 2.0, 20.0])
+    centre = (lo + hi) / 2.0
+    up = (0.0, 0.0, 1.0)
+
+    derived = lights_from_bounds(lo, hi, up=up)[0]
+    assert derived.position[1] > centre[1], "expected the historical side to be +y"
+
+    key = lights_from_bounds(lo, hi, up=up, key_side=(0.0, -1.0, 0.0))[0]
+    assert key.position[1] < centre[1]
+    assert key.position[2] > hi[2], "naming a side must not drop the key"
+
+
+def test_only_the_part_across_up_chooses_the_side():
+    """A caller passing a camera direction hands over a tilt it did not mean."""
+    lo, hi = np.array([-2.0, -2.0, 0.0]), np.array([2.0, 2.0, 20.0])
+    up = (0.0, 0.0, 1.0)
+    level = lights_from_bounds(lo, hi, up=up, key_side=(0.0, -1.0, 0.0))[0]
+    tilted = lights_from_bounds(lo, hi, up=up, key_side=(0.0, -1.0, -4.0))[0]
+    assert np.allclose(level.position, tilted.position)
+
+
+def test_the_rig_stays_rigid_when_a_side_is_named():
+    lo, hi = np.array([-2.0, -1.0, 0.0]), np.array([2.0, 3.0, 20.0])
+    centre = (lo + hi) / 2.0
+    derived = lights_from_bounds(lo, hi, up=(0.0, 0.0, 1.0), rim=True)
+    named = lights_from_bounds(lo, hi, up=(0.0, 0.0, 1.0), key_side=(0, -1, 0), rim=True)
+    for a, b in zip(derived, named, strict=True):
+        assert np.linalg.norm(np.asarray(a.position) - centre) == pytest.approx(
+            np.linalg.norm(np.asarray(b.position) - centre)
+        )
+        assert a.color == b.color and a.shadowless == b.shadowless
+
+
+def test_a_key_side_that_names_no_side_is_an_error():
+    lo, hi = np.array([-2.0, -2.0, 0.0]), np.array([2.0, 2.0, 20.0])
+    with pytest.raises(ValueError, match="degenerate"):
+        lights_from_bounds(lo, hi, up=(0, 0, 1), key_side=(0.0, 0.0, 0.0))
+    with pytest.raises(ValueError, match="parallel to up"):
+        lights_from_bounds(lo, hi, up=(0, 0, 1), key_side=(0.0, 0.0, 1.0))
+
+
+def test_swept_scene_forwards_the_key_side():
+    sweeps, pts, dirs = _subject()
+    lit = swept_scene(sweeps, instances=(pts, dirs), key_side=(0.0, -1.0, 0.0))
+    lo, hi = lit.bounds()
+    centre = (np.asarray(lo) + np.asarray(hi)) / 2.0
+    # The key is the only shadow-casting light, which is what makes it the key.
+    key_y = [
+        float(re.search(r"<\s*([-\d.eE+]+),\s*([-\d.eE+]+),", block).group(2))
+        for block in re.findall(r"light_source \{[^}]*\}", lit.sdl())
+        if "shadowless" not in block
+    ]
+    # to_pov negates z only, so y in the emitted file is y as authored.
+    assert key_y and all(y < centre[1] for y in key_y), "key must sit on the camera's side"
+
+
+# ---------------------------------------------------------------------------
 # povgen is reachable without a rendering stack
 # ---------------------------------------------------------------------------
 
@@ -553,3 +626,239 @@ def test_pov_camera_from_plotter_is_the_thing_that_converts():
     assert camera.location == pytest.approx(to_pov((1.0, -2.0, 3.0)))
     assert camera.look_at == pytest.approx(to_pov((0.0, 0.0, 4.0)))
     assert camera.sky == pytest.approx((0.0, 0.0, -1.0))
+
+
+# ---------------------------------------------------------------------------
+# ground_slab — a finite floor to catch a shadow
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("up, axis", [((0.0, 1.0, 0.0), 1), ((0.0, 0.0, 1.0), 2)])
+def test_ground_slab_top_face_sits_at_the_subject_base(up, axis):
+    """The subject stands on the floor; it does not hover over one below it."""
+    lo, hi = np.array([-4.0, -4.0, 0.0]), np.array([4.0, 4.0, 30.0])
+    box = ground_slab(lo, hi, up=up)
+    faces = sorted((box.corner1[axis], box.corner2[axis]))
+    assert faces[1] == pytest.approx(lo[axis])
+
+
+def test_ground_slab_scales_with_the_subject():
+    lo, hi = np.array([-4.0, -4.0, 0.0]), np.array([4.0, 4.0, 30.0])
+    narrow = ground_slab(lo, hi, up=(0, 0, 1), size=2.0)
+    wide = ground_slab(lo, hi, up=(0, 0, 1), size=8.0)
+    assert (wide.corner2[0] - wide.corner1[0]) == pytest.approx(
+        4.0 * (narrow.corner2[0] - narrow.corner1[0])
+    )
+
+
+def test_ground_slab_is_centred_under_an_off_centre_subject():
+    lo, hi = np.array([10.0, -4.0, 0.0]), np.array([18.0, 4.0, 30.0])
+    box = ground_slab(lo, hi, up=(0, 0, 1))
+    assert (box.corner1[0] + box.corner2[0]) / 2 == pytest.approx(14.0)
+
+
+def test_ground_slab_is_never_degenerate_for_a_flat_subject():
+    """A subject with no horizontal extent still needs a floor with an area."""
+    box = ground_slab((0.0, 0.0, 0.0), (0.0, 0.0, 5.0), up=(0, 0, 1))
+    assert box.corner2[0] > box.corner1[0]
+
+
+# ---------------------------------------------------------------------------
+# pov_camera_from_frame — the sibling for callers with no plotter
+# ---------------------------------------------------------------------------
+
+
+class _Frame:
+    """Duck-typed stand-in for kg_utils.viz3d.CameraFrame — not imported here."""
+
+    position = (1.0, -90.0, 15.0)
+    focal_point = (1.0, 0.0, 15.0)
+    up = (0.0, 0.0, 1.0)
+
+
+def test_pov_camera_from_frame_converts_into_pov_coordinates():
+    """
+    The whole point of the function. A frame computed in the right-handed world
+    the scene was authored in is not a PovCamera; camera_block emits whatever it
+    is handed, so an unconverted one aims at empty space while every assertion
+    comparing right-handed to right-handed passes.
+    """
+    cam = pov_camera_from_frame(_Frame(), fov=26.0)
+    assert cam.location == pytest.approx(to_pov(_Frame.position))
+    assert cam.look_at == pytest.approx(to_pov(_Frame.focal_point))
+    assert cam.sky == pytest.approx((0.0, 0.0, -1.0))
+    assert cam.fov == 26.0
+
+
+def test_pov_camera_from_frame_matches_the_plotter_bridge():
+    """Both bridges must land on the same convention, or the two paths diverge."""
+    pv = pytest.importorskip("pyvista")
+
+    plotter = pv.Plotter(off_screen=True)
+    plotter.camera.position = _Frame.position
+    plotter.camera.focal_point = _Frame.focal_point
+    plotter.camera.up = _Frame.up
+    carried = pov_camera_from_plotter(plotter, fov=26.0)
+    plotter.close()
+
+    framed = pov_camera_from_frame(_Frame(), fov=26.0)
+    assert framed.location == pytest.approx(carried.location)
+    assert framed.look_at == pytest.approx(carried.look_at)
+    assert framed.sky == pytest.approx(carried.sky)
+
+
+def test_pov_camera_from_frame_accepts_bare_sequences():
+    cam = pov_camera_from_frame((0.0, -8.0, 3.0), (0.0, 0.0, 3.0), (0.0, 0.0, 1.0))
+    assert cam.location == pytest.approx((0.0, -8.0, -3.0))
+
+
+def test_pov_camera_from_frame_needs_a_look_at_for_a_bare_position():
+    with pytest.raises(ValueError, match="look_at"):
+        pov_camera_from_frame((0.0, -8.0, 3.0))
+
+
+def test_zoom_dollies_toward_the_focal_point_without_moving_it():
+    near = pov_camera_from_frame(_Frame(), zoom=2.0)
+    far = pov_camera_from_frame(_Frame(), zoom=1.0)
+    assert near.focal_distance == pytest.approx(far.focal_distance / 2.0)
+    assert near.look_at == pytest.approx(far.look_at)
+
+
+def test_a_non_positive_zoom_is_an_error_not_a_flipped_camera():
+    with pytest.raises(ValueError, match="zoom"):
+        pov_camera_from_frame(_Frame(), zoom=0.0)
+
+
+# ---------------------------------------------------------------------------
+# swept_scene — the composer that makes a new consumer cheap
+# ---------------------------------------------------------------------------
+
+
+def _subject(n_glyphs=40, seed=0):
+    rng = np.random.default_rng(seed)
+    sweeps = [(np.array([[0.0, 0, 0], [0, 0, 10.0], [1.0, 0, 18.0]]), np.array([0.5, 0.3, 0.1]))]
+    pts = rng.normal(0, 1, (n_glyphs, 3)) * np.array([2.0, 2, 3.0]) + np.array([0, 0, 16.0])
+    dirs = rng.normal(0, 1, (n_glyphs, 3))
+    dirs /= np.linalg.norm(dirs, axis=1, keepdims=True)
+    return sweeps, pts, dirs
+
+
+def test_swept_scene_emits_each_part_once():
+    sweeps, pts, dirs = _subject()
+    sdl = swept_scene(
+        sweeps,
+        instances=(pts, dirs),
+        instance_palette=["#90EE90", "#5FBF5F"],
+        instance_index=np.arange(len(pts)) % 2,
+        clouds=[(pts[:5], 0.3, "#FFD700", 0.4)],
+        ground=3.0,
+    ).sdl()
+    assert sdl.count("sphere_sweep {") == 1
+    assert sdl.count("object { Glyph ") == len(pts)
+    assert sdl.count("#declare Glyph =") == 1  # prototype declared once
+    assert sdl.count("#declare Tint") == 2  # one texture per colour
+    assert sdl.count("box {") == 1
+
+
+def test_swept_scene_groups_instances_by_colour_not_one_union_each():
+    """The point of instancing: five colours cost five unions, not ten thousand."""
+    sweeps, pts, dirs = _subject(n_glyphs=200)
+    sdl = swept_scene(
+        sweeps,
+        instances=(pts, dirs),
+        instance_palette=["#a", "#b", "#c"][:3] and ["#aa0000", "#00aa00", "#0000aa"],
+        instance_index=np.arange(len(pts)) % 3,
+    ).sdl()
+    assert sdl.count("union {") == 1 + 3  # the sweeps, plus one per colour
+
+
+def test_swept_scene_lights_the_subject_before_laying_the_floor():
+    """
+    Regression the composer exists to make unrepeatable. The rig is sized from
+    scene bounds and the slab is wider than the subject, so measuring after
+    laying it makes the scene radius the slab's half-diagonal — flattening the
+    subject and shrinking its shadow to nothing.
+    """
+    sweeps, pts, dirs = _subject()
+    lit = re.findall(
+        r"light_source \{ <([^>]*)>", swept_scene(sweeps, instances=(pts, dirs), ground=8.0).sdl()
+    )
+    bare = re.findall(
+        r"light_source \{ <([^>]*)>", swept_scene(sweeps, instances=(pts, dirs), ground=0).sdl()
+    )
+    assert lit == bare
+
+
+def test_swept_scene_only_the_key_casts():
+    sweeps, pts, dirs = _subject()
+    lights = re.findall(r"light_source \{.*", swept_scene(sweeps, instances=(pts, dirs)).sdl())
+    assert sum("shadowless" not in light for light in lights) == 1
+
+
+def test_swept_scene_rim_light_is_opt_in():
+    sweeps, pts, dirs = _subject()
+    plain = swept_scene(sweeps, instances=(pts, dirs)).sdl()
+    rimmed = swept_scene(sweeps, instances=(pts, dirs), rim_light=True).sdl()
+    assert rimmed.count("light_source") == plain.count("light_source") + 1
+
+
+def test_swept_scene_brightness_scales_the_rig():
+    sweeps, pts, dirs = _subject()
+
+    def levels(sdl):
+        return [float(m) for m in re.findall(r"light_source \{ <[^>]*> color rgb <([\d.]+)", sdl)]
+
+    dim = levels(swept_scene(sweeps, instances=(pts, dirs), brightness=1.0).sdl())
+    bright = levels(swept_scene(sweeps, instances=(pts, dirs), brightness=3.0).sdl())
+    assert bright == pytest.approx([v * 3.0 for v in dim])
+
+
+def test_swept_scene_needs_no_instances_or_clouds():
+    sweeps, _, _ = _subject()
+    sdl = swept_scene(sweeps).sdl()
+    assert "sphere_sweep {" in sdl
+    assert "object { Glyph" not in sdl
+
+
+def test_swept_scene_of_nothing_is_empty_not_a_crash():
+    scene = swept_scene([])
+    assert "light_source" not in scene.sdl()
+
+
+def test_instances_by_color_rejects_a_mismatched_index():
+    _, pts, dirs = _subject()
+    with pytest.raises(ValueError, match="does not match"):
+        instances_by_color("Glyph", pts, dirs, ["#fff"], [0, 1, 2])
+
+
+def test_swept_scene_knows_nothing_about_any_kg_package():
+    """Layer 2 must not import layer 1 or any consumer; the seam is arrays."""
+    probe = (
+        "import sys, quiltwright.povgen;"
+        "bad = [m for m in sys.modules if m.split('.')[0] in "
+        "('kg_utils', 'gutenberg_kg', 'pycode_kg', 'diary_kg', 'doc_kg')];"
+        "assert not bad, bad"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", probe], capture_output=True, text=True, check=False
+    )
+    assert result.returncode == 0, result.stderr
+
+
+def test_ground_slab_base_overrides_the_subject_minimum():
+    """
+    A swept tube's bounds are padded by its radius, so a trunk rooted at z = 0
+    reports a minimum of -r and the floor would sit that much low. The caller
+    knows where its root actually is.
+    """
+    lo, hi = np.array([-4.0, -4.0, -0.5]), np.array([4.0, 4.0, 30.0])
+    padded = ground_slab(lo, hi, up=(0, 0, 1))
+    exact = ground_slab(lo, hi, up=(0, 0, 1), base=0.0)
+    assert max(padded.corner1[2], padded.corner2[2]) == pytest.approx(-0.5)
+    assert max(exact.corner1[2], exact.corner2[2]) == pytest.approx(0.0)
+
+
+def test_swept_scene_lights_can_be_left_out():
+    sweeps, pts, dirs = _subject()
+    assert "light_source" not in swept_scene(sweeps, instances=(pts, dirs), lights=False).sdl()
+    assert "light_source" in swept_scene(sweeps, instances=(pts, dirs)).sdl()

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-08-16
+
 ### Added
 
 - **`quiltwright.povgen` — write POV-Ray scenes from analytic primitives.**
@@ -73,6 +75,128 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - **`docs/povgen.md`** — the transcoding guide, including the gotcha list and
   the mutation-testing table.
+
+- **`swept_scene` and `instances_by_color` — the composer that makes a new
+  consumer cheap.** Named for its geometry rather than for any subject: it
+  knows swept tubes, oriented instances and scattered spheres, and nothing
+  about what they depict. A tree is one caller — limbs, leaves, annotation
+  clouds — but so is any producer with the same three shapes, and the name does
+  not mislead a future one.
+
+  What it saves is not the primitives, which were already here, but the
+  assembly: prototype declaration, colour grouping, light rig, floor, and the
+  order those go in. **Lights are placed before the ground**, which is the one
+  piece of that order a caller cannot guess: the rig is sized from the scene
+  bounds and the floor is wider than the subject, so measuring after laying it
+  makes the "scene radius" the slab's half-diagonal, pushing the key light far
+  enough out to flatten the subject and shrink its shadow to nothing. The
+  failure is silent — the scene is structurally perfect and looks dead.
+
+  `instances_by_color` is the grouping on its own, for callers composing by
+  hand: a crown of ten thousand blades in five colours becomes five textures
+  and five unions, not ten thousand of each.
+
+  `lights_from_bounds` gains `rim=` for the dim back light that separates an
+  intricate silhouette from a dark background. Off by default; it is wasted on
+  a solid form against a bright ground.
+
+  `lights=False` leaves the rig out for a caller supplying its own; the scene
+  then renders black, so it is not a default anyone reaches by accident.
+
+  `lights_from_bounds` gains `key_side=` — the direction from the subject
+  toward the side the key should come from, normally the camera's own standoff
+  direction. Bounds cannot supply it, and the side derived from `up` alone is
+  `+y` for a `+z`-up scene, which is the far side from a
+  `kg_utils.viz3d.frame_tree` camera. Left unsaid, the rig lights the back of
+  the subject and the lens looks at its shadow: the scene is structurally
+  perfect, every assertion passes, and the render is merely dark. The old
+  advice for this case was "place your own lights", which is what
+  `gutenberg_kg` had been doing and what removing its copy re-exposed. Only
+  the component across `up` is used, so passing a camera direction chooses a
+  side without also re-deciding the key's elevation. `swept_scene` forwards it.
+
+  A test asserts that importing `povgen` pulls in no `kg_utils` and no KG
+  package. The seam is arrays in both directions, and it has to stay that way.
+
+- **`ground_slab` and `pov_camera_from_frame`** — the two pieces a caller with
+  no plotter needs, and the reason `gutenberg_kg` had written its own.
+
+  `ground_slab` puts a finite floor under a subject for it to cast onto. A
+  contact shadow is most of what makes a subject look *placed* rather than
+  floating, and it is something VTK cannot give at all — its headlight casts
+  nothing — so a scene that looked fine rasterised looks untethered once
+  ray-traced. Finite on purpose: an effectively infinite plane guarantees
+  off-budget disparity at the horizon. Its top face sits at the subject's base
+  along `up`, so the subject stands on the floor rather than hovering over one
+  parked underneath, and its edge is a multiple of the subject's own width so
+  one value suits any scale. `base=` overrides that level for callers whose
+  bounds are not the subject: a swept tube's bounds are padded by its radius,
+  so a trunk rooted at `z = 0` reports a minimum of `-r` and the floor sinks
+  that much, leaving the tree standing in a shallow dish.
+
+  `pov_camera_from_frame` is the sibling of `pov_camera_from_plotter` for
+  callers that have no plotter — a headless box writing `.pov` files with no
+  VTK installed, which is this module's whole purpose. It accepts three
+  sequences or any object carrying `.position`, `.focal_point` and `.up`, which
+  is what `kg_utils.viz3d.frame_tree` returns; duck-typed deliberately, since
+  this package does not import that one and must not. A test asserts both
+  bridges land on the same convention, because two camera paths that disagree
+  is precisely the bug this replaces: an unconverted camera aims at empty space
+  while every assertion comparing right-handed to right-handed passes.
+
+- **`lights_from_bounds` takes `up`.** Its offsets place a key light "above
+  and to the right," and *above* was hard-coded to `+y`. That is right for a
+  VTK scene and wrong for a `+z`-up one — which is what `kg_utils.viz3d`
+  builds, and that package is this module's headline consumer. Left at the
+  default there, the key light lands at `centre_z - 1.4·radius`: below the
+  ground, lighting the subject from underneath.
+
+  `up` defaults to `(0, 1, 0)`, so every existing caller is byte-for-byte
+  unchanged and a test pins the old offsets exactly. Only the up axis is
+  inferred — which side counts as "front" cannot be derived from `up` alone,
+  and the docstring says so rather than guessing.
+
+### Changed
+
+- **`povgen` no longer pulls in the rendering stack.** It is documented as
+  NumPy-only and genuinely is, but it could not be *imported* without VTK: the
+  package `__init__` re-exported `lfd` eagerly, `lfd` imports PyVista whenever
+  it is installed, and `povgen` itself imported `povray` at module scope for
+  `PovCamera` — and `povray` imports `lfd`.
+
+  `__init__` now binds its re-exports lazily (PEP 562) and `povgen` defers the
+  `PovCamera` import into `pov_camera_from_plotter`, the only function that
+  builds one and which has a live plotter by definition. The public API is
+  unchanged; a test walks `__all__` to prove every name still resolves, and
+  another asserts in a subprocess that importing `povgen` touches neither
+  `pyvista`, `lfd`, nor `povray`.
+
+### Fixed
+
+- **`PovCamera` is documented as holding POV-Ray coordinates.** It predates
+  `povgen` and is never converted — only `pov_camera_from_plotter` runs
+  `to_pov`, and `camera_block` emits whatever it is handed. Three places said
+  otherwise: the class docstring's "in scene units", the `povgen` module
+  docstring's "the conversion is applied to the camera as well as the
+  geometry", and `docs/povgen.md` §1, which built a camera by hand directly
+  above the line "Coordinates are written right-handed".
+
+  A consumer read that, framed in the scene's right-handed world, and got an
+  immaculate render of empty space — geometry at negative `z`, lens aimed at
+  positive `z`, and every assertion comparing the camera against the bounds it
+  was derived from passing. The §1 example could not have caught it either:
+  its ball sits at the origin, so `z` is zero and the flip is invisible, the
+  same vacuous-fixture trap the parity fixture above was rebuilt to escape.
+
+- **`PovScene.bounds()` says what it misses.** That `Instance` is skipped was
+  documented; what that costs was not, and instancing is simultaneously what
+  `bounds()` cannot see and the reason to use this module. A tree escapes it
+  by construction — its swept wood is measurable and reaches the crown — but a
+  scene whose subject *is* the instances measures as whatever prop happens to
+  be a real primitive, so lights placed from those bounds sit inside the scene
+  and a camera framed from them fills the tile with the prop. Both escape
+  hatches are now written down, and a test demonstrates the narrow bounds and
+  then the untextured `Box` that widens them.
 
 ## [0.4.0] — 2026-08-14
 
