@@ -90,6 +90,8 @@ _LAZY: dict[str, str] = {
     "load_region_mapping": "tvb_data",
     "load_sensors": "tvb_data",
     "load_surface": "tvb_data",
+    "ground_slab": "povgen",
+    "pov_camera_from_frame": "povgen",
     "parse_color": "povgen",
     "pause_quilt": "lfd",
     "pov_camera_from_plotter": "povgen",
@@ -181,6 +183,8 @@ __all__ = [
     "spheres_from_points",
     "instances_from_frames",
     "lights_from_bounds",
+    "ground_slab",
+    "pov_camera_from_frame",
     "pov_camera_from_plotter",
     "fov_horizontal_to_vertical",
     # Output

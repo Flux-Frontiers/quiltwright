@@ -22,9 +22,12 @@ from quiltwright.povgen import (
     Union,
     _frame_from_direction,
     fov_horizontal_to_vertical,
+    ground_slab,
     instances_from_frames,
     lights_from_bounds,
     parse_color,
+    pov_camera_from_frame,
+    pov_camera_from_plotter,
     sphere_sweeps_from_paths,
     spheres_from_points,
     to_pov,
@@ -553,3 +556,104 @@ def test_pov_camera_from_plotter_is_the_thing_that_converts():
     assert camera.location == pytest.approx(to_pov((1.0, -2.0, 3.0)))
     assert camera.look_at == pytest.approx(to_pov((0.0, 0.0, 4.0)))
     assert camera.sky == pytest.approx((0.0, 0.0, -1.0))
+
+
+# ---------------------------------------------------------------------------
+# ground_slab — a finite floor to catch a shadow
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("up, axis", [((0.0, 1.0, 0.0), 1), ((0.0, 0.0, 1.0), 2)])
+def test_ground_slab_top_face_sits_at_the_subject_base(up, axis):
+    """The subject stands on the floor; it does not hover over one below it."""
+    lo, hi = np.array([-4.0, -4.0, 0.0]), np.array([4.0, 4.0, 30.0])
+    box = ground_slab(lo, hi, up=up)
+    faces = sorted((box.corner1[axis], box.corner2[axis]))
+    assert faces[1] == pytest.approx(lo[axis])
+
+
+def test_ground_slab_scales_with_the_subject():
+    lo, hi = np.array([-4.0, -4.0, 0.0]), np.array([4.0, 4.0, 30.0])
+    narrow = ground_slab(lo, hi, up=(0, 0, 1), size=2.0)
+    wide = ground_slab(lo, hi, up=(0, 0, 1), size=8.0)
+    assert (wide.corner2[0] - wide.corner1[0]) == pytest.approx(
+        4.0 * (narrow.corner2[0] - narrow.corner1[0])
+    )
+
+
+def test_ground_slab_is_centred_under_an_off_centre_subject():
+    lo, hi = np.array([10.0, -4.0, 0.0]), np.array([18.0, 4.0, 30.0])
+    box = ground_slab(lo, hi, up=(0, 0, 1))
+    assert (box.corner1[0] + box.corner2[0]) / 2 == pytest.approx(14.0)
+
+
+def test_ground_slab_is_never_degenerate_for_a_flat_subject():
+    """A subject with no horizontal extent still needs a floor with an area."""
+    box = ground_slab((0.0, 0.0, 0.0), (0.0, 0.0, 5.0), up=(0, 0, 1))
+    assert box.corner2[0] > box.corner1[0]
+
+
+# ---------------------------------------------------------------------------
+# pov_camera_from_frame — the sibling for callers with no plotter
+# ---------------------------------------------------------------------------
+
+
+class _Frame:
+    """Duck-typed stand-in for kg_utils.viz3d.CameraFrame — not imported here."""
+
+    position = (1.0, -90.0, 15.0)
+    focal_point = (1.0, 0.0, 15.0)
+    up = (0.0, 0.0, 1.0)
+
+
+def test_pov_camera_from_frame_converts_into_pov_coordinates():
+    """
+    The whole point of the function. A frame computed in the right-handed world
+    the scene was authored in is not a PovCamera; camera_block emits whatever it
+    is handed, so an unconverted one aims at empty space while every assertion
+    comparing right-handed to right-handed passes.
+    """
+    cam = pov_camera_from_frame(_Frame(), fov=26.0)
+    assert cam.location == pytest.approx(to_pov(_Frame.position))
+    assert cam.look_at == pytest.approx(to_pov(_Frame.focal_point))
+    assert cam.sky == pytest.approx((0.0, 0.0, -1.0))
+    assert cam.fov == 26.0
+
+
+def test_pov_camera_from_frame_matches_the_plotter_bridge():
+    """Both bridges must land on the same convention, or the two paths diverge."""
+    pv = pytest.importorskip("pyvista")
+
+    plotter = pv.Plotter(off_screen=True)
+    plotter.camera.position = _Frame.position
+    plotter.camera.focal_point = _Frame.focal_point
+    plotter.camera.up = _Frame.up
+    carried = pov_camera_from_plotter(plotter, fov=26.0)
+    plotter.close()
+
+    framed = pov_camera_from_frame(_Frame(), fov=26.0)
+    assert framed.location == pytest.approx(carried.location)
+    assert framed.look_at == pytest.approx(carried.look_at)
+    assert framed.sky == pytest.approx(carried.sky)
+
+
+def test_pov_camera_from_frame_accepts_bare_sequences():
+    cam = pov_camera_from_frame((0.0, -8.0, 3.0), (0.0, 0.0, 3.0), (0.0, 0.0, 1.0))
+    assert cam.location == pytest.approx((0.0, -8.0, -3.0))
+
+
+def test_pov_camera_from_frame_needs_a_look_at_for_a_bare_position():
+    with pytest.raises(ValueError, match="look_at"):
+        pov_camera_from_frame((0.0, -8.0, 3.0))
+
+
+def test_zoom_dollies_toward_the_focal_point_without_moving_it():
+    near = pov_camera_from_frame(_Frame(), zoom=2.0)
+    far = pov_camera_from_frame(_Frame(), zoom=1.0)
+    assert near.focal_distance == pytest.approx(far.focal_distance / 2.0)
+    assert near.look_at == pytest.approx(far.look_at)
+
+
+def test_a_non_positive_zoom_is_an_error_not_a_flipped_camera():
+    with pytest.raises(ValueError, match="zoom"):
+        pov_camera_from_frame(_Frame(), zoom=0.0)

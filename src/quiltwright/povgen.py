@@ -1000,3 +1000,122 @@ def fov_horizontal_to_vertical(fov_h: float, aspect: float) -> float:
     """
     half = math.radians(fov_h) / 2.0
     return math.degrees(2.0 * math.atan(math.tan(half) / aspect))
+
+
+def ground_slab(
+    lo: Sequence[float],
+    hi: Sequence[float],
+    *,
+    up: Sequence[float] = (0.0, 1.0, 0.0),
+    size: float = 3.0,
+    thickness: float = 0.4,
+    texture: Texture | str | None = None,
+) -> Box:
+    """A finite floor under a subject, for it to cast a shadow onto.
+
+    Ray-tracing gives a contact shadow, and a contact shadow is most of what
+    makes a subject look *placed* rather than floating.  VTK's headlight casts
+    nothing, so a transcoded scene that looked fine rasterised will look
+    untethered until it has one of these.
+
+    Deliberately finite.  An effectively infinite plane guarantees off-budget
+    disparity at the horizon on a light-field panel; a slab a few subject-widths
+    across catches the shadow and stops.
+
+    Its top face sits at the subject's *base* along *up* — the minimum of the
+    bounds, not below them — so the subject stands on the floor rather than
+    hovering over one parked underneath.
+
+    :param lo: Lower bound corner of the subject, right-handed.
+    :param hi: Upper bound corner of the subject, right-handed.
+    :param up: World up direction; the slab lies perpendicular to it.
+    :param size: Slab edge as a multiple of the subject's widest horizontal
+        extent, so one value suits subjects of any scale.
+    :param thickness: Slab depth along *up*.  Only its silhouette shows, but a
+        zero-thickness box is degenerate.
+    :param texture: Texture, a declared name, or ``None``.
+    :return: The slab as a :class:`Box`.
+    :raises ValueError: If *up* is degenerate.
+    """
+    lo_a = np.asarray(lo, dtype=float)
+    hi_a = np.asarray(hi, dtype=float)
+    _, up_hat, _ = _rig_frame(up)
+
+    axis = int(np.argmax(np.abs(up_hat)))
+    flat = [i for i in range(3) if i != axis]
+    width = max(float(hi_a[i] - lo_a[i]) for i in flat) or 1.0
+    half = width * size / 2.0
+    base = float(lo_a[axis])
+
+    corner1 = np.zeros(3)
+    corner2 = np.zeros(3)
+    for i in flat:
+        centre = (lo_a[i] + hi_a[i]) / 2.0
+        corner1[i], corner2[i] = centre - half, centre + half
+    sign = 1.0 if up_hat[axis] >= 0 else -1.0
+    corner1[axis], corner2[axis] = base - sign * thickness, base
+
+    return Box(corner1=tuple(corner1), corner2=tuple(corner2), texture=texture)
+
+
+def pov_camera_from_frame(
+    frame,
+    look_at: Sequence[float] | None = None,
+    up: Sequence[float] = (0.0, 0.0, 1.0),
+    *,
+    fov: float = 14.0,
+    zoom: float = 1.0,
+    handedness: str = "flip-z",
+):
+    """Convert a renderer-independent camera frame into a :class:`PovCamera`.
+
+    The sibling of :func:`pov_camera_from_plotter`, for callers that have no
+    plotter — a headless box writing ``.pov`` files with no VTK installed, which
+    is the whole point of this module.
+
+    *frame* may be either three sequences (``position, look_at, up``) or a
+    single object carrying ``.position``, ``.focal_point`` and ``.up``, which is
+    what ``kg_utils.viz3d.frame_tree`` returns.  It is duck-typed on purpose:
+    this package does not import that one, and must not.
+
+    **The conversion is the entire point.**  :class:`PovCamera` holds POV-Ray
+    coordinates; a frame computed in the right-handed world the scene was
+    authored in is not one.  Hand an unconverted camera to
+    :func:`~quiltwright.povray.camera_block` and the geometry sits at negative
+    *z* while the lens aims at positive *z*, and POV-Ray renders an immaculate
+    picture of empty space — with nothing wrong in the scene file and every
+    assertion that compares right-handed against right-handed passing.
+
+    :param frame: ``position`` sequence, or a frame object as described above.
+    :param look_at: Focal point, when *frame* is a bare position.
+    :param up: Up vector, when *frame* is a bare position.
+    :param fov: Vertical field of view in degrees.
+    :param zoom: Dolly factor toward the focal point applied after framing;
+        ``>1`` fills more of the tile, which is what drives perceived depth.
+    :param handedness: Coordinate conversion; must match the :class:`PovScene`
+        the geometry was written with.
+    :return: The camera, in POV-Ray coordinates.
+    :raises ValueError: If *zoom* is not positive.
+    """
+    from quiltwright.povray import PovCamera  # deferred; see the note on imports
+
+    if hasattr(frame, "position") and hasattr(frame, "focal_point"):
+        position, look_at, up = frame.position, frame.focal_point, getattr(frame, "up", up)
+    else:
+        position = frame
+        if look_at is None:
+            raise ValueError("look_at is required when frame is a bare position")
+
+    if zoom <= 0:
+        raise ValueError(f"zoom must be positive, got {zoom}")
+
+    eye = np.asarray(position, dtype=float)
+    target = np.asarray(look_at, dtype=float)
+    eye = target + (eye - target) / float(zoom)
+
+    return PovCamera(
+        location=to_pov(eye, handedness),
+        look_at=to_pov(target, handedness),
+        sky=to_pov(up, handedness),
+        fov=float(fov),
+    )

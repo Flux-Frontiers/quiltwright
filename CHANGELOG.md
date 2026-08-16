@@ -76,6 +76,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **`docs/povgen.md`** — the transcoding guide, including the gotcha list and
   the mutation-testing table.
 
+- **`ground_slab` and `pov_camera_from_frame`** — the two pieces a caller with
+  no plotter needs, and the reason `gutenberg_kg` had written its own.
+
+  `ground_slab` puts a finite floor under a subject for it to cast onto. A
+  contact shadow is most of what makes a subject look *placed* rather than
+  floating, and it is something VTK cannot give at all — its headlight casts
+  nothing — so a scene that looked fine rasterised looks untethered once
+  ray-traced. Finite on purpose: an effectively infinite plane guarantees
+  off-budget disparity at the horizon. Its top face sits at the subject's base
+  along `up`, so the subject stands on the floor rather than hovering over one
+  parked underneath, and its edge is a multiple of the subject's own width so
+  one value suits any scale.
+
+  `pov_camera_from_frame` is the sibling of `pov_camera_from_plotter` for
+  callers that have no plotter — a headless box writing `.pov` files with no
+  VTK installed, which is this module's whole purpose. It accepts three
+  sequences or any object carrying `.position`, `.focal_point` and `.up`, which
+  is what `kg_utils.viz3d.frame_tree` returns; duck-typed deliberately, since
+  this package does not import that one and must not. A test asserts both
+  bridges land on the same convention, because two camera paths that disagree
+  is precisely the bug this replaces: an unconverted camera aims at empty space
+  while every assertion comparing right-handed to right-handed passes.
+
 - **`lights_from_bounds` takes `up`.** Its offsets place a key light "above
   and to the right," and *above* was hard-coded to `+y`. That is right for a
   VTK scene and wrong for a `+z`-up one — which is what `kg_utils.viz3d`
