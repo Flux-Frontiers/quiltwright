@@ -1,8 +1,15 @@
 # Publish a GitHub Release on tag push, and — on request — render the Looking
 # Glass quilts and attach them to it.
 #
-# Pushing a `v*` tag builds the wheel and sdist and creates the Release from
-# release-notes.md.  That is the fast path and runs on every tag.
+# Pushing a `v*` tag builds the wheel and sdist, creates the Release from
+# release-notes.md, and publishes those same two files to PyPI.  That is the
+# fast path and runs on every tag.
+#
+# The PyPI upload uses trusted publishing (OIDC), so there is no API token in
+# the repository secrets — the runner mints a short-lived token PyPI trades for
+# an upload.  It is configured on PyPI under the project's Publishing settings
+# and must name this repository, the workflow file `release.yml`, and the
+# `pypi` environment below; change any of those three and the upload stops.
 #
 # Quilts are 25-40 MB each and never enter git (see .gitignore); they are
 # release assets instead.  Rendering them costs hours, so it is opt-in: run
@@ -62,6 +69,14 @@ jobs:
       - name: Build wheel and sdist
         run: poetry build
 
+      # Hand the built files to the publish job rather than letting it rebuild,
+      # so PyPI and the GitHub Release carry byte-identical artifacts.
+      - name: Stash dist for the publish job
+        uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -75,6 +90,31 @@ jobs:
               --title "Quiltwright $TAG" \
               --notes-file release-notes.md
           fi
+
+  publish:
+    name: Publish to PyPI
+    needs: release
+    # Only a real tag push publishes.  A workflow_dispatch run exists to attach
+    # quilts to a tag that already shipped, and PyPI refuses to re-upload a
+    # version it already holds, so publishing there would fail every time.
+    if: ${{ github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/quiltwright
+    # Replaces the workflow-level `contents: write` for this job: publishing
+    # needs to mint an OIDC token and nothing else.
+    permissions:
+      id-token: write
+    steps:
+      - name: Fetch the artifacts the release job built
+        uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
 
   quilt:
     name: Render ${{ matrix.subject }}
