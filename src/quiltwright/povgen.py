@@ -932,6 +932,7 @@ def lights_from_bounds(
     hi: Sequence[float],
     *,
     up: Sequence[float] = (0.0, 1.0, 0.0),
+    key_side: Sequence[float] | None = None,
     intensity: float = 1.0,
     fill: bool = True,
     rim: bool = False,
@@ -951,15 +952,24 @@ def lights_from_bounds(
     below the ground, lighting the subject from underneath. Pass
     ``up=(0, 0, 1)`` and it goes overhead where it belongs.
 
-    Only the up axis is inferred.  Which side of the subject counts as "front"
-    follows from *up* and cannot know where your camera is, so a scene that
-    needs the key on a particular side should place its own lights rather than
-    lean on this.
+    **Say which side the camera is on.**  Bounds cannot tell you: the derived
+    side is whatever falls out of *up*, and for a ``+z``-up scene that is
+    ``+y`` — the far side from a :func:`kg_utils.viz3d.frame_tree` camera,
+    which stands off along ``-y``.  Leave *key_side* unset and the rig lights
+    the back of the subject while the lens looks at its shadow.  The scene is
+    perfectly lit and the picture is dark, which is a hard failure to read
+    backwards from an image.
 
     :param lo: Lower bound corner, right-handed.
     :param hi: Upper bound corner, right-handed.
     :param up: World up direction.  Defaults to ``+y`` for backward
         compatibility; ``(0, 0, 1)`` for a ``+z``-up scene.
+    :param key_side: Direction from the subject toward the side the key should
+        come from — normally the camera's own standoff direction, so the lens
+        sees the lit face.  Only its component across *up* is used, so it
+        chooses a side without re-deciding the key's elevation.  ``None``
+        derives one from *up*, which is the historical behaviour and is
+        unlikely to be the side you want.
     :param intensity: Key light brightness multiplier.
     :param fill: Add the shadowless fill light.
     :param rim: Add a dim shadowless light behind the subject, so it separates
@@ -974,6 +984,20 @@ def lights_from_bounds(
     centre = (lo_a + hi_a) / 2.0
     radius = float(np.linalg.norm(hi_a - lo_a)) / 2.0 or 1.0
     right, up_hat, front = _rig_frame(up)
+    if key_side is not None:
+        side = np.asarray(key_side, dtype=float)
+        norm = float(np.linalg.norm(side))
+        if norm < 1e-9:
+            raise ValueError(f"key_side is degenerate: {tuple(key_side)}")
+        side = side / norm
+        # Keep only the part across *up*, so the caller's vector chooses a
+        # side without also re-deciding the key's elevation.
+        front = side - up_hat * float(side @ up_hat)
+        norm = float(np.linalg.norm(front))
+        if norm < 1e-9:
+            raise ValueError("key_side is parallel to up; it names a side, not a height")
+        front /= norm
+        right = np.cross(front, up_hat)
 
     def place(r: float, u: float, f: float) -> tuple[float, ...]:
         return tuple(centre + (right * r + up_hat * u + front * f) * radius)
@@ -1214,6 +1238,7 @@ def swept_scene(
     sky: str | Sequence[float] | None = None,
     ambient: str | Sequence[float] | None = None,
     lights: bool = True,
+    key_side: Sequence[float] | None = None,
     rim_light: bool = False,
     ground: float = 0.0,
     ground_base: float | None = None,
@@ -1267,6 +1292,9 @@ def swept_scene(
     :param brightness: Key-light multiplier.
     :param lights: Place the rig.  ``False`` leaves the scene unlit, which
         POV-Ray renders black — useful only when the caller supplies its own.
+    :param key_side: Which side the key comes from — pass the camera's
+        standoff direction, or the lens looks at the subject's shadow.  See
+        :func:`lights_from_bounds`.
     :param rim_light: Add the back light; see :func:`lights_from_bounds`.
     :param ground_base: Level along *up* for the floor's top face; see
         :func:`ground_slab`.
@@ -1320,7 +1348,9 @@ def swept_scene(
         return scene
 
     if lights:
-        for light in lights_from_bounds(*bounds, up=up, intensity=brightness, rim=rim_light):
+        for light in lights_from_bounds(
+            *bounds, up=up, key_side=key_side, intensity=brightness, rim=rim_light
+        ):
             scene.add_light(light)
 
     if ground > 0:

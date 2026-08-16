@@ -103,6 +103,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   `lights=False` leaves the rig out for a caller supplying its own; the scene
   then renders black, so it is not a default anyone reaches by accident.
 
+  `lights_from_bounds` gains `key_side=` — the direction from the subject
+  toward the side the key should come from, normally the camera's own standoff
+  direction. Bounds cannot supply it, and the side derived from `up` alone is
+  `+y` for a `+z`-up scene, which is the far side from a
+  `kg_utils.viz3d.frame_tree` camera. Left unsaid, the rig lights the back of
+  the subject and the lens looks at its shadow: the scene is structurally
+  perfect, every assertion passes, and the render is merely dark. The old
+  advice for this case was "place your own lights", which is what
+  `gutenberg_kg` had been doing and what removing its copy re-exposed. Only
+  the component across `up` is used, so passing a camera direction chooses a
+  side without also re-deciding the key's elevation. `swept_scene` forwards it.
+
   A test asserts that importing `povgen` pulls in no `kg_utils` and no KG
   package. The seam is arrays in both directions, and it has to stay that way.
 

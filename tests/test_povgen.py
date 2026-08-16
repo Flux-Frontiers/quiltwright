@@ -491,6 +491,74 @@ def test_a_degenerate_up_is_an_error_not_a_nan():
 
 
 # ---------------------------------------------------------------------------
+# lights_from_bounds: which side the camera is on
+# ---------------------------------------------------------------------------
+
+
+def test_the_key_lands_on_the_side_the_caller_names():
+    """
+    The bug this parameter exists for, and the one `up=` does not cover: the
+    derived side for a +z-up scene is +y, and a frame_tree camera stands off
+    along -y. So the rig lit the back of the tree and the lens looked at its
+    shadow — a scene that is structurally perfect and renders dark.
+    """
+    lo, hi = np.array([-2.0, -2.0, 0.0]), np.array([2.0, 2.0, 20.0])
+    centre = (lo + hi) / 2.0
+    up = (0.0, 0.0, 1.0)
+
+    derived = lights_from_bounds(lo, hi, up=up)[0]
+    assert derived.position[1] > centre[1], "expected the historical side to be +y"
+
+    key = lights_from_bounds(lo, hi, up=up, key_side=(0.0, -1.0, 0.0))[0]
+    assert key.position[1] < centre[1]
+    assert key.position[2] > hi[2], "naming a side must not drop the key"
+
+
+def test_only_the_part_across_up_chooses_the_side():
+    """A caller passing a camera direction hands over a tilt it did not mean."""
+    lo, hi = np.array([-2.0, -2.0, 0.0]), np.array([2.0, 2.0, 20.0])
+    up = (0.0, 0.0, 1.0)
+    level = lights_from_bounds(lo, hi, up=up, key_side=(0.0, -1.0, 0.0))[0]
+    tilted = lights_from_bounds(lo, hi, up=up, key_side=(0.0, -1.0, -4.0))[0]
+    assert np.allclose(level.position, tilted.position)
+
+
+def test_the_rig_stays_rigid_when_a_side_is_named():
+    lo, hi = np.array([-2.0, -1.0, 0.0]), np.array([2.0, 3.0, 20.0])
+    centre = (lo + hi) / 2.0
+    derived = lights_from_bounds(lo, hi, up=(0.0, 0.0, 1.0), rim=True)
+    named = lights_from_bounds(lo, hi, up=(0.0, 0.0, 1.0), key_side=(0, -1, 0), rim=True)
+    for a, b in zip(derived, named, strict=True):
+        assert np.linalg.norm(np.asarray(a.position) - centre) == pytest.approx(
+            np.linalg.norm(np.asarray(b.position) - centre)
+        )
+        assert a.color == b.color and a.shadowless == b.shadowless
+
+
+def test_a_key_side_that_names_no_side_is_an_error():
+    lo, hi = np.array([-2.0, -2.0, 0.0]), np.array([2.0, 2.0, 20.0])
+    with pytest.raises(ValueError, match="degenerate"):
+        lights_from_bounds(lo, hi, up=(0, 0, 1), key_side=(0.0, 0.0, 0.0))
+    with pytest.raises(ValueError, match="parallel to up"):
+        lights_from_bounds(lo, hi, up=(0, 0, 1), key_side=(0.0, 0.0, 1.0))
+
+
+def test_swept_scene_forwards_the_key_side():
+    sweeps, pts, dirs = _subject()
+    lit = swept_scene(sweeps, instances=(pts, dirs), key_side=(0.0, -1.0, 0.0))
+    lo, hi = lit.bounds()
+    centre = (np.asarray(lo) + np.asarray(hi)) / 2.0
+    # The key is the only shadow-casting light, which is what makes it the key.
+    key_y = [
+        float(re.search(r"<\s*([-\d.eE+]+),\s*([-\d.eE+]+),", block).group(2))
+        for block in re.findall(r"light_source \{[^}]*\}", lit.sdl())
+        if "shadowless" not in block
+    ]
+    # to_pov negates z only, so y in the emitted file is y as authored.
+    assert key_y and all(y < centre[1] for y in key_y), "key must sit on the camera's side"
+
+
+# ---------------------------------------------------------------------------
 # povgen is reachable without a rendering stack
 # ---------------------------------------------------------------------------
 
