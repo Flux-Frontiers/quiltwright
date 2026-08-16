@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- **`docs/pdb2pov.md` covers the Python port of pdb2pov**, which writes
+  byte-identical scenes from the same flags and is importable, so a
+  conversion and a `render_pov_quilt()` call now fit in one script instead of
+  a shell step and a file to scrape. The page gains a "Choosing one" section,
+  the port's extra flags, and a worked example that goes from a compressed
+  mmCIF straight to a saved quilt.
+
+  Three things in the example were previously left implicit and are now
+  written out. An `-o` include *declares* — no camera, no lights, no
+  `object { }` — so the host scene supplying all three is spelled out rather
+  than described. `include_dir()` gives `include_paths` a real path instead of
+  `"path/to/pdb2pov"`. And `structure.enclosing_radius()` is the *unpadded*
+  radius: the header comment and the emitted float carry it grown by 2%, so a
+  depth budget built from the method without that factor is 2% short at both
+  ends.
+
+- **The alternate-conformation guidance is no longer just "the A conformer".**
+  1CBN — crambin, the molecule the page uses throughout — is the counterexample:
+  fourteen atoms carry only altLoc `C` and vanish under the blank-or-`A` rule,
+  and residue 22 is modelled as both serine and proline at one sequence
+  position. The page now documents `--altloc {a,first,occupancy,all}` and why
+  the choice has to be made per residue rather than per atom.
+
+- `docs/install.md` and the README name mmCIF alongside PDB, and offer the
+  `pip install ./pdb2pov/python` route beside the `make` one.
+
 ## [0.4.0] — 2026-08-14
 
 ### Added

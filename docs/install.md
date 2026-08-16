@@ -11,7 +11,7 @@ this page goes layer by layer, and each section says who can skip it.
 | Render quilts from PyVista/VTK scenes | `[viz]` extra |
 | Ray-trace quilts from POV-Ray scenes | `povray` binary |
 | Encode quilt video or HLD masters | ffmpeg (or `[video]` extra) |
-| Render molecular structures from PDB files | pdb2pov |
+| Render molecular structures from PDB or mmCIF files | pdb2pov |
 
 ---
 
@@ -126,16 +126,31 @@ install time. Check with `ffmpeg -h encoder=libx265`.
 
 ## 5. pdb2pov (molecular scenes)
 
-Optional; feeds the POV-Ray backend with molecular structures. It is a 1993
-C program whose portability fixes now live upstream, so a fresh clone just
-builds:
+Optional; feeds the POV-Ray backend with molecular structures. There are two
+implementations, writing byte-identical scenes.
+
+**Python port** — no compiler, no dependencies, reads mmCIF, and importable
+from the same script that renders the quilt:
+
+```bash
+git clone https://github.com/suchanek/pdb2pov
+pip install ./pdb2pov/python
+```
+
+**The C program** — the 1993 original, whose portability fixes now live
+upstream, so a fresh clone just builds:
 
 ```bash
 git clone https://github.com/suchanek/pdb2pov
 cd pdb2pov && make pdb2pov
 ```
 
-See [pdb2pov.md](pdb2pov.md) for the build notes and the render pipeline.
+Either way the scenes reference POV-Ray include files that must be on the
+library path. `pdb2pov --include-dir` prints where the Python package keeps
+them; with the C program they sit in the clone.
+
+See [pdb2pov.md](pdb2pov.md) for which to choose, the build notes, and the
+render pipeline.
 
 ---
 
