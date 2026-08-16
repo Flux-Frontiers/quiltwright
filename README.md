@@ -3,7 +3,7 @@
 [![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](LICENSE)
 [![PyPI](https://img.shields.io/pypi/v/quiltwright.svg)](https://pypi.org/project/quiltwright/)
-[![Version](https://img.shields.io/badge/version-0.4.0-blue.svg)](https://github.com/suchanek/quiltwright/releases)
+[![Version](https://img.shields.io/badge/version-0.5.0-blue.svg)](https://github.com/suchanek/quiltwright/releases)
 [![Tests](https://github.com/suchanek/quiltwright/actions/workflows/tests.yml/badge.svg)](https://github.com/suchanek/quiltwright/actions/workflows/tests.yml)
 [![DOI](https://zenodo.org/badge/1323414722.svg)](https://doi.org/10.5281/zenodo.21798503)
 
@@ -301,7 +301,7 @@ on Zenodo.
   title   = {Quiltwright: Holographic Output for Looking Glass Displays},
   url     = {https://github.com/suchanek/quiltwright},
   doi     = {10.5281/zenodo.21798503},
-  version = {0.4.0},
+  version = {0.5.0},
   year    = {2026}
 }
 ```

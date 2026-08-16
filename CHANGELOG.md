@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-08-16
+
 ### Added
 
 - **`quiltwright.povgen` — write POV-Ray scenes from analytic primitives.**
@@ -73,6 +75,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - **`docs/povgen.md`** — the transcoding guide, including the gotcha list and
   the mutation-testing table.
+
+- **`lights_from_bounds` takes `up`.** Its offsets place a key light "above
+  and to the right," and *above* was hard-coded to `+y`. That is right for a
+  VTK scene and wrong for a `+z`-up one — which is what `kg_utils.viz3d`
+  builds, and that package is this module's headline consumer. Left at the
+  default there, the key light lands at `centre_z - 1.4·radius`: below the
+  ground, lighting the subject from underneath.
+
+  `up` defaults to `(0, 1, 0)`, so every existing caller is byte-for-byte
+  unchanged and a test pins the old offsets exactly. Only the up axis is
+  inferred — which side counts as "front" cannot be derived from `up` alone,
+  and the docstring says so rather than guessing.
+
+### Changed
+
+- **`povgen` no longer pulls in the rendering stack.** It is documented as
+  NumPy-only and genuinely is, but it could not be *imported* without VTK: the
+  package `__init__` re-exported `lfd` eagerly, `lfd` imports PyVista whenever
+  it is installed, and `povgen` itself imported `povray` at module scope for
+  `PovCamera` — and `povray` imports `lfd`.
+
+  `__init__` now binds its re-exports lazily (PEP 562) and `povgen` defers the
+  `PovCamera` import into `pov_camera_from_plotter`, the only function that
+  builds one and which has a live plotter by definition. The public API is
+  unchanged; a test walks `__all__` to prove every name still resolves, and
+  another asserts in a subprocess that importing `povgen` touches neither
+  `pyvista`, `lfd`, nor `povray`.
+
+### Fixed
+
+- **`PovCamera` is documented as holding POV-Ray coordinates.** It predates
+  `povgen` and is never converted — only `pov_camera_from_plotter` runs
+  `to_pov`, and `camera_block` emits whatever it is handed. Three places said
+  otherwise: the class docstring's "in scene units", the `povgen` module
+  docstring's "the conversion is applied to the camera as well as the
+  geometry", and `docs/povgen.md` §1, which built a camera by hand directly
+  above the line "Coordinates are written right-handed".
+
+  A consumer read that, framed in the scene's right-handed world, and got an
+  immaculate render of empty space — geometry at negative `z`, lens aimed at
+  positive `z`, and every assertion comparing the camera against the bounds it
+  was derived from passing. The §1 example could not have caught it either:
+  its ball sits at the origin, so `z` is zero and the flip is invisible, the
+  same vacuous-fixture trap the parity fixture above was rebuilt to escape.
+
+- **`PovScene.bounds()` says what it misses.** That `Instance` is skipped was
+  documented; what that costs was not, and instancing is simultaneously what
+  `bounds()` cannot see and the reason to use this module. A tree escapes it
+  by construction — its swept wood is measurable and reaches the crown — but a
+  scene whose subject *is* the instances measures as whatever prop happens to
+  be a real primitive, so lights placed from those bounds sit inside the scene
+  and a camera framed from them fills the tile with the prop. Both escape
+  hatches are now written down, and a test demonstrates the narrow bounds and
+  then the untextured `Box` that widens them.
 
 ## [0.4.0] — 2026-08-14
 
