@@ -775,3 +775,22 @@ def test_swept_scene_knows_nothing_about_any_kg_package():
         [sys.executable, "-c", probe], capture_output=True, text=True, check=False
     )
     assert result.returncode == 0, result.stderr
+
+
+def test_ground_slab_base_overrides_the_subject_minimum():
+    """
+    A swept tube's bounds are padded by its radius, so a trunk rooted at z = 0
+    reports a minimum of -r and the floor would sit that much low. The caller
+    knows where its root actually is.
+    """
+    lo, hi = np.array([-4.0, -4.0, -0.5]), np.array([4.0, 4.0, 30.0])
+    padded = ground_slab(lo, hi, up=(0, 0, 1))
+    exact = ground_slab(lo, hi, up=(0, 0, 1), base=0.0)
+    assert max(padded.corner1[2], padded.corner2[2]) == pytest.approx(-0.5)
+    assert max(exact.corner1[2], exact.corner2[2]) == pytest.approx(0.0)
+
+
+def test_swept_scene_lights_can_be_left_out():
+    sweeps, pts, dirs = _subject()
+    assert "light_source" not in swept_scene(sweeps, instances=(pts, dirs), lights=False).sdl()
+    assert "light_source" in swept_scene(sweeps, instances=(pts, dirs)).sdl()

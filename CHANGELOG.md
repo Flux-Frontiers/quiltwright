@@ -100,6 +100,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   intricate silhouette from a dark background. Off by default; it is wasted on
   a solid form against a bright ground.
 
+  `lights=False` leaves the rig out for a caller supplying its own; the scene
+  then renders black, so it is not a default anyone reaches by accident.
+
   A test asserts that importing `povgen` pulls in no `kg_utils` and no KG
   package. The seam is arrays in both directions, and it has to stay that way.
 
@@ -114,7 +117,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   off-budget disparity at the horizon. Its top face sits at the subject's base
   along `up`, so the subject stands on the floor rather than hovering over one
   parked underneath, and its edge is a multiple of the subject's own width so
-  one value suits any scale.
+  one value suits any scale. `base=` overrides that level for callers whose
+  bounds are not the subject: a swept tube's bounds are padded by its radius,
+  so a trunk rooted at `z = 0` reports a minimum of `-r` and the floor sinks
+  that much, leaving the tree standing in a shallow dish.
 
   `pov_camera_from_frame` is the sibling of `pov_camera_from_plotter` for
   callers that have no plotter — a headless box writing `.pov` files with no

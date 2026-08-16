@@ -1023,6 +1023,7 @@ def ground_slab(
     up: Sequence[float] = (0.0, 1.0, 0.0),
     size: float = 3.0,
     thickness: float = 0.4,
+    base: float | None = None,
     texture: Texture | str | None = None,
 ) -> Box:
     """A finite floor under a subject, for it to cast a shadow onto.
@@ -1047,6 +1048,11 @@ def ground_slab(
         extent, so one value suits subjects of any scale.
     :param thickness: Slab depth along *up*.  Only its silhouette shows, but a
         zero-thickness box is degenerate.
+    :param base: Level along *up* for the top face.  ``None`` takes the
+        subject's own minimum, which is right when the bounds *are* the
+        subject.  Pass it when they are not: a swept tube's bounds are padded
+        by its radius, so a trunk rooted at ``z = 0`` reports a minimum of
+        ``-r`` and the floor would sit that much low.
     :param texture: Texture, a declared name, or ``None``.
     :return: The slab as a :class:`Box`.
     :raises ValueError: If *up* is degenerate.
@@ -1059,7 +1065,7 @@ def ground_slab(
     flat = [i for i in range(3) if i != axis]
     width = max(float(hi_a[i] - lo_a[i]) for i in flat) or 1.0
     half = width * size / 2.0
-    base = float(lo_a[axis])
+    level = float(lo_a[axis]) if base is None else float(base)
 
     corner1 = np.zeros(3)
     corner2 = np.zeros(3)
@@ -1067,7 +1073,7 @@ def ground_slab(
         centre = (lo_a[i] + hi_a[i]) / 2.0
         corner1[i], corner2[i] = centre - half, centre + half
     sign = 1.0 if up_hat[axis] >= 0 else -1.0
-    corner1[axis], corner2[axis] = base - sign * thickness, base
+    corner1[axis], corner2[axis] = level - sign * thickness, level
 
     return Box(corner1=tuple(corner1), corner2=tuple(corner2), texture=texture)
 
@@ -1207,8 +1213,10 @@ def swept_scene(
     up: Sequence[float] = (0.0, 0.0, 1.0),
     sky: str | Sequence[float] | None = None,
     ambient: str | Sequence[float] | None = None,
+    lights: bool = True,
     rim_light: bool = False,
     ground: float = 0.0,
+    ground_base: float | None = None,
     ground_color: str | Sequence[float] = "#2d4a1e",
     ground_finish: Finish | None = None,
     brightness: float = 1.0,
@@ -1257,7 +1265,11 @@ def swept_scene(
     :param ground_finish: Floor finish.  Remember it is multiplied by
         *brightness*: a diffuse tuned for a unit key clips at a high one.
     :param brightness: Key-light multiplier.
+    :param lights: Place the rig.  ``False`` leaves the scene unlit, which
+        POV-Ray renders black — useful only when the caller supplies its own.
     :param rim_light: Add the back light; see :func:`lights_from_bounds`.
+    :param ground_base: Level along *up* for the floor's top face; see
+        :func:`ground_slab`.
     :param comment: Free text for the file header.
     :return: The composed :class:`PovScene`.
     """
@@ -1307,8 +1319,9 @@ def swept_scene(
     if bounds is None:
         return scene
 
-    for light in lights_from_bounds(*bounds, up=up, intensity=brightness, rim=rim_light):
-        scene.add_light(light)
+    if lights:
+        for light in lights_from_bounds(*bounds, up=up, intensity=brightness, rim=rim_light):
+            scene.add_light(light)
 
     if ground > 0:
         scene.add(
@@ -1316,6 +1329,7 @@ def swept_scene(
                 *bounds,
                 up=up,
                 size=ground,
+                base=ground_base,
                 texture=Texture(
                     color=ground_color,
                     **({} if ground_finish is None else {"finish": ground_finish}),
