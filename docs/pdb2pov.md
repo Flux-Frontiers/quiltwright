@@ -1,12 +1,13 @@
-# Molecules from PDB files, via pdb2pov
+# Molecules from PDB and mmCIF files, via pdb2pov
 
-**Upstream**: <https://github.com/suchanek/pdb2pov> (v2.2; the original RCS
-logs are dated 1993–94)
+**Upstream**: <https://github.com/suchanek/pdb2pov> (v2.2, C and Python; the
+original RCS logs are dated 1993–94)
 **Feeds**: [`quiltwright.povray`](povray.md)
 
-`pdb2pov` converts Brookhaven PDB atomic structure files into POV-Ray scenes.
-It predates this pipeline by thirty years and still feeds it directly — as of
-v2.0 the scenes it writes need no adaptation at all.
+`pdb2pov` converts Brookhaven PDB atomic structure files — and, in the Python
+port, PDBx/mmCIF — into POV-Ray scenes. It predates this pipeline by thirty
+years and still feeds it directly: as of v2.0 the scenes it writes need no
+adaptation at all.
 
 It is also, conveniently, *better* prepared for holographic output than most
 hand-built scenes. See [Why molecules are the easy case](#why-molecules-are-the-easy-case).
@@ -16,9 +17,38 @@ hand-built scenes. See [Why molecules are the easy case](#why-molecules-are-the-
 > prototyped C17 and emits POV-Ray 3.7. If you are on v1.19, see
 > [Working with v1.19](#working-with-v119) at the foot of this page.
 
+> **There are now two implementations.** The C program `pdb2pov`, and
+> `pypdb2pov`, a Python port in the same repository's `python/` directory.
+> They write byte-identical scenes from the same flags — the port's test suite
+> diffs them — so everything on this page about output, geometry and framing
+> applies to both, and the two commands differ only in name, so both can sit
+> on one `PATH`. The port additionally reads mmCIF, which is the only format
+> large structures are distributed in, and offers an importable API that
+> removes the shell step from this pipeline entirely. See
+> [Choosing one](#1-choosing-one).
+
 ---
 
-## 1. Building it
+## 1. Choosing one
+
+**Use `pypdb2pov`, the Python port**, unless you have a reason not to. It
+reads everything the C reads, plus PDBx/mmCIF and compressed files, and it can
+be called from the same script that renders the quilt:
+
+```bash
+git clone https://github.com/suchanek/pdb2pov
+pip install ./pdb2pov/python
+```
+
+No compiler, no dependencies beyond the standard library, and the POV-Ray
+include files ship inside the package — `pypdb2pov --include-dir` prints
+where, which is exactly what `render_pov_quilt`'s `include_paths` wants.
+
+The command is `pypdb2pov`, not `pdb2pov`: the C program owns that name, and
+the two are meant to coexist. Everything after the command is identical.
+
+**Use `pdb2pov`, the C program**, when you want the 1993 binary itself, or a
+build with no Python at all:
 
 ```bash
 git clone https://github.com/suchanek/pdb2pov
@@ -31,7 +61,27 @@ The build is clean under `-Wall -Wextra -Wpedantic`.
 
 `make check` converts the bundled `1CRN.pdb` several ways, asserts that the
 parser changes leave crambin's output unchanged, and renders one atom of every
-element to prove the element table and the include files agree.
+element to prove the element table and the include files agree. `make test`
+in `python/` runs the port's suite, which includes the differential tests
+against the C.
+
+`pypdb2pov` carries its own version — 0.1.0, since the package is new —
+alongside the pdb2pov release it implements. Scene headers name both, on the
+line that already varies between runs:
+
+```
+// Prepared by pypdb2pov 0.1.0 (pdb2pov 2.2) from 4hhb.cif.gz on 2026-08-16 …
+```
+
+### What differs
+
+Nothing that reaches a rendered quilt. The scenes are byte-identical apart
+from the header's `Prepared by` line, which carries the timestamp. The camera
+distances and enclosing radii this page quotes come out the same from either.
+
+The port's additions are all on the input side, and all opt-in except the
+element inference used when a file has no element column at all — the C's
+seven-letter guess is still available as `--legacy-elements`.
 
 ---
 
@@ -48,6 +98,26 @@ Trimming is still how you *choose* what appears:
 grep -E "^(ATOM|END)" 1CRN.pdb > crambin.pdb          # protein only
 grep -E "^(ATOM|HETATM|END)" 1CRN.pdb > crambin.pdb   # keep heteroatoms
 ```
+
+**With the Python port there is nothing to prepare.** The selections above are
+flags, so the file the wwPDB gave you is the file you convert — compressed,
+mmCIF, and multi-model included:
+
+```bash
+pypdb2pov 4hhb.cif.gz hemoglobin -b -o --chain A --no-water
+pypdb2pov 1cbn.pdb crambin --info          # what is in here, before converting
+```
+
+| Instead of | Use |
+|------------|-----|
+| `grep -E "^(ATOM\|END)"` | `--no-hetatm` |
+| dropping waters by hand | `--no-water` |
+| pre-splitting an NMR ensemble | `--model N`, or `--all-models` |
+| the `awk` altLoc filter below | `--altloc first` or `--altloc occupancy` |
+| converting mmCIF to PDB first | nothing; it is read directly |
+
+`--info` is worth running first on anything unfamiliar: it reports the atom
+count, chains, models, element census and extent without writing a scene.
 
 ### Heteroatoms and alternate conformations
 
@@ -97,6 +167,31 @@ conformers in the scene: overlapping spheres at nearly identical positions,
 plus spurious bonds between the A and B copies. A 7-record test file with
 three side-chain atoms in two conformations gave 7 atoms and 13 bonds where
 the correct answer is 4 and 3. `--keep-altlocs` restores the old behaviour.
+
+The blank-or-`A` rule is not always the right answer, and the Python port
+offers `--altloc {a,first,occupancy,all}` instead. 1CBN is the cautionary
+example, and it is not exotic — it is crambin, the molecule on this page, at
+higher resolution:
+
+| `--altloc` | 1CBN | |
+|------------|------|--|
+| `a` | 640 atoms | the C's rule; loses fourteen atoms outright |
+| `first` | 640 atoms | keeps side chains labelled only `C` |
+| `occupancy` | 644 atoms | keeps the conformer the crystallographer weighted |
+| `all` | 777 atoms | overlapping spheres and spurious bonds |
+
+Two things go wrong under blank-or-`A`. The side chains of Pro 22 and Leu 25
+carry only altLoc `C` — there is no `A` copy — so fourteen atoms vanish from
+the scene with no message. And residue 22 is *microheterogeneous*: it is
+modelled as serine at 0.20 occupancy **and** proline at 0.60, sharing one
+sequence position. The port therefore chooses one altLoc letter per residue
+rather than per atom, since picking atom by atom would take proline's ring
+and serine's hydroxyl from the same place and draw a residue that does not
+exist.
+
+For a quilt this matters more than for a flat render: a spurious bond or a
+missing side chain sits at a specific depth and reads as a defect across the
+whole view sweep.
 
 **On 2.0 or earlier**, strip alternate conformations yourself:
 
@@ -151,6 +246,32 @@ Arguments are `InputFile OutputFile` **without extensions** — `.pdb` and
 `-o` is the one to reach for when composing, and it is the right choice for
 quilts specifically — see below.
 
+> `-h` is the checkered ground, not help. Both implementations keep it that
+> way; the Python port prints its usage on `--help`.
+
+### Python-only flags
+
+| Flag | Effect |
+|------|--------|
+| `--format {auto,pdb,cif,atm}` | override format detection |
+| `--model N` / `--all-models` | pick a model from an NMR ensemble |
+| `--altloc {a,first,occupancy,all}` | alternate conformation policy |
+| `--no-hetatm` / `--no-water` | drop heteroatoms or waters |
+| `--bonds {distance,covalent}` | bond by one cutoff, or by covalent radii |
+| `--strict` | fail on an unparseable record rather than skipping it |
+| `--info` | report what the file contains and write nothing |
+| `--name IDENT` | set the declared identifier explicitly |
+| `--no-timestamp` | omit the date, so two runs are byte-identical |
+| `--include-dir` | print where the bundled `.inc` files live |
+
+`--bonds covalent` is worth knowing about for anything with a metal in it: a
+single cutoff cannot cover a 1.1 Å C–H and a 2.05 Å disulphide at once, so a
+`-d` large enough to find the long bonds also invents short ones.
+
+`--no-timestamp` is what makes a rendered quilt reproducible end to end — the
+only thing that varies between two runs of the same conversion is the header
+date, and this removes it.
+
 ---
 
 ## 4. Rendering as a hologram
@@ -177,6 +298,82 @@ save_quilt(quilt, "renders/quilts/crambin", spec)
 
 Crambin at 7680×4320 takes about a minute, landing 4.5 px of adjacent-view
 movement, symmetric front to back.
+
+### Doing the conversion in the same script
+
+With the Python port there is no shell step and nothing to scrape: the
+converter is importable, the enclosing radius is a method rather than a header
+comment, and `include_dir()` is the path `include_paths` wants.
+
+The host scene below is the piece [Prefer `-o` for
+quilts](#prefer--o-for-quilts) describes and does not spell out. An `-o`
+include *declares* — it has no camera, no lights, and no `object { }`
+statement instantiating anything — so something has to supply all three.
+`render_pov_quilt` appends the camera; the host scene supplies the rest:
+
+```python
+from dataclasses import replace
+from pathlib import Path
+
+import pypdb2pov
+from pypdb2pov import ParseOptions, SceneOptions, find_bonds, prepare_structure, write_scene
+from quiltwright.lfd import QUILT_PRESETS, focal_distance_for_range, save_quilt
+from quiltwright.povray import PovCamera, render_pov_quilt
+
+# Straight from the wwPDB: compressed mmCIF, one chain, no waters.
+structure, stats = pypdb2pov.read_structure(
+    "4hhb.cif.gz", ParseOptions(chains="A", keep_water=False)
+)
+print("\n".join(stats.lines()) or "  nothing skipped")
+
+options = SceneOptions(ball_stick=True, object_only=True, name="hemoglobin_a")
+prepare_structure(structure, options)                     # rotate, centre, flip
+write_scene(structure, options, "hemoglobin_a.inc",
+            find_bonds(structure, options.bond_threshold))
+
+Path("scene.pov").write_text(f"""\
+#version 3.7;
+global_settings {{ assumed_gamma 1.0 }}
+#include "colors.inc"
+#include "{options.radii.include_file}"
+#include "atoms2.inc"
+#include "hemoglobin_a.inc"
+
+light_source {{ <200, 300, -400> color White }}
+light_source {{ <-300, 100, -200> color rgb 0.4 }}
+object {{ hemoglobin_a }}
+""")
+
+# The depth budget, without parsing a comment out of the file we just wrote.
+radius = structure.enclosing_radius() * (1.0 + pypdb2pov.SPHERE_FUDGE)
+distance = 3.0 * radius                                   # framing is yours with -o
+focal = focal_distance_for_range(distance - radius, distance + radius)
+
+camera = PovCamera(location=(0, 0, -distance), look_at=(0, 0, -distance + focal), fov=53.13)
+spec = replace(QUILT_PRESETS["16-landscape"], view_cone=35.0)
+quilt = render_pov_quilt(
+    "scene.pov", spec, camera, include_paths=[pypdb2pov.include_dir()]
+)
+save_quilt(quilt, "renders/quilts/hemoglobin_a", spec)
+```
+
+`include_dir()` is where the package keeps `atoms2.inc` and the radius sets,
+so nothing has to be copied next to the scene. The `.inc` the converter wrote
+is found because `render_pov_quilt` always searches the scene's own directory.
+
+`structure.enclosing_radius()` is the **unpadded** radius. The header comment
+and the emitted `*_enclosing_radius` float both carry it grown by
+`SPHERE_FUDGE` — 2%, so the sphere clears the outermost atom — which is why
+the example multiplies. For crambin that is 18.391 against the 18.759 the
+header prints, and using the wrong one shortens the depth budget by 2% at both
+ends. Reading it from the object rather than the file is still worth doing: it
+is available *before* the scene is written, which is what lets the camera
+distance follow the molecule instead of being pasted in.
+
+`stats.lines()` is what the command line prints — skipped conformers, inferred
+elements, elements with no dedicated texture. Logging it is cheap insurance on
+a long render: a missing metal is easier to notice in a one-line summary than
+in forty-eight views.
 
 ### Prefer `-o` for quilts
 
@@ -211,6 +408,13 @@ An `-o` include saves and restores the language version around its own
 declarations, so including it will not switch your scene to 3.7 behind your
 back.
 
+The float is for a *host scene* that needs the number at parse time. A Python
+caller does not have to wait for the file to exist: `structure.enclosing_radius()`
+returns it, and `structure.extents()` returns the padded bounding box the
+header comment prints. Both are available as soon as the structure has been
+through `prepare_structure`. Remember the 2% (see
+[above](#doing-the-conversion-in-the-same-script)).
+
 ---
 
 ## Why molecules are the easy case
@@ -239,8 +443,10 @@ the camera to reverse through. Any cone the display supports is safe.
 
 The practical consequence is that molecular scenes need no per-scene
 investigation. Parse two numbers out of the header — or read the emitted
-`*_enclosing_radius` float — compute the focal distance, render. It is worth
-wiring that into a helper if more than a few structures are going through.
+`*_enclosing_radius` float, or call `structure.enclosing_radius()` — compute
+the focal distance, render. It is worth wiring that into a helper if more than
+a few structures are going through, and with the Python port that helper is a
+dozen lines with no parsing in it at all.
 
 ---
 
@@ -288,3 +494,8 @@ program written thirty years apart: read atoms, emit a sphere per atom scaled
 by element radius, emit split-coloured cylinders per bond, colour by element.
 One targets a ray-tracer and one targets VTK. Both now terminate at the same
 place — [`assemble_quilt`](povray.md#5-api) — by different routes.
+
+`pypdb2pov` (2026) closes the loop a third time. It is the 1993 program again
+— same arithmetic, same output, verified byte for byte — but reachable by
+`import`, which is what puts a thirty-year-old C program and a
+`render_pov_quilt` call in the same script.

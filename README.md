@@ -298,7 +298,7 @@ QUILT_PRESETS["16-landscape"]      # 8x6 views, 7680x4320, aspect 1.7778
 | [docs/povray.md](docs/povray.md) | The POV-Ray backend: off-axis camera derivation, depth budget, sweep clearance, a worked case study |
 | [docs/povgen.md](docs/povgen.md) | Writing POV-Ray scenes from analytic primitives, so a scene composed in Python can be ray-traced rather than rasterised |
 | [docs/pov-workflow.md](docs/pov-workflow.md) | The procedure: taking an archive scene from "won't parse" to a quilt that fuses, step by step |
-| [docs/pdb2pov.md](docs/pdb2pov.md) | Rendering molecular structures from PDB files as holograms |
+| [docs/pdb2pov.md](docs/pdb2pov.md) | Rendering molecular structures from PDB and mmCIF files as holograms, from the shell or in-process |
 | [docs/hld.md](docs/hld.md) | Hololuminescent Displays, which play ordinary 2-D video rather than quilts |
 | [docs/about-the-image.md](docs/about-the-image.md) | The museum scene: what is on display, and the thirty-year pipeline behind it |
 | [docs/gallery.md](docs/gallery.md) | The reference stills every quilt is swept from, one per scene, and how to regenerate them |
@@ -323,9 +323,11 @@ tests skip when no `povray` binary is present. Under a headless CI runner, use
 - [WaveRider](https://github.com/Flux-Frontiers/waverider) — manifold-aware
   geometric ML. Its voxel and manifold visualiser builds the PyVista scenes
   that `render_quilt()` sweeps.
-- [pdb2pov](https://github.com/suchanek/pdb2pov) — PDB to POV-Ray converter,
-  written in C in 1993 and still building from a fresh clone. It produced the
-  molecular models in the image above, and still feeds the POV-Ray backend.
+- [pdb2pov](https://github.com/suchanek/pdb2pov) — PDB and mmCIF to POV-Ray
+  converter, written in C in 1993 and still building from a fresh clone. It
+  produced the molecular models in the image above, and still feeds the
+  POV-Ray backend. `pypdb2pov`, its Python port, writes byte-identical scenes
+  and imports, so a conversion and a quilt render fit in one script.
 - [proteusPy](https://github.com/suchanek/proteusPy) — protein disulfide bond
   analysis and rendering.
 
