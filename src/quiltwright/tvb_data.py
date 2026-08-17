@@ -150,7 +150,7 @@ TVB_DATA_DOI = "10.5281/zenodo.10128131"
 TVB_DATA_URL = "https://zenodo.org/records/10128131/files/tvb_data.zip?download=1"
 
 #: MD5 published alongside the Zenodo record, verified after download.
-TVB_DATA_MD5 = "08ae19833ba8ac158c91fbcb988b9bf0"
+TVB_DATA_MD5 = "08ae19833ba8ac158c91fbcb988b9bf0"  # pragma: allowlist secret
 
 #: Version string of the pinned Zenodo record.
 TVB_DATA_VERSION = "2.8.1"
@@ -709,7 +709,9 @@ def _nearest_labels(
     :return: ``(m,)`` labels, one per target point.
     """
     try:
-        from scipy.spatial import cKDTree
+        # SciPy arrives only with the ``viz`` extras, and the fallback below
+        # exists for when it is absent.  An unresolvable import is expected.
+        from scipy.spatial import cKDTree  # ty: ignore[unresolved-import]
 
         _, index = cKDTree(source_points).query(target_points, k=1)
         return labels[index]

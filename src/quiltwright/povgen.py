@@ -80,7 +80,7 @@ import math
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field, replace
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import numpy as np
 
@@ -95,6 +95,12 @@ if TYPE_CHECKING:  # pragma: no cover - typing only
 # that constructs one, and which by definition already has a live plotter.
 
 __author__ = "Eric G. Suchanek, PhD"
+
+#: A vector in any accepted spelling.  A NumPy array is not a
+#: ``Sequence[float]``: it is not registered with the ABC, and its elements are
+#: ``np.floating``.  The geometry engines this module consumes — ``kg_utils.viz3d``,
+#: PyVista, VTK — all emit arrays, so the signatures below accept both forms.
+Vec = Sequence[float] | np.ndarray
 
 #: Default ``sphere_sweep`` tolerance.  POV-Ray's own default (1e-6) makes the
 #: root solver miss thin sweeps at scene scale and drop segments; 0.05 is the
@@ -114,7 +120,7 @@ SWEEP_MIN_POINTS: dict[str, int] = {
 # ---------------------------------------------------------------------------
 
 
-def to_pov(point: Sequence[float], handedness: str = "flip-z") -> tuple[float, float, float]:
+def to_pov(point: Vec, handedness: str = "flip-z") -> tuple[float, float, float]:
     """Convert a right-handed world point to POV-Ray's left-handed world.
 
     :param point: ``(x, y, z)`` in right-handed (PyVista/VTK/NumPy) coordinates.
@@ -131,7 +137,7 @@ def to_pov(point: Sequence[float], handedness: str = "flip-z") -> tuple[float, f
     raise ValueError(f"handedness must be 'flip-z' or 'none', got {handedness!r}")
 
 
-def parse_color(color: str | Sequence[float]) -> tuple[float, float, float]:
+def parse_color(color: str | Vec) -> tuple[float, float, float]:
     """Normalise a colour to an ``(r, g, b)`` triple in ``0..1``.
 
     :param color: ``"#rrggbb"`` (with or without the hash, 3- or 6-digit) or a
@@ -161,7 +167,7 @@ def parse_color(color: str | Sequence[float]) -> tuple[float, float, float]:
     return (components[0], components[1], components[2])
 
 
-def _vec(v: Sequence[float]) -> str:
+def _vec(v: Vec) -> str:
     """Format a 3-vector as POV-Ray ``<x, y, z>`` with stable precision.
 
     Negative zero is normalised away: negating *z* turns an honest ``0`` into
@@ -228,7 +234,7 @@ class Texture:
     :param finish: Shading parameters.
     """
 
-    color: str | Sequence[float] = "#cccccc"
+    color: str | Vec = "#cccccc"
     opacity: float = 1.0
     finish: Finish = field(default_factory=Finish)
 
@@ -449,8 +455,8 @@ class Instance(Primitive):
     """
 
     name: str
-    translate: Sequence[float] | None = None
-    scale: Sequence[float] | float | None = None
+    translate: Vec | None = None
+    scale: Vec | float | None = None
     matrix: np.ndarray | None = None
     texture: Texture | str | None = None
 
@@ -459,10 +465,13 @@ class Instance(Primitive):
         parts = [self.name]
         if self.scale is not None:
             scale = self.scale
+            # ``np.ndim`` reads 0 for a float, a NumPy scalar and a 0-d array
+            # alike; ``isinstance`` does not.  No type checker follows it,
+            # hence the casts.
             if np.ndim(scale) == 0:
-                parts.append(f"scale {float(scale):.6g}")
+                parts.append(f"scale {float(cast('float', scale)):.6g}")
             else:
-                parts.append(f"scale {_vec(scale)}")
+                parts.append(f"scale {_vec(cast('Vec', scale))}")
         if self.matrix is not None:
             m = np.asarray(self.matrix, dtype=float).reshape(3, 3)
             if handedness == "flip-z":
@@ -493,7 +502,7 @@ class LightSource:
     """
 
     position: Sequence[float]
-    color: str | Sequence[float] = "#ffffff"
+    color: str | Vec = "#ffffff"
     shadowless: bool = False
     area: tuple[Sequence[float], Sequence[float], int, int] | None = None
 
@@ -692,10 +701,10 @@ class PovScene:
     :param comment: Free text written into the file header.
     """
 
-    background: str | Sequence[float] | None = None
+    background: str | Vec | None = None
     includes: list[str] = field(default_factory=list)
     handedness: str = "flip-z"
-    ambient_light: str | Sequence[float] | None = None
+    ambient_light: str | Vec | None = None
     comment: str = ""
     _declares: list[tuple[str, str]] = field(default_factory=list, repr=False)
     _lights: list[LightSource] = field(default_factory=list, repr=False)
@@ -904,7 +913,7 @@ def pov_camera_from_plotter(
     )
 
 
-def _rig_frame(up: Sequence[float]) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+def _rig_frame(up: Vec) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Build the ``(right, up, front)`` frame the light rig is placed in.
 
     *front* is ``cross(up, right)``, which reproduces the historical ``+y``-up
@@ -928,11 +937,11 @@ def _rig_frame(up: Sequence[float]) -> tuple[np.ndarray, np.ndarray, np.ndarray]
 
 
 def lights_from_bounds(
-    lo: Sequence[float],
-    hi: Sequence[float],
+    lo: Vec,
+    hi: Vec,
     *,
-    up: Sequence[float] = (0.0, 1.0, 0.0),
-    key_side: Sequence[float] | None = None,
+    up: Vec = (0.0, 1.0, 0.0),
+    key_side: Vec | None = None,
     intensity: float = 1.0,
     fill: bool = True,
     rim: bool = False,
@@ -1041,10 +1050,10 @@ def fov_horizontal_to_vertical(fov_h: float, aspect: float) -> float:
 
 
 def ground_slab(
-    lo: Sequence[float],
-    hi: Sequence[float],
+    lo: Vec,
+    hi: Vec,
     *,
-    up: Sequence[float] = (0.0, 1.0, 0.0),
+    up: Vec = (0.0, 1.0, 0.0),
     size: float = 3.0,
     thickness: float = 0.4,
     base: float | None = None,
@@ -1169,8 +1178,8 @@ def instances_by_color(
     name: str,
     points: np.ndarray,
     directions: np.ndarray | None,
-    palette: Sequence[str | Sequence[float]],
-    index: Sequence[int],
+    palette: Sequence[str | Vec],
+    index: Sequence[int] | np.ndarray,
     *,
     scale: Sequence[float] | float | None = None,
     finish: Finish | None = None,
@@ -1202,9 +1211,11 @@ def instances_by_color(
         raise ValueError(f"index length {idx.shape[0]} does not match {pts.shape[0]} points")
 
     dirs = None if directions is None else np.atleast_2d(np.asarray(directions, dtype=float))
-    kwargs = {} if finish is None else {"finish": finish}
+    # ``Texture.finish`` is non-optional with a ``default_factory``, so ``None``
+    # here means "keep the default".  ``Finish()`` is what the factory builds.
+    resolved = Finish() if finish is None else finish
     declarations = [
-        (f"{prefix}{i}", Texture(color=colour, **kwargs)) for i, colour in enumerate(palette)
+        (f"{prefix}{i}", Texture(color=colour, finish=resolved)) for i, colour in enumerate(palette)
     ]
 
     unions: list[Union] = []
@@ -1224,25 +1235,25 @@ def instances_by_color(
 def swept_scene(
     sweeps: Iterable[tuple[np.ndarray, np.ndarray]],
     *,
-    sweep_color: str | Sequence[float] = "#6b4a2f",
+    sweep_color: str | Vec = "#6b4a2f",
     sweep_finish: Finish | None = None,
     instances: tuple[np.ndarray, np.ndarray | None] | None = None,
     instance_shape: Sequence[float] = (1.0, 1.0, 1.0),
     instance_radius: float = 1.0,
-    instance_palette: Sequence[str | Sequence[float]] = (),
+    instance_palette: Sequence[str | Vec] = (),
     instance_index: Sequence[int] | None = None,
     instance_finish: Finish | None = None,
-    clouds: Iterable[tuple[np.ndarray, float, str | Sequence[float], float]] = (),
+    clouds: Iterable[tuple[np.ndarray, float, str | Vec, float]] = (),
     cloud_finish: Finish | None = None,
     up: Sequence[float] = (0.0, 0.0, 1.0),
-    sky: str | Sequence[float] | None = None,
-    ambient: str | Sequence[float] | None = None,
+    sky: str | Vec | None = None,
+    ambient: str | Vec | None = None,
     lights: bool = True,
     key_side: Sequence[float] | None = None,
     rim_light: bool = False,
     ground: float = 0.0,
     ground_base: float | None = None,
-    ground_color: str | Sequence[float] = "#2d4a1e",
+    ground_color: str | Vec = "#2d4a1e",
     ground_finish: Finish | None = None,
     brightness: float = 1.0,
     comment: str = "",
@@ -1303,7 +1314,7 @@ def swept_scene(
     """
     scene = PovScene(background=sky, ambient_light=ambient, comment=comment)
 
-    bark = Texture(color=sweep_color, **({} if sweep_finish is None else {"finish": sweep_finish}))
+    bark = Texture(color=sweep_color, finish=Finish() if sweep_finish is None else sweep_finish)
     scene.declare_texture("SweptTex", bark)
     swept = sphere_sweeps_from_paths(sweeps, texture="SweptTex")
     if swept:
@@ -1362,7 +1373,7 @@ def swept_scene(
                 base=ground_base,
                 texture=Texture(
                     color=ground_color,
-                    **({} if ground_finish is None else {"finish": ground_finish}),
+                    finish=Finish() if ground_finish is None else ground_finish,
                 ),
             )
         )

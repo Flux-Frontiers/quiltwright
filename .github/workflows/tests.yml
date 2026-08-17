@@ -4,9 +4,56 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
+  lint:
+    name: Lint & Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      # Ruff reads no project code, so it needs no install of the package.
+      - name: Install ruff
+        run: pip install ruff
+
+      - name: Lint
+        run: ruff check src tests scripts
+
+      - name: Format check
+        run: ruff format --check src tests scripts
+
+  type-check:
+    name: Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      # ty resolves imports from the installed environment. Without the `viz`
+      # extra it reports `pyvista` as unresolved in lfd.py and tvb_data.py, so
+      # the extra is required for the check to mean anything.
+      - name: Install package and ty
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[viz,video]"
+          pip install ty
+
+      - name: Type check
+        run: ty check src/
+
   test:
+    name: Test
     runs-on: ubuntu-latest
     # Both supported interpreters: requires-python allows 3.13, so claiming it
     # without testing it would be a claim, not a fact.
@@ -33,13 +80,67 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[viz,video]"
-          pip install pytest ruff
-
-      - name: Lint
-        run: ruff check src tests scripts
-
-      - name: Format check
-        run: ruff format --check src tests scripts
+          pip install pytest
 
       - name: Test
         run: xvfb-run -a pytest
+
+  core-install:
+    name: Core-only install
+    runs-on: ubuntu-latest
+    # `pyproject.toml` keeps core to numpy and pillow so a machine that only
+    # casts pre-rendered quilts stays lean, and the README sells that as
+    # `pip install quiltwright`. The promise holds only while the seven
+    # `import pyvista` sites in __init__, lfd, hld and tvb_data stay inside
+    # functions. No other job can see one move to module scope: they all
+    # install `[viz,video]`, and the tests use `pytest.importorskip("pyvista")`,
+    # which skips when PyVista is missing rather than asserting it is unused.
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      # `pip install .` builds through poetry-core, so this also catches a
+      # wheel that ships without its package body.
+      - name: Install core only
+        run: |
+          python -m venv /tmp/core
+          /tmp/core/bin/pip install --quiet .
+          /tmp/core/bin/pip list | grep -qi pyvista \
+            && { echo "core install pulled in PyVista"; exit 1; } || true
+
+      - name: Import every submodule without the renderers
+        run: |
+          cd /tmp
+          /tmp/core/bin/python - <<'PY'
+          import importlib
+          import pkgutil
+          import sys
+
+          import quiltwright
+          from quiltwright import QUILT_PRESETS, focal_distance_for_range, view_disparity
+
+          spec = QUILT_PRESETS["16-landscape"]
+          focal = focal_distance_for_range(near=31, far=96)
+          view_disparity(spec, fov=53.13, focal_distance=focal, depth=31)
+
+          names = [m.name for m in pkgutil.walk_packages(quiltwright.__path__, "quiltwright.")]
+          if not names:
+              sys.exit("quiltwright has no submodules -- the wheel is missing its package body")
+
+          failed = []
+          for name in sorted(names):
+              try:
+                  importlib.import_module(name)
+              except Exception as exc:
+                  failed.append(name)
+                  print(f"  FAIL  {name}\n        {type(exc).__name__}: {exc}")
+          if failed:
+              sys.exit(
+                  f"\n{len(failed)} of {len(names)} submodule(s) need the renderers: "
+                  + ", ".join(failed)
+              )
+          print(f"all {len(names)} submodules import without the renderers")
+          PY
