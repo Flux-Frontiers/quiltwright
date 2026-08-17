@@ -58,3 +58,5 @@ commit.txt
 # Personal working material -- grant drafts, venue correspondence.
 # This is a public repository; nothing under grants/ belongs in it.
 grants/
+.pycodekg/graph.sqlite
+.pycodekg/vectors.sqlite

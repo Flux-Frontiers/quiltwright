@@ -1,0 +1,74 @@
+# `pov-scenes/` is a 1995-1999 archive, not maintained source. `README.md` and
+# `docs/about-the-image.md` both state that Quiltwright ray-traces these files
+# unmodified. Without this exclude, the whitespace hooks rewrite 60 of them:
+# 2624 insertions, 2713 deletions, no functional change.
+exclude: '^pov-scenes/'
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+        # `renders/` holds the reference stills `make stills` regenerates;
+        # `museum.png` is 2.4 MB. Committing them is intended, so the limit must
+        # not block them. Outside `renders/` the largest file is `poetry.lock`
+        # at 134 kB, so the 1 MB limit still catches accidental blobs.
+        exclude: '^renders/|^(src|docs)/.*\.(png|jpg|jpeg|gif|pdf)$'
+      - id: debug-statements
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.22
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+        pass_filenames: false
+        always_run: true
+      - id: ruff-format
+        pass_filenames: false
+        always_run: true
+
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        # These exclusions must match the command that generated
+        # `.secrets.baseline`. Otherwise the hook scans files the baseline has
+        # no entry for and reports them as new secrets.
+        args:
+          - '--baseline'
+          - '.secrets.baseline'
+          - '--exclude-files'
+          - '^renders/'
+          - '--exclude-files'
+          - '^pov-scenes/.*\.(tga|gif|png|inc|pov)$'
+          - '--exclude-files'
+          - '^docs/.*\.png$'
+          - '--exclude-files'
+          - '^\.venv/'
+
+  - repo: local
+    hooks:
+      - id: ty
+        name: ty
+        entry: poetry run ty check src/
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: pytest
+        name: pytest
+        entry: poetry run pytest --tb=short -q
+        language: system
+        pass_filenames: false
+        always_run: true
+        # The suite takes 61 s: it ray-traces with POV-Ray and drives a real GL
+        # context through PyVista. Running it on every commit invites
+        # `--no-verify`, which also skips the fast hooks above. At pre-push it
+        # still gates anything leaving the machine, and CI reruns it on both
+        # interpreters.
+        stages: [pre-push]

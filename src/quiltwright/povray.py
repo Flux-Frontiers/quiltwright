@@ -90,6 +90,21 @@ from quiltwright.lfd import QuiltSpec, assemble_quilt, view_disparity, view_offs
 POVRAY_ENV = "POVRAY_BINARY"
 
 
+def _triple(v: Iterable[float]) -> tuple[float, float, float]:
+    """Coerce a 3-vector — list, tuple, NumPy array — to a float 3-tuple.
+
+    ``tuple(v)`` types as ``tuple[float, ...]``, which is not a
+    :class:`PovCamera` coordinate.  Unpacking states the arity and rejects a
+    wrong-length vector here rather than later.
+
+    :param v: Any iterable of three reals.
+    :return: ``(x, y, z)`` as plain floats.
+    :raises ValueError: If *v* does not have exactly three components.
+    """
+    x, y, z = (float(c) for c in v)
+    return (x, y, z)
+
+
 def _find_povray(binary: str | None = None) -> str:
     """Locate the POV-Ray executable.
 
@@ -250,15 +265,15 @@ class PovCamera:
         :raises ValueError: If the camera is degenerate (see :meth:`basis`)
             or *focal_distance* is not positive.
         """
-        base = cls(location=tuple(location), look_at=tuple(aim), sky=sky, fov=fov)
+        base = cls(location=_triple(location), look_at=_triple(aim), sky=sky, fov=fov)
         forward, right, _ = base.basis()
         distance = base.focal_distance if focal_distance is None else float(focal_distance)
         if distance <= 0:
             raise ValueError(f"focal_distance must be positive, got {distance}")
         eye = np.asarray(base.location, dtype="d") + right * float(lateral_shift)
         return cls(
-            location=tuple(float(c) for c in eye),
-            look_at=tuple(float(c) for c in eye + forward * distance),
+            location=_triple(eye),
+            look_at=_triple(eye + forward * distance),
             sky=sky,
             fov=fov,
         )

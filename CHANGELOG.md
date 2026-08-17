@@ -7,6 +7,80 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **`ty` type checking, in CI and pre-commit.** Astral's checker joins the dev
+  group and gates `src/` in both places. Turning it on surfaced 17 diagnostics,
+  all fixed below; it now runs clean in 0.24 s, which is fast enough to sit on
+  every commit.
+
+- **A pre-commit configuration.** Ruff, `detect-secrets` against a new
+  `.secrets.baseline`, `ty`, and the standard hygiene hooks. Two adaptations
+  matter for this repo. `pov-scenes/` is excluded wholesale: it is a 1995-1999
+  archive, and `README.md` and `docs/about-the-image.md` both rest on the claim
+  that Quiltwright ray-traces those files unmodified — left in, the whitespace
+  hooks rewrite 60 of them for 2624 insertions and 2713 deletions of no
+  functional change. And `pytest` runs at `pre-push` rather than `pre-commit`,
+  because the suite takes 61 s: it ray-traces with POV-Ray and drives a real GL
+  context, and a minute per commit invites `--no-verify`, which would skip the
+  fast hooks too.
+
+- **`lint`, `type-check` and `core-install` jobs in `tests.yml`.** The first two
+  split work the test matrix was repeating once per interpreter. The third is
+  new coverage: `pyproject.toml` keeps core to numpy and pillow so a machine
+  that only casts pre-rendered quilts stays lean, and that holds only while the
+  seven `import pyvista` sites in `__init__`, `lfd`, `hld` and `tvb_data` stay
+  inside functions. Nothing else could see one move to module scope — every
+  other job installs `[viz,video]`, and the tests use
+  `pytest.importorskip("pyvista")`, which skips when PyVista is missing rather
+  than asserting it is unused. The gate was verified by hoisting an import and
+  confirming it fails.
+
+### Changed
+
+- **`povgen` and `povray` now say what they accept.** Signatures throughout
+  `povgen` declared `Sequence[float]` for 3-vectors, but a NumPy array is not
+  one — it is not registered with the ABC, and its elements are `np.floating`.
+  Every geometry engine the module consumes emits arrays, and the functions
+  always accepted them, so the annotations understated the API rather than
+  describing it. A `Vec` alias now covers both spellings. In `povray`, a
+  `_triple()` helper replaces `tuple(...)` where a `PovCamera` coordinate is
+  required, since `tuple(iterable)` types as `tuple[float, ...]` and states no
+  arity. No runtime behaviour changes; 325 tests pass unchanged on 3.12 and
+  3.13.
+
+### Fixed
+
+- **The DOI badge, which was blown on the GitHub front page.** GitHub proxies
+  README images through `camo.githubusercontent.com`, Zenodo rate-limits camo,
+  and camo served `502 Invalid upstream response (429)` to every reader.
+  Fetching the badge directly returned a healthy `200`, which is why it went
+  unnoticed. The image now comes from shields.io; the DOI and the `doi.org`
+  link target are unchanged, and `10.5281/zenodo.21798503` was confirmed
+  against the live record as the concept DOI.
+
+- **The README hero image, which did not render on PyPI.** Repo-relative image
+  paths break wherever the README is re-hosted. It is now pinned to
+  `raw.githubusercontent.com` at `v0.6.0`, and switched from the 1280×720
+  centre view of the quilt to `renders/stills/museum.png`, the full-quality
+  1920×1080 canonical cut. **This line carries the version and must be bumped
+  at release**: a stale pin keeps serving the previous release's image at
+  `200 OK` rather than breaking visibly.
+
+- **`docs/povgen.md` missing from the README documentation table** since it
+  shipped in 0.5.0, and `save_and_cast_quilt` missing from Quick start since
+  0.6.0.
+
+### Removed
+
+- **Four tags inherited from WaveRider** — `v0.10.0`, `v0.10.1`, `v0.11.0`,
+  `v0.12.0` — deleted locally and on `origin`. Quiltwright was carved out of
+  WaveRider in place and the version reset to `0.1.0`, so those pre-fork tags
+  stayed in the namespace with higher numbers than any real release:
+  `git tag --sort=-v:refname | head -1` answered `v0.12.0` instead of `v0.6.0`.
+  No commit was orphaned — all are reachable from `main` — and no GitHub
+  Release was attached. The fork itself is still marked by commit `70e703f`.
+
 ## [0.6.0] — 2026-08-16
 
 ### Added
