@@ -60,3 +60,4 @@ commit.txt
 grants/
 .pycodekg/graph.sqlite
 .pycodekg/vectors.sqlite
+docs/quiltwright_brand.md
