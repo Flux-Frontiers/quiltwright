@@ -10,12 +10,12 @@ borrowed from Michael "meek" Mittelstadt.  What is in it and why is in
 The camera keeps the scene's own viewpoint, aim direction and lens.  Three
 things change, each measured from the scene rather than guessed:
 
-* **Focal plane** — moved from the scene's composed 63.7 units to the
+* **Focal plane** -- moved from the scene's composed 63.7 units to the
   harmonic mean of the measured depth range (31 to 96 units), along the
   original aim ray.
-* **Eye position** — shifted to the middle of the room's usable lateral
+* **Eye position** -- shifted to the middle of the room's usable lateral
   corridor, measured at -18 to +8 units along the right vector.
-* **View cone** — derived from the clearance that remains, ~26 degrees.
+* **View cone** -- derived from the clearance that remains, ~26 degrees.
   The default 35 blackened 11 of 48 views by sweeping through a wall.
 
 Usage::
@@ -61,7 +61,7 @@ FOV = 53.13
 #: pedestal's tabletop, at 0.1% of frame); *far* is where 95% of everything
 #: occludable is accounted for.  The remaining ~6% of the frame is sky through
 #: the window, at effective infinity, and is left out of the balance on
-#: purpose — it is low-contrast and can afford the disparity.
+#: purpose -- it is low-contrast and can afford the disparity.
 #: Both shifted 5 units nearer with the eye's 5.03-unit dolly toward the aim
 #: point, since the plane sweep measures along the view axis from the eye.
 #: They were 31.0 and 96.0 when the eye sat at <15,20,6>.
@@ -84,8 +84,8 @@ def museum_camera(focal_distance: float | None = None) -> PovCamera:
         near against far.  That is only optimal when the view cone is fixed,
         and here it is not: the cone is derived from this distance against a
         wall-bounded eye sweep, so pushing the plane back narrows the cone and
-        pulls *everything* — including the sky, which no focal plane reaches
-        at a fixed cone — down with it.
+        pulls *everything* -- including the sky, which no focal plane reaches
+        at a fixed cone -- down with it.
     :return: The centre-view camera.
     """
     return PovCamera.aimed(
@@ -184,7 +184,7 @@ def main() -> int:
         quality=11,
         # Recursive supersampling (+AM2) to depth 4, rather than the default
         # adaptive single pass, which leaves stair-stepping on the window
-        # mullions and bell-jar rims — the highest-contrast edges in frame.
+        # mullions and bell-jar rims -- the highest-contrast edges in frame.
         extra_args=() if args.preview else ("+AM2", "+R4"),
         jobs=args.jobs,
         keep_views=args.keep_views,
@@ -192,7 +192,7 @@ def main() -> int:
     elapsed = time.time() - started
 
     # A preview is a quarter-size stand-in, not a deliverable, so it must not
-    # land on the full render's filename — iterating on one would silently
+    # land on the full render's filename -- iterating on one would silently
     # destroy the other.
     stem = f"{args.out}-preview" if args.preview else args.out
     out = save_quilt(quilt, stem, spec)

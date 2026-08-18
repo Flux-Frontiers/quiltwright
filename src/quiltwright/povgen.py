@@ -3,7 +3,7 @@ POV-Ray Scene Generation
 ========================
 
 Writes ``.pov`` scenes from *analytic* primitives, so a scene composed in
-Python — or grown by a geometry engine such as ``kg_utils.viz3d`` — can be
+Python -- or grown by a geometry engine such as ``kg_utils.viz3d`` -- can be
 ray-traced by :func:`~quiltwright.povray.render_pov_quilt` instead of
 rasterised by VTK.
 
@@ -11,15 +11,15 @@ rasterised by VTK.
 ``pv.Plotter`` it is already tessellated: ``pv.Sphere`` is a triangulated
 ball, and a swept tube is a strip of quads.  Dumping those triangles into a
 POV-Ray ``mesh2`` reproduces the scene faithfully but keeps VTK's facets and
-costs a great deal of text, re-parsed once per view — 48 times for a Portrait
-quilt.  Re-emitting the *intent* instead — a limb is a swept path of radii, a
-leaf is a ball at a point — gives POV-Ray its own exact primitives: an exact
+costs a great deal of text, re-parsed once per view -- 48 times for a Portrait
+quilt.  Re-emitting the *intent* instead -- a limb is a swept path of radii, a
+leaf is a ball at a point -- gives POV-Ray its own exact primitives: an exact
 silhouette at any zoom, and a bounding hierarchy the ray-tracer is good at.
 
 Measured on a 3000-leaf organic tree from ``kg_utils.viz3d`` (192k triangles,
 159k vertices once tessellated): **839 KB** of analytic SDL with oriented leaf
 instances, or 508 KB with plain spheres, against roughly **12.5 MB** for the
-equivalent ``mesh2`` — 15x to 25x smaller, and better looking, since the
+equivalent ``mesh2`` -- 15x to 25x smaller, and better looking, since the
 tessellation facets are gone.  That quality difference is the reason to leave
 VTK, so this module reaches for the analytic form first and leaves ``mesh2``
 as the fallback for geometry that has no analytic description (volumes,
@@ -35,7 +35,7 @@ mirroring it.  Pass ``handedness="none"`` to author directly in POV-Ray
 coordinates.
 
 A :class:`~quiltwright.povray.PovCamera` you build yourself is **not**
-converted — it holds POV-Ray coordinates, and
+converted -- it holds POV-Ray coordinates, and
 :func:`~quiltwright.povray.camera_block` emits it verbatim.  Run
 :func:`to_pov` over its location, look-at and sky yourself, or the geometry
 lands at negative *z* while the lens aims at positive *z* and POV-Ray renders
@@ -51,7 +51,7 @@ camera.  :func:`~quiltwright.povray.render_pov_quilt` appends one off-axis
 camera per view and POV-Ray uses the last camera it parses; emitting one here
 would merely be overridden with a warning.  Use
 :func:`pov_camera_from_plotter` to carry a composed plotter's viewpoint over
-to a :class:`~quiltwright.povray.PovCamera` instead — VTK's ``view_angle``
+to a :class:`~quiltwright.povray.PovCamera` instead -- VTK's ``view_angle``
 and ``PovCamera.fov`` are both *vertical* degrees, so that maps one-to-one.
 
 Typical usage::
@@ -69,7 +69,7 @@ Typical usage::
     quilt = render_pov_quilt("tree.pov", spec, pov_camera_from_plotter(plotter))
     save_quilt(quilt, "tree", spec)
 
-Part of Quiltwright — https://github.com/suchanek/quiltwright
+Part of Quiltwright -- https://github.com/suchanek/quiltwright
 
 Author: Eric G. Suchanek, PhD
 """
@@ -90,7 +90,7 @@ if TYPE_CHECKING:  # pragma: no cover - typing only
 # ``PovCamera`` lives in :mod:`quiltwright.povray`, which imports
 # :mod:`quiltwright.lfd` for the quilt assembler, which imports PyVista when it
 # is installed.  Importing it at module scope would therefore drag the whole
-# rendering stack into a module whose entire point is not needing one — so it
+# rendering stack into a module whose entire point is not needing one -- so it
 # is imported inside :func:`pov_camera_from_plotter`, the only function here
 # that constructs one, and which by definition already has a live plotter.
 
@@ -98,8 +98,8 @@ __author__ = "Eric G. Suchanek, PhD"
 
 #: A vector in any accepted spelling.  A NumPy array is not a
 #: ``Sequence[float]``: it is not registered with the ABC, and its elements are
-#: ``np.floating``.  The geometry engines this module consumes — ``kg_utils.viz3d``,
-#: PyVista, VTK — all emit arrays, so the signatures below accept both forms.
+#: ``np.floating``.  The geometry engines this module consumes -- ``kg_utils.viz3d``,
+#: PyVista, VTK -- all emit arrays, so the signatures below accept both forms.
 Vec = Sequence[float] | np.ndarray
 
 #: Default ``sphere_sweep`` tolerance.  POV-Ray's own default (1e-6) makes the
@@ -188,7 +188,7 @@ class Finish:
 
     Defaults approximate VTK's default actor shading closely enough that a
     transcoded scene reads as the same scene, rather than matching it
-    photometrically — POV-Ray's lighting model is not VTK's, and a scene worth
+    photometrically -- POV-Ray's lighting model is not VTK's, and a scene worth
     ray-tracing usually wants its own lights anyway.
 
     :param ambient: Light emitted regardless of the light sources.
@@ -228,7 +228,7 @@ class Texture:
 
     :param color: Hex string or ``(r, g, b)`` in ``0..1``.
     :param opacity: ``1.0`` is opaque.  Emitted as POV-Ray ``transmit``, which
-        passes light through unchanged — the correct analogue of VTK's alpha.
+        passes light through unchanged -- the correct analogue of VTK's alpha.
         POV-Ray's ``filter`` is *not*: it tints everything seen through the
         surface by the surface's own colour.
     :param finish: Shading parameters.
@@ -346,7 +346,7 @@ class Box(Primitive):
 
 @dataclass(frozen=True)
 class SphereSweep(Primitive):
-    """A POV-Ray ``sphere_sweep`` — a tapered tube through a polyline.
+    """A POV-Ray ``sphere_sweep`` -- a tapered tube through a polyline.
 
     This is the analytic replacement for a PyVista ``spline.tube(...)``: one
     statement instead of a few thousand triangles, with an exact silhouette.
@@ -560,8 +560,8 @@ def sphere_sweeps_from_paths(
     """Turn ``[(points, radii), ...]`` paths into sweeps, skipping degenerate ones.
 
     This is the analytic counterpart of tubing each path in PyVista.  It is
-    deliberately generic — it knows about polylines with radii, not about
-    trees — so any producer of swept paths can use it.
+    deliberately generic -- it knows about polylines with radii, not about
+    trees -- so any producer of swept paths can use it.
 
     :param paths: Pairs of ``(K, 3)`` points and ``(K,)`` radii, such as
         ``kg_utils.viz3d.smooth_paths`` returns.
@@ -625,7 +625,7 @@ def instances_from_frames(
 
     Orientation matches VTK's glyph convention: the prototype's **+x** axis is
     aligned to each direction vector.  The remaining two axes are completed
-    deterministically, so a given input always produces the same file — but
+    deterministically, so a given input always produces the same file -- but
     that completion is not VTK's, so glyph *roll* will differ from a PyVista
     render even though position, aim and silhouette agree.
 
@@ -690,7 +690,7 @@ class PovScene:
     """A POV-Ray scene under construction.
 
     Holds includes, ``#declare``s, lights and objects, and emits a ``.pov``
-    file.  It writes **no camera** — see the module docstring.
+    file.  It writes **no camera** -- see the module docstring.
 
     :param background: Hex or ``(r, g, b)`` background colour, or ``None`` to
         leave POV-Ray's default (black).
@@ -757,7 +757,7 @@ class PovScene:
 
     def sdl(self) -> str:
         """:return: The whole scene as POV-Ray SDL."""
-        out: list[str] = ["// Generated by quiltwright.povgen — do not edit by hand."]
+        out: list[str] = ["// Generated by quiltwright.povgen -- do not edit by hand."]
         if self.comment:
             out += [f"// {line}" for line in self.comment.strip().split("\n")]
         out.append(
@@ -821,7 +821,7 @@ class PovScene:
         ``focal_distance_for_range`` a real depth range.
 
         **Instancing is what this method cannot see, and instancing is the
-        reason to use this module** — so check that the two do not collide in
+        reason to use this module** -- so check that the two do not collide in
         your scene.  A tree gets away with it: its wood is swept and reaches
         the crown, so the bounds cover the subject even though every leaf is an
         instance.  A scene whose subject *is* the instances does not.  Ten
@@ -830,9 +830,9 @@ class PovScene:
         scene while a camera framed from it fills the tile with one prop.  An
         entirely instanced scene returns ``None``.
 
-        Two ways out: keep one measurable primitive that spans the subject —
+        Two ways out: keep one measurable primitive that spans the subject --
         a :class:`Box` with no texture is invisible to a render but visible
-        here — or track the extent as you place the instances, which the
+        here -- or track the extent as you place the instances, which the
         producer usually knows anyway, and skip this.
 
         :return: ``(lo, hi)`` as ``(3,)`` arrays, or ``None`` if nothing
@@ -951,11 +951,11 @@ def lights_from_bounds(
     VTK's default is a headlight at the camera, which POV-Ray does not
     reproduce and which looks flat when ray-traced anyway.  This places a key
     light off the upper-front-right corner at roughly twice the scene radius,
-    plus an optional shadowless fill opposite it — enough that a transcoded
+    plus an optional shadowless fill opposite it -- enough that a transcoded
     scene renders legibly before anyone tunes the lighting properly.
 
     **"Upper" means along** *up*, **which defaults to** ``+y``.  That default
-    is right for a VTK scene and wrong for a ``+z``-up one — and ``+z``-up is
+    is right for a VTK scene and wrong for a ``+z``-up one -- and ``+z``-up is
     what :mod:`kg_utils.viz3d` builds, so the mismatch is not hypothetical.
     Left unchanged there, the key light lands at ``centre_z - 1.4·radius``:
     below the ground, lighting the subject from underneath. Pass
@@ -963,7 +963,7 @@ def lights_from_bounds(
 
     **Say which side the camera is on.**  Bounds cannot tell you: the derived
     side is whatever falls out of *up*, and for a ``+z``-up scene that is
-    ``+y`` — the far side from a :func:`kg_utils.viz3d.frame_tree` camera,
+    ``+y`` -- the far side from a :func:`kg_utils.viz3d.frame_tree` camera,
     which stands off along ``-y``.  Leave *key_side* unset and the rig lights
     the back of the subject while the lens looks at its shadow.  The scene is
     perfectly lit and the picture is dark, which is a hard failure to read
@@ -974,7 +974,7 @@ def lights_from_bounds(
     :param up: World up direction.  Defaults to ``+y`` for backward
         compatibility; ``(0, 0, 1)`` for a ``+z``-up scene.
     :param key_side: Direction from the subject toward the side the key should
-        come from — normally the camera's own standoff direction, so the lens
+        come from -- normally the camera's own standoff direction, so the lens
         sees the lit face.  Only its component across *up* is used, so it
         chooses a side without re-deciding the key's elevation.  ``None``
         derives one from *up*, which is the historical behaviour and is
@@ -983,8 +983,8 @@ def lights_from_bounds(
     :param fill: Add the shadowless fill light.
     :param rim: Add a dim shadowless light behind the subject, so it separates
         from the background instead of silhouetting into it.  Worth it when the
-        background is dark or the subject is intricate at its edges — a canopy,
-        a wireframe — and wasted on a solid form against a bright ground.
+        background is dark or the subject is intricate at its edges -- a canopy,
+        a wireframe -- and wasted on a solid form against a bright ground.
     :return: The light sources, key first.
     :raises ValueError: If *up* is degenerate.
     """
@@ -1070,8 +1070,8 @@ def ground_slab(
     disparity at the horizon on a light-field panel; a slab a few subject-widths
     across catches the shadow and stops.
 
-    Its top face sits at the subject's *base* along *up* — the minimum of the
-    bounds, not below them — so the subject stands on the floor rather than
+    Its top face sits at the subject's *base* along *up* -- the minimum of the
+    bounds, not below them -- so the subject stands on the floor rather than
     hovering over one parked underneath.
 
     :param lo: Lower bound corner of the subject, right-handed.
@@ -1123,7 +1123,7 @@ def pov_camera_from_frame(
     """Convert a renderer-independent camera frame into a :class:`PovCamera`.
 
     The sibling of :func:`pov_camera_from_plotter`, for callers that have no
-    plotter — a headless box writing ``.pov`` files with no VTK installed, which
+    plotter -- a headless box writing ``.pov`` files with no VTK installed, which
     is the whole point of this module.
 
     *frame* may be either three sequences (``position, look_at, up``) or a
@@ -1136,7 +1136,7 @@ def pov_camera_from_frame(
     authored in is not one.  Hand an unconverted camera to
     :func:`~quiltwright.povray.camera_block` and the geometry sits at negative
     *z* while the lens aims at positive *z*, and POV-Ray renders an immaculate
-    picture of empty space — with nothing wrong in the scene file and every
+    picture of empty space -- with nothing wrong in the scene file and every
     assertion that compares right-handed against right-handed passing.
 
     :param frame: ``position`` sequence, or a frame object as described above.
@@ -1199,7 +1199,7 @@ def instances_by_color(
     :param scale: Per-axis or scalar scale applied to the prototype.
     :param finish: Finish shared by every declared texture.
     :param prefix: Identifier stem for the declared textures.
-    :return: ``(declarations, unions)`` — declare each ``(name, texture)`` on
+    :return: ``(declarations, unions)`` -- declare each ``(name, texture)`` on
         the scene, then add the unions.
     :raises ValueError: If *index* does not match *points* in length.
     """
@@ -1262,8 +1262,8 @@ def swept_scene(
 
     Named for its geometry rather than for any subject: it knows swept tubes,
     oriented instances and scattered spheres, and nothing about what they
-    depict.  A tree is one caller — limbs are the sweeps, leaves the instances,
-    annotation clouds the spheres — but so is any producer with the same three
+    depict.  A tree is one caller -- limbs are the sweeps, leaves the instances,
+    annotation clouds the spheres -- but so is any producer with the same three
     shapes.  It imports no domain package and its arguments are arrays and
     colours throughout.
 
@@ -1273,7 +1273,7 @@ def swept_scene(
 
     **Lights are placed before the ground.**  The rig is sized from the scene
     bounds and the floor is deliberately wider than the subject, so measuring
-    after laying it makes the "scene radius" the slab's half-diagonal — which
+    after laying it makes the "scene radius" the slab's half-diagonal -- which
     pushes the key light far enough out to flatten the subject and shrink its
     shadow to nothing.  Getting that order wrong is silent; the scene is
     structurally perfect and looks dead.
@@ -1290,7 +1290,7 @@ def swept_scene(
         puts every instance in the first colour.
     :param instance_finish: Finish shared by the instance textures.
     :param clouds: ``[(points, radius, colour, opacity), ...]`` scattered
-        spheres — annotation, typically.
+        spheres -- annotation, typically.
     :param cloud_finish: Finish for the clouds.
     :param up: World up direction, for the light rig and the floor.
     :param sky: Background colour, or ``None`` for POV-Ray's default black.
@@ -1302,8 +1302,8 @@ def swept_scene(
         *brightness*: a diffuse tuned for a unit key clips at a high one.
     :param brightness: Key-light multiplier.
     :param lights: Place the rig.  ``False`` leaves the scene unlit, which
-        POV-Ray renders black — useful only when the caller supplies its own.
-    :param key_side: Which side the key comes from — pass the camera's
+        POV-Ray renders black -- useful only when the caller supplies its own.
+    :param key_side: Which side the key comes from -- pass the camera's
         standoff direction, or the lens looks at the subject's shadow.  See
         :func:`lights_from_bounds`.
     :param rim_light: Add the back light; see :func:`lights_from_bounds`.

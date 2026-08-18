@@ -6,7 +6,7 @@ Companion to ``render_museum_hologram.py``, which drives the interior.  The
 difference is not cosmetic.  The museum is a room: its eye is boxed in by
 walls, so the sweep is bounded by a measured lateral corridor and the view
 cone is derived from what is left.  These two scenes are single subjects on
-an open backdrop — there is nothing for the eye to walk into, so the sweep
+an open backdrop -- there is nothing for the eye to walk into, so the sweep
 uses the display's own cone and the whole job is spending the disparity
 budget well.
 
@@ -21,8 +21,8 @@ afford the disparity, and paying for it would push the subject off the glass.
 Excluding it takes one extra step over the museum.  The museum's far depth is
 where 95% of occludable content is accounted for, and that works because the
 room's walls close the plane sweep out: the curve flattens.  A sea running to
-the horizon never closes — it keeps eating a little more of the frame at every
-distance — so the same rule returns the end of the sweep and nothing useful.
+the horizon never closes -- it keeps eating a little more of the frame at every
+distance -- so the same rule returns the end of the sweep and nothing useful.
 The fix is to read the *knee* instead: fit the far tail of the sweep, which is
 pure backdrop, subtract that linear creep, and take 95% of what is left.  For
 the bell jar the backdrop accumulates 0.12% of the frame per unit and the
@@ -53,7 +53,7 @@ POV_SCENES = Path(__file__).resolve().parents[1] / "pov-scenes"
 #: Widest sweep these scenes are rendered at unless asked otherwise.
 #:
 #: Nothing encloses them, so unlike the museum there is no wall to bound the
-#: cone — but the disparity budget bounds it anyway, and on a wide panel the
+#: cone -- but the disparity budget bounds it anyway, and on a wide panel the
 #: preset's native cone overruns it.  The 16" Landscape declares 50 degrees,
 #: which on its 720 px tiles puts the sea at 14.3 px of adjacent-view
 #: disparity, close to double the ~8 px where ghosting becomes obvious, and
@@ -71,7 +71,7 @@ class StillLife:
 
     :param scene: Path to the ``.pov`` file, relative to ``pov-scenes/``.
     :param eye: The scene's own camera position.
-    :param aim: The scene's own aim point.  Direction only — the focal
+    :param aim: The scene's own aim point.  Direction only -- the focal
         distance is recomputed from *near* and *far*.
     :param fov: Vertical field of view of the scene's own lens, in degrees.
     :param near: Distance at which geometry first appears, in scene units.
@@ -107,7 +107,7 @@ class StillLife:
 
 
 #: The scenes this script knows how to aim at.  Depths are measured, not
-#: guessed — ``measure_depth_range.py`` slides an opaque plane along the view
+#: guessed -- ``measure_depth_range.py`` slides an opaque plane along the view
 #: axis and scores each frame for how much geometry remains in front of it::
 #:
 #:     python scripts/measure_depth_range.py --scene pov-scenes/porin/3porin.pov \
@@ -132,13 +132,13 @@ SCENES = {
     "porin": StillLife(
         scene="porin/3porin.pov",
         # location <0,0,-1100>, look_at origin, direction <0,0,1>, up
-        # <0,1,0>, right <3/4,0,0> — same lens, same 3:4 frame, 11x the scale.
+        # <0,1,0>, right <3/4,0,0> -- same lens, same 3:4 frame, 11x the scale.
         eye=(0.0, 0.0, -1100.0),
         aim=(0.0, 0.0, 0.0),
         fov=53.13,
         # The barrel's leading loops appear at 790 and 95% of it is in by
         # 1265; the sea's own creep past that is 0.02%/unit.  The title and
-        # signature sit at 900, inside these bounds — they were camera-pinned
+        # signature sit at 900, inside these bounds -- they were camera-pinned
         # overlays 10-12 units from the eye until scaled out to scene depth.
         near=790.0,
         far=1265.0,
@@ -153,8 +153,8 @@ SCENES = {
         aim=(0.0, 0.0, 0.0),
         fov=53.13,
         # The repressor's leading helix appears at 47; 95% of the complex is
-        # in by 89.  The sea never closes here either — the raw 95% rule
-        # returned the end of the sweep — so this far depth is the knee, with
+        # in by 89.  The sea never closes here either -- the raw 95% rule
+        # returned the end of the sweep -- so this far depth is the knee, with
         # a 0.15%/unit backdrop creep subtracted from a 32% subject.  The
         # title sits at depth 70 and the signature at 52, both inside these
         # bounds, so the sweep carries them without any rework.
@@ -178,7 +178,7 @@ def main() -> int:
         choices=sorted(QUILT_PRESETS),
         help="target display.  Both scenes were composed 3:4 portrait, so on "
         "a landscape panel the vertical framing is unchanged and the extra "
-        "width is backdrop — use --fov to re-frame if you want the subject "
+        "width is backdrop -- use --fov to re-frame if you want the subject "
         "larger.",
     )
     parser.add_argument(
@@ -291,7 +291,7 @@ def main() -> int:
     elapsed = time.time() - started
 
     # A preview is a quarter-size stand-in, not a deliverable, so it must not
-    # land on the full render's filename — iterating on one would silently
+    # land on the full render's filename -- iterating on one would silently
     # destroy the other.
     stem = args.out or f"renders/quilts/{args.subject}"
     out = save_quilt(quilt, f"{stem}-preview" if args.preview else stem, spec)

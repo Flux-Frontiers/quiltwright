@@ -6,8 +6,8 @@ kept where follows weight:
 
 | Directory | Contents | Kept |
 |---|---|---|
-| `stills/` | Full-quality single-frame references, one per scene | committed (~14 MB) — the diffable record of what each scene looks like |
-| `quilts/` | Looking Glass quilts, written here by the render scripts | release assets (25–40 MB each) — rendered on CI by `release.yml`, or locally via `make release-assets` |
+| `stills/` | Full-quality single-frame references, one per scene | committed (~14 MB) -- the diffable record of what each scene looks like |
+| `quilts/` | Looking Glass quilts, written here by the render scripts | release assets (25-40 MB each) -- rendered on CI by `release.yml`, or locally via `make release-assets` |
 | `views/` | Per-view captures, test frames and experiments | local scratch, never committed |
 
 `make stills`, `make quilts`, or per-scene targets (`make help`) drive all of
@@ -18,7 +18,7 @@ Produced with POV-Ray 3.7 on Linux. See
 
 ## stills/
 
-Render each at **its own declared aspect** — POV-Ray maps `right` to image
+Render each at **its own declared aspect** -- POV-Ray maps `right` to image
 width and `up` to image height whatever pixel dimensions you ask for, so a
 mismatched frame stretches the picture with no warning. The declared value per
 scene is tabulated in the workflow doc.
@@ -40,17 +40,17 @@ scene is tabulated in the workflow doc.
 | `lambda_main.png` | `lambda/lambda_main.pov` | 1.778 | 1920×1080 |
 
 `bell_jar_wall_0.06.png` and `bell_jar_wall_0.09.png` are the comparison the
-glass thickness was chosen from — `BJ_WALL` in `bell_jar/bell_jar.inc`. 0.06 is
+glass thickness was chosen from -- `BJ_WALL` in `bell_jar/bell_jar.inc`. 0.06 is
 the default; 0.09 is visible but chunky and distorts the duplex behind it.
 Setting it to 0 restores the original zero-thickness surface.
 
-`museum/disc1.pov` is absent because it does not render on Linux — it asks for
+`museum/disc1.pov` is absent because it does not render on Linux -- it asks for
 the standard includes in upper case. See the scene README.
 
 ## quilts/
 
-Gitignored like everything else here — at every depth, since the `*_qs…`
-patterns carry no slash — and they land here when you render them:
+Gitignored like everything else here -- at every depth, since the `*_qs...`
+patterns carry no slash -- and they land here when you render them:
 
 ```bash
 python scripts/render_still_life_hologram.py bell-jar          # 16" landscape, ~9 min
@@ -66,11 +66,11 @@ python scripts/render_still_life_hologram.py porin --device portrait
 
 The filename carries the metadata Looking Glass software parses: `_qs`, columns
 `x` rows, `a` aspect. The 35° cone is the script's cap, not the 16" panel's
-native 50° — at 50° the sea reaches 14.3 px of adjacent-view disparity against
+native 50° -- at 50° the sea reaches 14.3 px of adjacent-view disparity against
 a ~8 px ghosting threshold. `--view-cone 50` opts back in.
 
 One thing to expect from a fresh render: a **bell-jar quilt rendered before
-the `BJ_WALL` glass fix** will not match earlier stills — the jar was a
+the `BJ_WALL` glass fix** will not match earlier stills -- the jar was a
 zero-thickness surface until then. The porin title and signature, once
 camera-pinned overlays that left the frame during the sweep, now sit at scene
 depth (900 units, just ahead of the barrel) and ride the sweep with everything

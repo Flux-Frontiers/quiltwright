@@ -10,18 +10,18 @@
 
 ## HLD vs. light-field: two different devices
 
-Looking Glass sells two unrelated display technologies — know which one
+Looking Glass sells two unrelated display technologies -- know which one
 you're rendering for:
 
 | | **Hololuminescent (HLD)** | **Light-field (LFD)** |
 |---|---|---|
-| Models | 16″ / 27″ / 86″ Portrait HLD | Portrait, Go, 16″/27″/32″/65″ LFD |
+| Models | 16" / 27" / 86" Portrait HLD | Portrait, Go, 16"/27"/32"/65" LFD |
 | Content | **ordinary 2-D video** | multi-view **quilts** |
-| True 3-D parallax | no — fixed holographic "alcove" effect | yes — ~48–100 views across a cone |
+| True 3-D parallax | no -- fixed holographic "alcove" effect | yes -- ~48-100 views across a cone |
 | Software | HLD Author + USB media player | Bridge / Studio |
 | WaveRider module | `quiltwright.hld` (this page) | `quiltwright.lfd` |
 
-The HLD is an LCD with a fixed holographic volume — a stage-like "alcove" —
+The HLD is an LCD with a fixed holographic volume -- a stage-like "alcove" --
 embedded in its optical stack. Your flat video is multiply-blended into it:
 **pure white pixels become invisible**, showing only the glowing alcove;
 darker pixels appear as a subject standing inside it.
@@ -33,7 +33,7 @@ From the official media spec and content guidelines
 
 - **Master**: 3840×2160 (16:9 landscape) MP4, HEVC, 30 or 60 fps, bt709.
   HLD Author requires landscape input; one 4K master serves all sizes.
-- **White background** — white is transparent on the device. Busy or dark
+- **White background** -- white is transparent on the device. Busy or dark
   backgrounds kill the effect.
 - **Centered subject** inside safe margins (~9% top, 3% bottom/sides) so it
   stays within the alcove.
@@ -74,17 +74,17 @@ p.close()
 ## Getting it on the display
 
 1. Install **HLD Author** (free, Win/Mac, from the HLD docs site). Open the
-   rendered `*_hld.mp4` — it previews the video inside a virtual HLD,
+   rendered `*_hld.mp4` -- it previews the video inside a virtual HLD,
    validates the spec, rotates it for the player, and exports
    `*_HLD_encoded.mp4`.
 2. Copy that file onto the USB drive that shipped with the display and plug
    it into the bundled Raspberry Pi player. Videos loop in alphanumeric
    filename order; hot-swap works.
 3. Alternatively: drive the HLD directly over HDMI/DisplayPort as a normal
-   portrait monitor (1080×1920 for the 16″, 2160×3840 for 27″/86″) and play
+   portrait monitor (1080×1920 for the 16", 2160×3840 for 27"/86") and play
    the un-rotated master full-screen.
 
-Note: Looking Glass **Bridge and quilts do not apply to HLDs** — those are
+Note: Looking Glass **Bridge and quilts do not apply to HLDs** -- those are
 for the light-field line (see
 [lfd.md](lfd.md)).
 
@@ -96,5 +96,5 @@ for the light-field line (see
   the alcove walls.
 - The default scene shadow (`--no-shadow` to disable) is a soft procedural
   disc; it sells the "standing on the alcove floor" illusion.
-- 8–12 s per loop reads well in ambient/signage settings; the player loops
+- 8-12 s per loop reads well in ambient/signage settings; the player loops
   seamlessly with a 360° orbit.

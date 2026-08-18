@@ -1,8 +1,8 @@
 """
 Command-line entry point for ``quiltwright``.
 
-Stays core-only — numpy, pillow and click, the same promise the package makes
-for a ``pip install quiltwright`` with no extras — so weaving a wallpaper
+Stays core-only -- numpy, pillow and click, the same promise the package makes
+for a ``pip install quiltwright`` with no extras -- so weaving a wallpaper
 never needs the PyVista/VTK rendering stack.
 
 Author: Eric G. Suchanek, PhD
@@ -69,7 +69,7 @@ def _resolve_grid(preset: str | None, grid: str | None, stem: str) -> tuple[int,
 @click.group()
 @click.version_option(version=importlib.metadata.version("quiltwright"), prog_name="quiltwright")
 def cli() -> None:
-    """quiltwright — holographic output for Looking Glass displays."""
+    """quiltwright -- holographic output for Looking Glass displays."""
 
 
 @cli.command("weave")

@@ -8,8 +8,8 @@ abstract: >
   rather than a toe-in rotation, which is the geometric requirement for the
   display's lenticular optics to fuse the views into stable depth. Scenes
   can come from PyVista/VTK or from the POV-Ray ray-tracer, and the library
-  provides tools for managing the holographic depth budget — adjacent-view
-  disparity and focal-plane placement — plus a client for Looking Glass
+  provides tools for managing the holographic depth budget -- adjacent-view
+  disparity and focal-plane placement -- plus a client for Looking Glass
   Bridge and encoders for quilt video and Hololuminescent Display masters.
 authors:
   - family-names: Suchanek

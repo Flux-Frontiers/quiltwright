@@ -20,7 +20,7 @@ written per view, each carrying that view's camera.
 eye), ``direction`` (which places the centre of the image plane) and
 ``right``/``up`` (which span it), and it does *not* re-orthogonalise those
 vectors.  Tilting ``direction`` while holding ``right`` and ``up`` fixed
-therefore shears the frustum, leaving the image plane parallel to itself —
+therefore shears the frustum, leaving the image plane parallel to itself --
 exactly the projection a light-field display needs.  Using ``look_at``
 instead would *rotate* the camera ("toe-in"), which introduces vertical
 parallax and keystone distortion and prevents the views from fusing.
@@ -39,7 +39,7 @@ That point is the holographic focal plane: it lands on the physical glass,
 with nearer geometry floating in front and farther geometry behind.
 
 POV-Ray emits ``Camera vectors are not perpendicular`` for such a camera.
-That warning is expected and benign — it is the shear.
+That warning is expected and benign -- it is the shear.
 
 **Framing an existing scene.**  A scene composed as a still needs three
 things changed before it sweeps well, and all three are measured from the
@@ -52,7 +52,7 @@ the measured corridor and the cone it permits, and
 :func:`format_depth_budget` reports the result before the ray-tracer is
 asked to spend an hour on it.
 
-**Requirements** — a ``povray`` binary on ``PATH`` (``brew install povray``),
+**Requirements** -- a ``povray`` binary on ``PATH`` (``brew install povray``),
 plus pillow for quilt assembly (``poetry install --with viz``).
 
 Typical usage::
@@ -66,7 +66,7 @@ Typical usage::
                              include_paths=["../myinclude"])
     save_quilt(quilt, "museum", spec)   # -> museum_qs8x6a0.75.png
 
-Part of Quiltwright — https://github.com/suchanek/quiltwright
+Part of Quiltwright -- https://github.com/suchanek/quiltwright
 Author: Eric G. Suchanek, PhD
 """
 
@@ -91,7 +91,7 @@ POVRAY_ENV = "POVRAY_BINARY"
 
 
 def _triple(v: Iterable[float]) -> tuple[float, float, float]:
-    """Coerce a 3-vector — list, tuple, NumPy array — to a float 3-tuple.
+    """Coerce a 3-vector -- list, tuple, NumPy array -- to a float 3-tuple.
 
     ``tuple(v)`` types as ``tuple[float, ...]``, which is not a
     :class:`PovCamera` coordinate.  Unpacking states the arity and rejects a
@@ -137,7 +137,7 @@ class PovCamera:
     whatever should sit on the surface of the glass.  Geometry closer to the
     camera floats out of the display; geometry beyond it recedes.
 
-    **Coordinates here are POV-Ray's own — left-handed — not the right-handed
+    **Coordinates here are POV-Ray's own -- left-handed -- not the right-handed
     world :mod:`quiltwright.povgen` authors scenes in.**  Nothing converts a
     camera you construct yourself: :func:`camera_block` emits it verbatim.
     Only :func:`~quiltwright.povgen.pov_camera_from_plotter` converts, by
@@ -191,8 +191,8 @@ class PovCamera:
     def basis(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Orthonormal camera basis ``(forward, right, up)``.
 
-        POV-Ray is left-handed — with ``up`` at ``+y`` and ``direction`` at
-        ``+z``, ``right`` is ``+x`` — which is what ``right = sky x forward``
+        POV-Ray is left-handed -- with ``up`` at ``+y`` and ``direction`` at
+        ``+z``, ``right`` is ``+x`` -- which is what ``right = sky x forward``
         reproduces.  Getting this ordering wrong mirrors the view sweep and
         inverts the hologram's depth.
 
@@ -240,7 +240,7 @@ class PovCamera:
 
         A scene's camera was composed for a still: its aim point was chosen
         for framing, and its eye sits wherever the composition wanted it.
-        Neither survives contact with a quilt unedited — the focal plane
+        Neither survives contact with a quilt unedited -- the focal plane
         wants the distance that balances the disparity budget (see
         :func:`~quiltwright.lfd.focal_distance_for_range`), and inside an
         interior the eye wants to sit in the middle of whatever lateral
@@ -253,7 +253,7 @@ class PovCamera:
         :param location: The scene's eye position.
         :param aim: The scene's aim point.  Used for direction only unless
             *focal_distance* is ``None``.
-        :param fov: Vertical field of view in degrees — usually the scene's
+        :param fov: Vertical field of view in degrees -- usually the scene's
             own, see :class:`PovCamera`.
         :param focal_distance: Distance along the aim ray to place the focal
             plane.  Defaults to the scene's own aim distance.
@@ -304,7 +304,7 @@ def camera_block(camera: PovCamera, offset: float, aspect: float) -> str:
     eye = np.asarray(camera.location, dtype="d") + right * offset
     # Shear: slide the image-plane centre back onto the original view axis so
     # the focal plane stays pinned across the sweep.  Never emit `angle` here
-    # — it would override |direction| and silently undo this.
+    # -- it would override |direction| and silently undo this.
     direction = forward * dist - right * (offset * dist / focal)
     return (
         "camera {\n"
@@ -325,7 +325,7 @@ def sweep_extent(spec: QuiltSpec, focal_distance: float) -> float:
     """Half-width of the lateral eye travel the quilt's view sweep needs.
 
     The outermost views sit ``focal_distance * tan(cone/2)`` to either side
-    of the centre view — the largest magnitude in
+    of the centre view -- the largest magnitude in
     :func:`~quiltwright.lfd.view_offsets`, in closed form.  For an object on
     a turntable that space is empty; inside a room it is furniture and
     walls, so compare it against a measured :class:`Clearance` before
@@ -344,7 +344,7 @@ class Clearance:
 
     This is the constraint peculiar to enclosed scenes, and the one that
     bites hardest.  A cone chosen without checking it does not fail loudly:
-    the centre view — the one you preview — is perfect, while the outer
+    the centre view -- the one you preview -- is perfect, while the outer
     views quietly render the unlit back face of a wall.
 
     Measure the corridor by rendering at candidate eye offsets along the
@@ -558,7 +558,7 @@ def render_pov_quilt(
 
     Cost scales linearly with the view count: a Portrait quilt is 48 full
     ray-traces.  For scenes using radiosity or photons, render one view with
-    the cache saved and the rest with it loaded (via *extra_args*) — the
+    the cache saved and the rest with it loaded (via *extra_args*) -- the
     lighting is identical across a view sweep, so recomputing it per view is
     pure waste.
 
@@ -757,8 +757,8 @@ def render_pov_views(
 ) -> list[Path]:
     """Render a POV-Ray scene as a sweep of separate view images.
 
-    Identical camera geometry to :func:`render_pov_quilt` — the same off-axis
-    sheared frustum, the same focal plane on the ``look_at`` point — but the
+    Identical camera geometry to :func:`render_pov_quilt` -- the same off-axis
+    sheared frustum, the same focal plane on the ``look_at`` point -- but the
     frames are written out individually instead of being tiled into a quilt.
     That is the form consumers other than a light-field panel ask for: a
     hologram printer slicing views into hogels, or a lenticular interlacer.
@@ -792,7 +792,7 @@ def render_pov_views(
     :param keep_wrappers: Also write the generated per-view ``.pov`` wrappers
         alongside the frames, for inspection.
     :param progress: Print a progress line while rendering.
-    :return: Paths to the written frames, in view order — view 0 leftmost.
+    :return: Paths to the written frames, in view order -- view 0 leftmost.
     """
     povray = _find_povray(binary)
     scene_path = Path(scene).expanduser().resolve()

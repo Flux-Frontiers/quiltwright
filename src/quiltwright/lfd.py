@@ -2,7 +2,7 @@
 Looking Glass Quilt Renderer
 ============================
 
-Renders any PyVista scene into a *quilt* — the tiled multi-view image format
+Renders any PyVista scene into a *quilt* -- the tiled multi-view image format
 used by Looking Glass holographic light-field displays.
 
 A quilt packs N renders of the same scene, captured from camera positions
@@ -16,12 +16,12 @@ suffix ``_qs<cols>x<rows>a<aspect>.png``, so files saved through
 Each view uses an *off-axis* (asymmetric-frustum) projection rather than a
 "toe-in" rotation: the camera translates along its horizontal axis while the
 frustum is sheared back toward the focal plane.  This keeps the focal plane
-identical across views — the geometric requirement for the display's lenticular
+identical across views -- the geometric requirement for the display's lenticular
 optics to fuse the views into a stable hologram.  Content at the focal plane
 appears at the physical screen surface; content nearer/farther floats in
 front of / behind the glass.
 
-**Optional dependencies** — install the ``viz`` extras group::
+**Optional dependencies** -- install the ``viz`` extras group::
 
     poetry install --with viz   # pyvista, pillow, scipy, ...
 
@@ -41,7 +41,7 @@ The saved quilt can be displayed on the device by dragging it into Looking
 Glass Studio, or cast directly from Python via :func:`cast_quilt` if Looking
 Glass Bridge is running on the machine driving the display.
 
-Part of Quiltwright — https://github.com/suchanek/quiltwright
+Part of Quiltwright -- https://github.com/suchanek/quiltwright
 Author: Eric G. Suchanek, PhD
 """
 
@@ -218,8 +218,8 @@ def sweep_spec(n_views: int, view_cone: float, tile_width: int, tile_height: int
 
     A quilt's view count is ``columns * rows``, so a rectangular grid cannot
     express a prime count.  A single row can express any count at all, which
-    is what consumers that want the views as separate frames — hologram
-    printers, lenticular interlacers — actually ask for.  The camera sweep is
+    is what consumers that want the views as separate frames -- hologram
+    printers, lenticular interlacers -- actually ask for.  The camera sweep is
     identical either way; only the packing differs.
 
     :param n_views: Number of views in the sweep.
@@ -243,7 +243,7 @@ def sweep_spec(n_views: int, view_cone: float, tile_width: int, tile_height: int
 
 #: Sweep matching the published input specification of the LitiHolo desktop
 #: 3D hologram printer: 23 viewzone images per hogel across a 45-degree
-#: lateral field, horizontal parallax only — the same off-axis sweep a
+#: lateral field, horizontal parallax only -- the same off-axis sweep a
 #: light-field quilt is built from, differently packed.
 #:
 #: The per-view pixel size is *not* published.  1600x2000 comfortably exceeds
@@ -319,7 +319,7 @@ def view_disparity(spec: QuiltSpec, fov: float, focal_distance: float, depth: fl
 
 def focal_distance_for_range(near: float, far: float) -> float:
     """Focal distance that balances disparity between the nearest and
-    farthest content — their harmonic mean.
+    farthest content -- their harmonic mean.
 
     Disparity grows with ``|1 - Z/depth|``, which is asymmetric in depth:
     placing the focal plane at the arithmetic midpoint leaves the near
@@ -343,7 +343,7 @@ def focal_distance_for_range(near: float, far: float) -> float:
 
 
 #: Labels used by :func:`depth_report` for the three depths it measures
-#: itself.  Deliberately neutral — a corpus renderer calls its far extent
+#: itself.  Deliberately neutral -- a corpus renderer calls its far extent
 #: "farthest foliage", a CAD one "back wall"; pass *labels* to say so.
 DEPTH_LABELS: tuple[str, str, str] = (
     "nearest geometry",
@@ -362,7 +362,7 @@ def scene_depths(
     """Near, focal and far distances for the scene, as :func:`render_quilt` will see them.
 
     Measures the plotter's bounding box along the view axis, then applies the
-    same framing :func:`render_quilt` applies before sweeping — narrowing the
+    same framing :func:`render_quilt` applies before sweeping -- narrowing the
     FOV and dollying back, then the optional zoom dolly.  Reading the camera
     as-is instead is the tempting shortcut and it is wrong: the render's FOV
     and focal distance are both different by then, so the disparity computed
@@ -424,7 +424,7 @@ def depth_report(
     :func:`~quiltwright.povray.format_depth_budget`, which takes a POV-Ray
     camera.  Without this, every PyVista caller has to measure the scene by
     hand and then build a throwaway ``PovCamera`` purely to carry two floats
-    — which is exactly what two separate consumers ended up doing.
+    -- which is exactly what two separate consumers ended up doing.
 
     Pass the same *fov* and *zoom* you will pass to :func:`render_quilt`, so
     the numbers describe the render you are about to make.
@@ -478,12 +478,12 @@ def _apply_off_axis_view(camera, base, offset: float, tile_aspect: float) -> Non
     """Position *camera* for one quilt view using an off-axis projection.
 
     The camera and focal point translate together by *offset* along the
-    camera's right vector (no rotation — view direction stays parallel), then
+    camera's right vector (no rotation -- view direction stays parallel), then
     the projection window centre is sheared so the original focal point stays
     centred on screen.  VTK's ``WindowCenter`` shifts the frustum by
     ``wcx * half_width`` at every depth, so setting
     ``wcx = -offset / half_width_at_focal_plane`` re-centres the focal plane
-    exactly — the standard Looking Glass off-axis recipe.
+    exactly -- the standard Looking Glass off-axis recipe.
 
     :param camera: ``pv.Camera`` / vtkCamera to mutate.
     :param base: Tuple from :func:`_camera_frame` of the *original* camera.
@@ -508,8 +508,8 @@ def assemble_quilt(views: Iterable[np.ndarray], spec: QuiltSpec) -> np.ndarray:
     """Tile per-view images into a single quilt image.
 
     This is the renderer-agnostic half of quilt production: it takes views
-    that some backend already rendered — VTK via :func:`render_quilt`, a
-    ray-tracer via :mod:`quiltwright.povray` — and lays them out in quilt
+    that some backend already rendered -- VTK via :func:`render_quilt`, a
+    ray-tracer via :mod:`quiltwright.povray` -- and lays them out in quilt
     order.  Views are consumed lazily, so a backend can stream them without
     holding all ``n_views`` frames in memory at once.
 
@@ -517,7 +517,7 @@ def assemble_quilt(views: Iterable[np.ndarray], spec: QuiltSpec) -> np.ndarray:
     is what makes anamorphic quilts (tile pixel aspect != view aspect, e.g.
     the 27" presets) come out correctly.
 
-    :param views: Iterable of ``uint8`` RGB (or RGBA) arrays in view order —
+    :param views: Iterable of ``uint8`` RGB (or RGBA) arrays in view order --
         view 0 is the leftmost camera.  Must yield exactly ``spec.n_views``.
     :param spec: Quilt specification (grid, size, aspect).
     :return: ``uint8`` RGB array of shape ``(quilt_height, quilt_width, 3)``.
@@ -555,8 +555,8 @@ def render_quilt(
 
     The plotter's current camera defines the centre view; its focal point
     becomes the holographic focal plane (the physical surface of the
-    display).  Position the camera before calling — e.g. via
-    ``plotter.camera_position`` or ``plotter.reset_camera()`` — exactly as
+    display).  Position the camera before calling -- e.g. via
+    ``plotter.camera_position`` or ``plotter.reset_camera()`` -- exactly as
     you would for a normal screenshot.
 
     :param plotter: An *off-screen* ``pv.Plotter`` with the scene composed.
@@ -569,7 +569,7 @@ def render_quilt(
         current FOV and distance.
     :param zoom: Optional camera zoom factor applied after framing, before
         the view sweep.  Values > 1 make the subject fill more of each tile,
-        which is what drives perceived depth — parallax is proportional to
+        which is what drives perceived depth -- parallax is proportional to
         on-screen size, so a subject occupying a third of the frame yields a
         third of the available look-around.
     :return: ``uint8`` RGB array of shape ``(quilt_height, quilt_width, 3)``.
@@ -745,7 +745,7 @@ def render_quilt_video(
     :param zoom: Camera dolly factor; see :func:`render_quilt`.
     :param crf: x264/x265 quality (lower = better; 15-20 sensible).
     :param on_frame: Optional ``callback(frame_index)`` invoked before each
-        frame renders — mutate the scene here for custom animation.
+        frame renders -- mutate the scene here for custom animation.
     :param progress: Print a progress line while rendering.
     :return: Path of the quilt MP4 written.
     """
@@ -924,7 +924,7 @@ def save_and_cast_quilt(
     is invisible until a panel is connected: :func:`save_quilt` takes the
     array, :func:`cast_quilt` takes a path.  Passing the array to the caster
     raises ``argument should be a str or an os.PathLike object ... not
-    'ndarray'`` — after the render, which for a ray-traced quilt is minutes
+    'ndarray'`` -- after the render, which for a ray-traced quilt is minutes
     later and the worst possible moment to find out.
 
     The file is confirmed on disk before Bridge is contacted, and a failed
@@ -958,7 +958,7 @@ def pause_quilt(*, bridge_url: str = BRIDGE_URL, timeout: float = 10.0) -> dict:
 
     Freezes the current frame; the playlist and its position are retained,
     so :func:`resume_quilt` continues from where it left off. This is
-    Bridge's *transport control* group — there is no ``stop_playlist`` or
+    Bridge's *transport control* group -- there is no ``stop_playlist`` or
     ``pause_playlist`` endpoint (a guessed endpoint name doesn't 404: Bridge
     answers with ``200 OK`` and an empty body, indistinguishable from a slow
     success unless you check that the response has no ``status`` field).
@@ -990,7 +990,7 @@ def stop_quilt(*, bridge_url: str = BRIDGE_URL, timeout: float = 10.0) -> dict:
     Bridge's own `bridge.js <https://github.com/Looking-Glass/bridge.js>`_
     SDK documents ``delete_playlist`` as *the* way to stop a playlist, and
     an earlier version of this function called it. In testing it reliably
-    left Bridge unresponsive to every further HTTP call — reproduced twice,
+    left Bridge unresponsive to every further HTTP call -- reproduced twice,
     once mid-video and once on a single still image, so it isn't a
     large-file decode race. This function deliberately avoids
     ``delete_playlist`` and reaches the same end state (nothing visible,

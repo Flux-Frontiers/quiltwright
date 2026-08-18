@@ -16,7 +16,7 @@ one that happens to be right on Linux::
     Windows  %LOCALAPPDATA%\\quiltwright\\Cache\\<name>
 
 This matches PyVista, which caches its own downloads through
-``pooch.os_cache`` — so on macOS its data sits in ``~/Library/Caches``, and a
+``pooch.os_cache`` -- so on macOS its data sits in ``~/Library/Caches``, and a
 hard-coded ``~/.cache`` would scatter our assets somewhere macOS itself never
 looks.
 
@@ -24,7 +24,7 @@ looks.
 environment variable so a user can relocate one dataset without moving the
 rest.
 
-Part of Quiltwright — https://github.com/suchanek/quiltwright
+Part of Quiltwright -- https://github.com/suchanek/quiltwright
 Author: Eric G. Suchanek, PhD
 """
 
@@ -42,8 +42,8 @@ _APP_NAME = "quiltwright"
 def cache_root() -> Path:
     """Return the per-user cache root for Quiltwright on this platform.
 
-    Uses :mod:`platformdirs` when it is available — it arrives transitively
-    with the ``viz`` extra (pyvista → pooch) — and falls back to the
+    Uses :mod:`platformdirs` when it is available -- it arrives transitively
+    with the ``viz`` extra (pyvista -> pooch) -- and falls back to the
     XDG layout otherwise, which is correct on Linux and a reasonable guess
     anywhere else.  No directory is created.
 
@@ -63,7 +63,7 @@ def dataset_cache_dir(name: str, *, env_var: str | None = None, create: bool = F
     """Return the cache directory for one downloaded dataset.
 
     :param name: Short dataset name, used as the directory under
-        :func:`cache_root` — e.g. ``"tvb"`` or ``"allen_ccf"``.
+        :func:`cache_root` -- e.g. ``"tvb"`` or ``"allen_ccf"``.
     :param env_var: Optional environment variable that, when set, overrides
         the location entirely.  Use this to put a large download on another
         volume, share one copy between checkouts, or pin it for CI.

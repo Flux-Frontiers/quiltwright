@@ -8,9 +8,9 @@
 > behind glass is better."*
 
 > **Which Looking Glass do you have?** This page covers the **light-field
-> line** (Portrait, Go, 16″/27″/32″/65″ LFD), which consumes multi-view
-> quilts via Bridge/Studio. The **Hololuminescent Displays** (16″/27″/86″
-> HLD) are a different technology that plays ordinary 2-D video — see
+> line** (Portrait, Go, 16"/27"/32"/65" LFD), which consumes multi-view
+> quilts via Bridge/Studio. The **Hololuminescent Displays** (16"/27"/86"
+> HLD) are a different technology that plays ordinary 2-D video -- see
 > [hld.md](hld.md).
 
 ---
@@ -19,7 +19,7 @@
 
 Looking Glass light-field displays are lenticular screens: they emit dozens
 of slightly different views of a scene across a horizontal cone, and your
-two eyes (plus head movement) pick up different views — true glasses-free
+two eyes (plus head movement) pick up different views -- true glasses-free
 3-D.
 
 The content format is a **quilt**: a single PNG that tiles N renders of the
@@ -32,18 +32,18 @@ Studio and Bridge configure playback automatically.
 
 1. The plotter's camera defines the centre view; its **focal point becomes
    the plane of the physical glass**.
-2. The camera sweeps the device's view cone (35° default; the Gen3 16″
-   landscape reports 50°) in N steps — *translating*, never rotating
+2. The camera sweeps the device's view cone (35° default; the Gen3 16"
+   landscape reports 50°) in N steps -- *translating*, never rotating
    ("toe-in" breaks the optics).
 3. Each view uses an **off-axis (asymmetric-frustum) projection** via VTK's
    window-centre shear, so the focal plane is pixel-identical across all
-   views — the geometric requirement for the display to fuse them.
+   views -- the geometric requirement for the display to fuse them.
 4. Views are captured at ~14° FOV (camera dollied back to compensate),
    matching real-world parallax at typical viewing distance.
 5. Tiles are assembled and saved with the quilt filename convention.
 
-Step 2 is the one people get wrong. The intuitive approach — orbit the
-camera slightly per view, aiming each at the subject — is "toe-in," and it
+Step 2 is the one people get wrong. The intuitive approach -- orbit the
+camera slightly per view, aiming each at the subject -- is "toe-in," and it
 shears the focal plane differently in every view. The display cannot fuse
 the result, and you get ghosting instead of depth.
 
@@ -61,21 +61,21 @@ One-time setup:
 2. Connect the display. LFD panels need **both** cables: USB-C (data and
    calibration) and HDMI/DisplayPort (video). The panel also appears to the
    OS as an ordinary external monitor.
-3. Verify Bridge sees the device — see the next section.
+3. Verify Bridge sees the device -- see the next section.
 4. Optionally install **Looking Glass Studio** (same downloads page), a
    quilt player/library app: drag any `*_qs*.png` / `*_qs*.mp4` in and the
    settings are auto-detected from the filename.
 
 `cast_quilt()` / `--cast` then displays renders directly from Python via
-Bridge's HTTP orchestration flow (`enter_orchestration → show_window →
-instance_playlist → insert_playlist_entry → play_playlist`). Run it on the
+Bridge's HTTP orchestration flow (`enter_orchestration -> show_window ->
+instance_playlist -> insert_playlist_entry -> play_playlist`). Run it on the
 machine the display is plugged into.
 
 ## 2. Ask the panel what it wants
 
 **Do this before your first render.** Quilt specs differ between
 generations of the same nominal size, and the published tables lag the
-hardware — the Gen3 16″ landscape wants 8×6 @ 7680×4320, where older docs
+hardware -- the Gen3 16" landscape wants 8×6 @ 7680×4320, where older docs
 list 7×7 @ 5999×5999. Bridge reports the truth:
 
 ```bash
@@ -92,8 +92,8 @@ On the entry whose `hwid` matches your serial, read:
 |---|---|
 | `hardwareVersion` | Device + generation, e.g. `16_gen3_l` |
 | `defaultQuilt` | `quiltX`/`quiltY` (pixels) and `tileX`/`tileY` (grid) |
-| `calibration` → `viewCone` | View cone in degrees — pass to `--view-cone` |
-| `calibration` → `screenW`/`screenH` | Native panel resolution |
+| `calibration` -> `viewCone` | View cone in degrees -- pass to `--view-cone` |
+| `calibration` -> `screenW`/`screenH` | Native panel resolution |
 
 Match those against the preset table below. If they disagree, trust the
 device and override with `--quilt-grid` / `--view-cone`, or build a
@@ -111,7 +111,7 @@ lets Bridge pick the real device.
 ## 3. Render a quilt
 
 ```bash
-# Gen3 16" landscape — render and show it on the glass
+# Gen3 16" landscape -- render and show it on the glass
 waverider-voxel-viz --dataset iris --quilt 16-landscape --out iris --cast
 # -> iris_qs8x6a1.77778.png   (48 views, 8x6, 7680x4320)
 
@@ -135,9 +135,9 @@ waverider-voxel-viz --ct-demo --ct-dataset brain --quilt portrait --out brain --
 ```
 
 Drop `--cast` to just write the file, then drag it into Looking Glass
-Studio — the `_qs…a…` suffix configures playback automatically.
+Studio -- the `_qs...a...` suffix configures playback automatically.
 
-### From Python — any PyVista scene
+### From Python -- any PyVista scene
 
 ```python
 import pyvista as pv
@@ -185,7 +185,7 @@ render_ct_quilt(ct_dataset="full_head", out_path="head_spin",
 ### Animated holograms beyond turntables
 
 `render_quilt_video()` accepts an `on_frame(i)` callback that runs before
-each frame — mutate the scene (advance a time step, move a slice plane,
+each frame -- mutate the scene (advance a time step, move a slice plane,
 update scalars) for arbitrary animation:
 
 ```python
@@ -199,10 +199,10 @@ render_quilt_video(plotter, QUILT_PRESETS["16-landscape"], "evolving",
 Video encoding needs ffmpeg on the PATH, or `pip install imageio-ffmpeg`
 for a bundled binary. Encoding follows the official quilt-video spec:
 MP4 + `yuv420p`, H.264 for quilts up to 6000 px on the longest side and
-HEVC above that (so the 16″ landscape's 7680 px quilt encodes as HEVC), and
-the same `_qs…a…` filename convention.
+HEVC above that (so the 16" landscape's 7680 px quilt encodes as HEVC), and
+the same `_qs...a...` filename convention.
 
-Note that a quilt video renders `n_frames × n_views` images — a 180-frame
+Note that a quilt video renders `n_frames × n_views` images -- a 180-frame
 turntable on a 48-view device is 8 640 renders. Preview with `--frames 30`
 before committing to a long clip.
 
@@ -211,7 +211,7 @@ before committing to a long clip.
 ## 4. Control playback
 
 `cast_quilt()` starts playback; three more calls cover the rest of a normal
-session — pause, resume, and stop (which pauses and hides the window,
+session -- pause, resume, and stop (which pauses and hides the window,
 leaving the playlist in place so the next `cast_quilt()` replaces it
 cleanly):
 
@@ -239,7 +239,7 @@ curl -s -X PUT -H 'Content-Type: application/json' \
 
 > **There is no `stop_playlist` or `pause_playlist` endpoint.** Guessing
 > plausible names here is a trap: Bridge answers an *unrecognised* endpoint
-> the same way it answers a wrong HTTP verb — `200 OK` with an empty body —
+> the same way it answers a wrong HTTP verb -- `200 OK` with an empty body --
 > so a wrong guess looks identical to a slow success until you check that
 > the response has no `status` field. The real control group is
 > **transport control** (`transport_control_play` / `_pause` / `_next` /
@@ -253,13 +253,13 @@ curl -s -X PUT -H 'Content-Type: application/json' \
 > own reference implementation of "stop" (`BridgeClient.stopStudioPlaylist`)
 > calls `delete_playlist` then `show_window(false)`. On this Bridge install
 > (2.6.3, macOS), `delete_playlist` reliably left the daemon unresponsive to
-> every further HTTP call — reproduced twice, once mid-video and once on a
+> every further HTTP call -- reproduced twice, once mid-video and once on a
 > single still image, so it wasn't a large-file decode race. `stop_quilt()`
 > avoids it entirely: `transport_control_pause` then `show_window(false)`,
 > both individually proven safe, reaching the same visible end state
 > (nothing showing, playback halted) without deleting anything. If you want
 > the playlist actually removed and are on a Bridge version where
-> `delete_playlist` behaves, call it directly via Bridge's HTTP API — just
+> `delete_playlist` behaves, call it directly via Bridge's HTTP API -- just
 > be ready to restart Bridge if it doesn't return.
 
 | Action | Endpoint | Bridge request body |
@@ -270,7 +270,7 @@ curl -s -X PUT -H 'Content-Type: application/json' \
 | Next / previous entry | `transport_control_next` / `_previous` | `{orchestration}` |
 | Seek to entry | `transport_control_seek_to_index` | `{orchestration, index}` |
 | Hide/show window | `show_window` | `{orchestration, show_window, head_index}` |
-| Delete playlist ⚠️ | `delete_playlist` | `{orchestration, name, loop}` — hung Bridge in testing, see above |
+| Delete playlist | `delete_playlist` | `{orchestration, name, loop}` -- hung Bridge in testing, see above |
 
 ---
 
@@ -284,20 +284,20 @@ curl -s -X PUT -H 'Content-Type: application/json' \
 |---|---|---|---|---|---|---|
 | `portrait` | Portrait | 3360×3360 | 8×6 | 48 | 0.75 | 35° |
 | `go` | Go | 4092×4092 | 11×6 | 66 | 0.5625 | 35° |
-| `16-landscape` | 16″ landscape (Gen3) | 7680×4320 | 8×6 | 48 | 1.77778 | **50°** |
-| `16-portrait` | 16″ portrait | 5995×6000 | 11×6 | 66 | 0.5625 | 35° |
-| `27-landscape` | 27″ landscape | 7680×4320 | 8×6 | 48 | 1.777 | 35° |
-| `27-portrait` | 27″ portrait | 7680×4320 | 12×4 | 48 | 0.5625 | 35° |
-| `32-landscape` | 32″ landscape | 8190×8190 | 7×7 | 49 | 1.777 | 35° |
-| `32-portrait` | 32″ portrait | 8184×8184 | 11×6 | 66 | 0.5625 | 35° |
-| `65` | 65″ | 8192×8192 | 8×9 | 72 | 1.777 | 35° |
+| `16-landscape` | 16" landscape (Gen3) | 7680×4320 | 8×6 | 48 | 1.77778 | **50°** |
+| `16-portrait` | 16" portrait | 5995×6000 | 11×6 | 66 | 0.5625 | 35° |
+| `27-landscape` | 27" landscape | 7680×4320 | 8×6 | 48 | 1.777 | 35° |
+| `27-portrait` | 27" portrait | 7680×4320 | 12×4 | 48 | 0.5625 | 35° |
+| `32-landscape` | 32" landscape | 8190×8190 | 7×7 | 49 | 1.777 | 35° |
+| `32-portrait` | 32" portrait | 8184×8184 | 11×6 | 66 | 0.5625 | 35° |
+| `65` | 65" | 8192×8192 | 8×9 | 72 | 1.777 | 35° |
 
 Only `16-landscape` has been verified against physical hardware; the rest
 come from the published table. Confirm yours with the probe above before
 trusting a row.
 
 Some presets store views anamorphically (tile pixel aspect ≠ view aspect).
-The 16″ landscape is one: 7680×4320 in an 8×6 grid gives 960×720 tiles
+The 16" landscape is one: 7680×4320 in an 8×6 grid gives 960×720 tiles
 (4:3) holding 16:9 views. The renderer captures each view at the declared
 aspect and resamples into the tile, so geometry is never distorted.
 
@@ -311,7 +311,7 @@ spec = QuiltSpec(columns=8, rows=6, quilt_width=7680, quilt_height=4320,
 
 ---
 
-## View sweeps — when the consumer is not a panel
+## View sweeps -- when the consumer is not a panel
 
 A quilt's view count is `columns × rows`, so a rectangular grid **cannot
 express a prime count**. That is a real constraint rather than a curiosity: the
@@ -327,7 +327,7 @@ spec = sweep_spec(n_views=23, view_cone=45.0, tile_width=1600, tile_height=2000)
 spec.n_views        # 23
 ```
 
-The camera sweep is **identical** to a quilt's — the same off-axis frusta, the
+The camera sweep is **identical** to a quilt's -- the same off-axis frusta, the
 same cone, the same focal plane on the camera's aim point. Only the packing
 differs, and consumers other than a light-field panel (hologram printers,
 lenticular interlacers) want the views as separate frames anyway. Pair it with
@@ -343,7 +343,7 @@ individually instead of tiling them.
 | Per-view pixels | 1600×2000 (aspect 0.8) |
 
 The view count and the cone come from the printer's published specification.
-**The per-view pixel size does not** — it is not published. 1600×2000 is a
+**The per-view pixel size does not** -- it is not published. 1600×2000 is a
 deliberate over-estimate: it comfortably exceeds the ~102×127 hogel grid of a
 4×5-inch plate at 1 mm hogels, and downsampling is cheap where re-rendering is
 not. Aspect 0.8 is that plate in portrait; transpose for landscape. If you use
@@ -358,14 +358,14 @@ specification*. That is not the same as "compatible with the LitiHolo printer",
 and two open questions sit between them:
 
 - **Off-axis or toe-in?** Quiltwright sweeps with off-axis sheared frusta,
-  which is unambiguously correct for a lenticular panel — it is the whole point
+  which is unambiguously correct for a lenticular panel -- it is the whole point
   of the Concept section above. But the 2003 hologram submission of one of these
   same scenes used a *circular arc with the aim point pinned to the subject*,
   which is toe-in. These are not interchangeable, and which one a hogel slicer
   expects is unknown.
 - **Is 23 views over 45° too coarse?** It works out to **2.05° between adjacent
   views** (45° over 22 intervals), against **0.74°** for a Looking Glass
-  Portrait quilt (35° over 47) — about 2.75× coarser. On a lenticular panel,
+  Portrait quilt (35° over 47) -- about 2.75× coarser. On a lenticular panel,
   that much would step visibly as you moved rather than glide. Whether a
   hogel-based recording is more forgiving is genuinely unknown.
 
@@ -397,14 +397,14 @@ print(depth_report(plotter, spec, fov=14.0, zoom=1.6,
     farthest geometry      20.4   5.76 px  <- soft
 ```
 
-Roughly 4–5 px is the practical ceiling; past ~8 px expect visible
+Roughly 4-5 px is the practical ceiling; past ~8 px expect visible
 ghosting. Content *at* the focal plane has zero disparity by definition,
 which is why the focal point belongs in the middle of the subject.
 
 **Pass the same `fov` and `zoom` you will pass to `render_quilt()`.**
 `render_quilt()` narrows the FOV and dollies back before it sweeps, so a
 budget measured from the plotter as-composed is computed at the wrong FOV
-and the wrong focal distance — it describes a picture you are not about to
+and the wrong focal distance -- it describes a picture you are not about to
 make. `depth_report()` models that reframing; reading the camera yourself
 does not. Use `scene_depths()` if you want the numbers rather than the
 report. Neither touches the plotter.
@@ -414,7 +414,7 @@ For POV-Ray scenes the equivalent is `format_depth_budget()`, which takes a
 
 Perceived depth scales with how much of each view the subject fills. A
 volume occupying a third of the frame delivers roughly a third of the
-parallax the panel can show, and wastes most of the per-view resolution —
+parallax the panel can show, and wastes most of the per-view resolution --
 each view is only a fraction of the quilt.
 
 PyVista's default framing leaves a lot of empty space, so `--quilt-zoom`
@@ -437,7 +437,7 @@ waverider-voxel-viz --dataset iris --quilt 16-landscape --out iris \
 ```
 
 The **colour scale bar is off by default** for quilts. Any 2-D overlay
-renders identically in every view, which pins it to the focal plane — it
+renders identically in every view, which pins it to the focal plane -- it
 reads as a flat pane cutting through the hologram rather than a label. It
 stays legible, so `--quilt-scalar-bar` is there when you need the values
 more than the depth.
@@ -447,10 +447,10 @@ more than the depth.
 The presets follow each device's factory-calibrated ideal. The lenticular
 driver *interpolates* between quilt views, so:
 
-- **More views** (`--quilt-grid 11x6` = 66) → smoother look-around and less
+- **More views** (`--quilt-grid 11x6` = 66) -> smoother look-around and less
   ghosting at the cone edges, but each view gets fewer pixels (the quilt's
   total pixel budget is fixed per device).
-- **Fewer views** → sharper individual views, more visible "jumping" as you
+- **Fewer views** -> sharper individual views, more visible "jumping" as you
   move your head.
 
 The factory default is the sweet spot for the panel's optics; go denser
@@ -458,12 +458,12 @@ only if you notice stepping artifacts in deep scenes.
 
 ## Composition tips
 
-- Centre the most important structure at the camera's **focal point** — it
+- Centre the most important structure at the camera's **focal point** -- it
   sits at the glass surface and stays sharpest.
 - Depth budget is asymmetric: content can recede far behind the glass, but
   pop-out in front degrades quickly.
-- Keep 2-D overlays (scalar bars, titles) to a minimum — see above.
-- For turntable videos, 360° over 6–10 s (`--frames 180 --fps 24`) reads
+- Keep 2-D overlays (scalar bars, titles) to a minimum -- see above.
+- For turntable videos, 360° over 6-10 s (`--frames 180 --fps 24`) reads
   well; faster spins fight the depth effect.
 
 ## Troubleshooting
@@ -471,12 +471,12 @@ only if you notice stepping artifacts in deep scenes.
 | Symptom | Likely cause |
 |---|---|
 | `--cast` reports success, glass unchanged | Bridge not running, or a client using `POST` instead of `PUT`. `cast_quilt()` now raises `RuntimeError` on an empty orchestration token rather than failing silently. |
-| `RuntimeError: … returned no orchestration token` | Bridge is reachable but rejected the handshake. Check it's ≥ 2.2 and that the display is connected. |
+| `RuntimeError: ... returned no orchestration token` | Bridge is reachable but rejected the handshake. Check it's ≥ 2.2 and that the display is connected. |
 | Connection refused on :33334 | Bridge isn't running, or you're not on the machine the display is plugged into. `cast_quilt()` takes a `bridge_url` if it lives elsewhere. |
-| Ghosting instead of depth | Quilt tiling doesn't match what the device expects. Re-check `defaultQuilt` against your preset — a quilt read with the wrong grid mixes views. |
+| Ghosting instead of depth | Quilt tiling doesn't match what the device expects. Re-check `defaultQuilt` against your preset -- a quilt read with the wrong grid mixes views. |
 | Shallow or absent parallax | Subject too small in frame (raise `--quilt-zoom`), or view cone set below the panel's (`--view-cone`). |
 | Depth reads but the scene looks flat and papery | 2-D overlays sitting on the focal plane; drop `--quilt-scalar-bar`. |
 
 To inspect a quilt without the hardware, open the PNG and check the tile
-count, that no tile is blank, and that the first and last tiles differ —
+count, that no tile is blank, and that the first and last tiles differ --
 if extreme views are identical, the camera sweep didn't happen.
