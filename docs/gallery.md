@@ -22,10 +22,6 @@ hologram is rendered from; what's on the walls is catalogued in
 *`museum.pov` -- the canonical cut, and the one
 [`render_museum_hologram.py`](../scripts/render_museum_hologram.py) drives.*
 
-![Museum, interior lighting only](../renders/stills/museum_dark.png)
-
-*`museum_dark.pov` -- same room, interior lighting only.*
-
 ![Museum, 1997 cut](../renders/stills/museum_970211.png)
 
 *`museum_970211.pov` -- the 1997 cut, kept for provenance.*
@@ -35,9 +31,7 @@ hologram is rendered from; what's on the walls is catalogued in
 *`museum_pg.pov` -- the 1999 cut, the last one. Adds the DNA cartoon mobile,
 the Risedronate exhibit and a tree outside the window.*
 
-![Museum, world map variant](../renders/stills/museum_worldmap.png)
-
-*`worldmap.pov` -- the standalone world-map scene from the same tree.*
+*`museum_dark.pov` and `worldmap.pov` are in the tree but are not carried here.*
 
 ---
 

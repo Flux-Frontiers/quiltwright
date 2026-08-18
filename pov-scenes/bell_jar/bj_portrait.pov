@@ -1,11 +1,14 @@
 //
 //
-// This data and it's resulting derivative images are
-// (c) 1993-1996, Eric G. Suchanek, Ph.D.
+// This data and its resulting derivative images are
+// (c) 1993-1996, 2026, Eric G. Suchanek, Ph.D.
+//
+// The 1993-1996 term covers the model and the still life, inherited from
+// bj.pov; 2026 covers this file, which is a new composition of them.
 //
 // The user is hereby licensed non-commercial use of these
 // data and images, provided that this copyright notice remain
-// attached to all neccessary data files.
+// attached to all necessary data files.
 //
 //
 // PDB2POV atom input prepared by pdb2pov 11/12/93 09:55:44
@@ -19,7 +22,7 @@
 // bj_holo.pov.  Same scene and same eye; only the frame and the lettering
 // differ, so bj.pov keeps its 1997 3:4 composition untouched.
 //
-// Two changes, both for the Looking Glass:
+// Three changes, all for the Looking Glass:
 //
 //   * 9:16 rather than 3:4 -- the aspect every portrait preset in
 //     QUILT_PRESETS declares (16-portrait, 27-portrait, 32-portrait, go).
@@ -36,9 +39,10 @@
 //
 //   * The title and signature moved from camera-pinned overlays out to
 //     scene depth.  In bj.pov they sit 70-74 units from the eye, in front
-//     of the 72-unit near bound and some 20 units short of the focal
-//     plane, so on a light-field display they float off the glass.  Both
-//     now sit *on* the focal plane, where the display holds them sharp.
+//     of the near bound, so on a light-field display they float off the
+//     glass.  The title now sits *on* the focal plane; the signature sits
+//     at the near bound, which in this framing is as deep as anything at
+//     the bottom of the frame can be.  See the note above each.
 
 
 #version 3.0

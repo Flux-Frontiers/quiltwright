@@ -1,11 +1,11 @@
 //
 //
-// This data and it's resulting derivative images are
+// This data and its resulting derivative images are
 // (c) 1993-1996, Eric G. Suchanek, Ph.D.
 //
 // The user is hereby licensed non-commercial use of these
 // data and images, provided that this copyright notice remain
-// attached to all neccessary data files.
+// attached to all necessary data files.
 //
 //
 // PDB2POV atom input prepared by pdb2pov 11/12/93 09:55:44

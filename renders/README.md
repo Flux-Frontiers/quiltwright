@@ -34,10 +34,8 @@ scene is tabulated in the workflow doc.
 | `bell_jar_bdna_variant.png` | `bell_jar/bdna/bdna.pov` | 0.5 | 600×1200 |
 | `porin_3porin.png` | `porin/3porin.pov` | 1.778 | 1920×1080 |
 | `museum.png` | `museum/museum.pov` | 1.778 | 1920×1080 |
-| `museum_dark.png` | `museum/museum_dark.pov` | 1.333 | 1600×1200 |
 | `museum_970211.png` | `museum/museum_970211.pov` | 1.333 | 1600×1200 |
 | `museum_pg.png` | `museum/museum_pg.pov` | 1.25 | 1500×1200 |
-| `museum_worldmap.png` | `museum/worldmap.pov` | 1.333 | 1600×1200 |
 | `lambda_main.png` | `lambda/lambda_main.pov` | 1.778 | 1920×1080 |
 
 `bell_jar_wall_0.06.png` and `bell_jar_wall_0.09.png` are the comparison the
@@ -47,6 +45,9 @@ Setting it to 0 restores the original zero-thickness surface.
 
 `museum/disc1.pov` is absent because it does not render on Linux -- it asks for
 the standard includes in upper case. See the scene README.
+
+`museum/museum_dark.pov` and `museum/worldmap.pov` are absent by choice. Both
+render, and both remain in `pov-scenes/`; neither earns a reference still.
 
 `porin/3porin2.pov` is absent because it renders nothing: it is the stock
 POV-Ray scene template with `#include "3porin.inc"` appended, and that include

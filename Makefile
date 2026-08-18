@@ -110,10 +110,6 @@ still-museum:                DIR=museum
 still-museum:                SCENE=museum.pov
 still-museum:                SIZE=+W1920 +H1080
 
-still-museum_dark:           DIR=museum
-still-museum_dark:           SCENE=museum_dark.pov
-still-museum_dark:           SIZE=+W1600 +H1200
-
 still-museum_970211:         DIR=museum
 still-museum_970211:         SCENE=museum_970211.pov
 still-museum_970211:         SIZE=+W1600 +H1200
@@ -121,10 +117,6 @@ still-museum_970211:         SIZE=+W1600 +H1200
 still-museum_pg:             DIR=museum
 still-museum_pg:             SCENE=museum_pg.pov
 still-museum_pg:             SIZE=+W1500 +H1200
-
-still-museum_worldmap:       DIR=museum
-still-museum_worldmap:       SCENE=worldmap.pov
-still-museum_worldmap:       SIZE=+W1600 +H1200
 
 still-lambda_main:           DIR=lambda
 still-lambda_main:           SCENE=lambda_main.pov
@@ -135,8 +127,8 @@ STILL_TARGETS := still-bell_jar_bj still-bell_jar_bj_holo \
                  still-bell_jar_bdna \
                  still-bell_jar_yinyang still-bell_jar_bdna_variant \
                  still-porin_3porin \
-                 still-museum still-museum_dark still-museum_970211 \
-                 still-museum_pg still-museum_worldmap still-lambda_main
+                 still-museum still-museum_970211 \
+                 still-museum_pg still-lambda_main
 
 still-%: $(THREAD_INI)
 	@mkdir -p $(STILLS)

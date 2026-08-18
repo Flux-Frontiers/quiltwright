@@ -9,6 +9,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **`bell_jar/bj_holo.pov` and `bell_jar/bj_portrait.pov` -- the DNA still life
+  recomposed for a light-field panel, 16:9 and 9:16.** `bj.pov` puts its title
+  and signature 70-74 units from the eye, in front of its own 72-unit near
+  bound: they are camera-pinned overlays, so on a Looking Glass they float off
+  the glass instead of sitting in the scene, and the title drags a mirrored
+  copy through the water. Both new cuts move the lettering out to scene depth --
+  the title onto the focal plane, the signature as close to it as the
+  composition allows -- placed by projecting back from the frame rather than by
+  eye, with the arithmetic written into each file. `bj.pov` is untouched and
+  keeps its 1997 3:4 composition.
+
+  Each needed its lens opened, for a different reason, and neither was
+  discretionary. `bj.pov`'s framing has no sky: the jar and pedestal fill 91%
+  of the frame height, leaving 29 pixels above the dome in a 1080-line render,
+  so a title set above the glass could be at most ~20 pixels tall. 55.32
+  degrees vertical with the aim raised to y=20.95 redistributes that slack to
+  90 above and 54 below, at a cost of 4.6% of the subject's size. The portrait
+  cut is bounded by width instead -- the pedestal's 32.5-unit radius overruns a
+  9:16 frame outright -- so 65.92 degrees is what puts the base 69 pixels clear
+  of each side.
+
+  Two details are worth recording because guessing them wrong is easy. An
+  ellipsoid seen from a pitched camera silhouettes at its *tangent point*, not
+  its apex: the dome tops out 90 pixels down the 16:9 frame at y=60.27, z=-1.90,
+  three units nearer than the apex, and that tangent is what the title has to
+  clear. And anything sitting near the waterline projects *higher* in the frame
+  the further out it is, so a signature cannot be both low in frame and on the
+  focal plane -- 82 in the landscape cut is what drops it to the corner, a
+  third of a pixel of parallax off zero.
+
+  Both are driven by `render_still_life_hologram.py` as `bell-jar-holo` and
+  `bell-jar-portrait`, with `make` targets to match, and both swept for their
+  own depths rather than inheriting `bj.pov`'s. Neither bound comes out of the
+  sweep unedited. The far end is the knee, as for every scene here: the sea
+  never closes, so 0.133%/unit of backdrop creep off a 25.8% subject puts 95%
+  of it in by 129 (landscape), 0.071%/unit off 50.4% by 113 (portrait). The
+  portrait's near needed the same treatment at the other end -- its lens looks
+  40.8 degrees down at the frame's lower rim, so the sea arrives there at 61,
+  well in front of the subject, and buying zero parallax for a strip of
+  foreground water would push the jar itself off the glass. Both cuts come out
+  ahead of the existing `bell-jar` entry on disparity, 2.61 px and 1.86 px at
+  the bounds against its 2.77 px.
+
 - **`quiltwright.weave` -- pre-lensed native frames, no Bridge required.** The
   panel's lenticular sheet is a passive optic: anything that puts the correctly
   interleaved subpixels behind it fuses into a hologram, including the macOS
@@ -69,6 +112,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   confirming it fails.
 
 ### Changed
+
+- **The 1993-96 copyright notice in `pov-scenes/bell_jar/` reads as written.**
+  `it's resulting derivative images` and `all neccessary data files` are fixed
+  to `its` and `necessary` across the 12 files carrying the notice. Comments
+  only -- no geometry, camera or texture line moved, and every scene was
+  re-parsed to confirm it. The two new scenes carry `(c) 1993-1996, 2026`: the
+  earlier term covers the model and the still life they inherit, the later one
+  the composition, which is new.
 
 - **`docs/pdb2pov.md` covers `pypdb2pov`, the Python port of pdb2pov**, which
   writes byte-identical scenes from the same flags and is importable, so a
@@ -131,6 +182,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   0.6.0.
 
 ### Removed
+
+- **Three reference stills, and the targets and gallery entries behind them.**
+  `porin_3porin2.png` was blank -- `3porin2.pov` is the stock POV-Ray "Basic
+  Scene Example" template with `#include "3porin.inc"` appended, and that
+  include only `#declare`s `porin`, so nothing instantiates it and the frame is
+  sky and ground plane. `museum_dark.png` and `museum_worldmap.png` render
+  fine and are dropped by choice. All three scenes stay in `pov-scenes/`;
+  `renders/README.md` now says which are absent because they cannot render and
+  which are absent because they were not wanted.
 
 - **Four tags inherited from WaveRider** -- `v0.10.0`, `v0.10.1`, `v0.11.0`,
   `v0.12.0` -- deleted locally and on `origin`. Quiltwright was carved out of
