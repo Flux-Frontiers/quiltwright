@@ -77,6 +77,14 @@ still-bell_jar_bj:           DIR=bell_jar
 still-bell_jar_bj:           SCENE=bj.pov
 still-bell_jar_bj:           SIZE=+W900 +H1200
 
+still-bell_jar_bj_holo:      DIR=bell_jar
+still-bell_jar_bj_holo:      SCENE=bj_holo.pov
+still-bell_jar_bj_holo:      SIZE=+W1920 +H1080
+
+still-bell_jar_bj_portrait:  DIR=bell_jar
+still-bell_jar_bj_portrait:  SCENE=bj_portrait.pov
+still-bell_jar_bj_portrait:  SIZE=+W1080 +H1920
+
 still-bell_jar_bj_black:     DIR=bell_jar
 still-bell_jar_bj_black:     SCENE=bj_black.pov
 still-bell_jar_bj_black:     SIZE=+W900 +H1200
@@ -97,10 +105,6 @@ still-bell_jar_bdna_variant: INC=../../myinclude ..
 still-porin_3porin:          DIR=porin
 still-porin_3porin:          SCENE=3porin.pov
 still-porin_3porin:          SIZE=+W1920 +H1080
-
-still-porin_3porin2:         DIR=porin
-still-porin_3porin2:         SCENE=3porin2.pov
-still-porin_3porin2:         SIZE=+W1600 +H1200
 
 still-museum:                DIR=museum
 still-museum:                SCENE=museum.pov
@@ -126,9 +130,11 @@ still-lambda_main:           DIR=lambda
 still-lambda_main:           SCENE=lambda_main.pov
 still-lambda_main:           SIZE=+W1920 +H1080
 
-STILL_TARGETS := still-bell_jar_bj still-bell_jar_bj_black still-bell_jar_bdna \
+STILL_TARGETS := still-bell_jar_bj still-bell_jar_bj_holo \
+                 still-bell_jar_bj_portrait still-bell_jar_bj_black \
+                 still-bell_jar_bdna \
                  still-bell_jar_yinyang still-bell_jar_bdna_variant \
-                 still-porin_3porin still-porin_3porin2 \
+                 still-porin_3porin \
                  still-museum still-museum_dark still-museum_970211 \
                  still-museum_pg still-museum_worldmap still-lambda_main
 
@@ -148,9 +154,19 @@ stills: $(STILL_TARGETS)  ## render every reference still
 #   make quilt-museum EXTRA_ARGS="--antialias 0.1"
 EXTRA_ARGS ?=
 
-.PHONY: quilt-bell-jar quilt-porin quilt-lambda quilt-museum quilts
+.PHONY: quilt-bell-jar quilt-bell-jar-holo quilt-bell-jar-portrait quilt-porin quilt-lambda quilt-museum quilts
 quilt-bell-jar:  $(THREAD_INI)  ## bell jar quilt, 16" landscape (~3 min uncapped on 18 cores)
 	$(PYTHON) scripts/render_still_life_hologram.py bell-jar --jobs $(JOBS) $(EXTRA_ARGS)
+
+# bj_holo.pov: the same scene re-composed 16:9, with the title and signature
+# moved out to the focal plane.  Native landscape, so no --fov correction.
+quilt-bell-jar-holo:  $(THREAD_INI)  ## recomposed bell jar quilt, 16" landscape
+	$(PYTHON) scripts/render_still_life_hologram.py bell-jar-holo --jobs $(JOBS) $(EXTRA_ARGS)
+
+# bj_portrait.pov: the 9:16 companion, for the tall panels (16/27/32-portrait,
+# go).  Pass --device to pick one; the default 16-landscape would letterbox it.
+quilt-bell-jar-portrait:  $(THREAD_INI)  ## portrait bell jar quilt, 16" portrait
+	$(PYTHON) scripts/render_still_life_hologram.py bell-jar-portrait --device 16-portrait --jobs $(JOBS) $(EXTRA_ARGS)
 
 quilt-porin:  $(THREAD_INI)  ## porin quilt, 16" landscape (~2 min uncapped on 18 cores)
 	$(PYTHON) scripts/render_still_life_hologram.py porin --jobs $(JOBS) $(EXTRA_ARGS)
@@ -166,9 +182,15 @@ quilt-museum:  $(THREAD_INI)  ## museum quilt, 16" landscape (~6 min uncapped; t
 
 quilts: quilt-bell-jar quilt-porin quilt-lambda quilt-museum  ## all four quilts
 
-.PHONY: preview-bell-jar preview-porin preview-lambda preview-museum
+.PHONY: preview-bell-jar preview-bell-jar-holo preview-bell-jar-portrait preview-porin preview-lambda preview-museum
 preview-bell-jar: $(THREAD_INI)  ## quarter-size bell jar quilt for iterating
 	$(PYTHON) scripts/render_still_life_hologram.py bell-jar --preview --jobs $(JOBS)
+
+preview-bell-jar-holo: $(THREAD_INI)  ## quarter-size recomposed bell jar quilt
+	$(PYTHON) scripts/render_still_life_hologram.py bell-jar-holo --preview --jobs $(JOBS)
+
+preview-bell-jar-portrait: $(THREAD_INI)  ## quarter-size portrait bell jar quilt
+	$(PYTHON) scripts/render_still_life_hologram.py bell-jar-portrait --device 16-portrait --preview --jobs $(JOBS)
 
 preview-porin: $(THREAD_INI)  ## quarter-size porin quilt
 	$(PYTHON) scripts/render_still_life_hologram.py porin --preview --jobs $(JOBS)

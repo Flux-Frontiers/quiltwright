@@ -41,8 +41,24 @@ renders/*
 *_qs[0-9]*x[0-9]*a*.mp4
 pov-scenes/**/*.png
 
-# OS
+# OS droppings.  None of these carry a slash, so git applies them at every
+# depth -- a .DS_Store is ignored wherever the Finder leaves one, which is
+# anywhere the tree has been browsed.
 .DS_Store
+.AppleDouble
+.Spotlight-V100
+.Trashes
+.fseventsd
+._*
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# Editor scratch.  .vscode/ is deliberately absent: settings.json is tracked.
+*.swp
+*.swo
+*~
+.idea/
 
 # Cruft
 *.o

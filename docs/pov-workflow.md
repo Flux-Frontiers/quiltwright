@@ -102,6 +102,8 @@ grep -n 'right\|up\|#declare ASPECT' yinyang.pov
 | Scene | declares | aspect | renders correctly at |
 |---|---|---|---|
 | `bell_jar/bj.pov` | `right <3/4,0,0>` | 0.75 | 900×1200 |
+| `bell_jar/bj_holo.pov` | `right <16/9,0,0>` | 1.778 | 1920×1080 |
+| `bell_jar/bj_portrait.pov` | `right <0.5625,0,0>` | 0.5625 | 1080×1920 |
 | `bell_jar/bj_black.pov` | `right <3/4,0,0>` | 0.75 | 900×1200 |
 | `bell_jar/bdna.pov` | `right <3/4,0,0>` | 0.75 | 900×1200 |
 | `bell_jar/yinyang.pov` | `right <5/4,0,0>` | 1.25 | 1500×1200 |

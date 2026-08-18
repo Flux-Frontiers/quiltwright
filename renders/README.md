@@ -26,12 +26,13 @@ scene is tabulated in the workflow doc.
 | File | Scene | Aspect | Size |
 |---|---|---|---|
 | `bell_jar_bj.png` | `bell_jar/bj.pov` | 0.75 | 900×1200 |
+| `bell_jar_bj_holo.png` | `bell_jar/bj_holo.pov` | 1.778 | 1920×1080 |
+| `bell_jar_bj_portrait.png` | `bell_jar/bj_portrait.pov` | 0.5625 | 1080×1920 |
 | `bell_jar_bj_black.png` | `bell_jar/bj_black.pov` | 0.75 | 900×1200 |
 | `bell_jar_bdna.png` | `bell_jar/bdna.pov` | 0.75 | 900×1200 |
 | `bell_jar_yinyang.png` | `bell_jar/yinyang.pov` | 1.25 | 1500×1200 |
 | `bell_jar_bdna_variant.png` | `bell_jar/bdna/bdna.pov` | 0.5 | 600×1200 |
 | `porin_3porin.png` | `porin/3porin.pov` | 1.778 | 1920×1080 |
-| `porin_3porin2.png` | `porin/3porin2.pov` | 1.333 | 1600×1200 |
 | `museum.png` | `museum/museum.pov` | 1.778 | 1920×1080 |
 | `museum_dark.png` | `museum/museum_dark.pov` | 1.333 | 1600×1200 |
 | `museum_970211.png` | `museum/museum_970211.pov` | 1.333 | 1600×1200 |
@@ -46,6 +47,16 @@ Setting it to 0 restores the original zero-thickness surface.
 
 `museum/disc1.pov` is absent because it does not render on Linux -- it asks for
 the standard includes in upper case. See the scene README.
+
+`porin/3porin2.pov` is absent because it renders nothing: it is the stock
+POV-Ray scene template with `#include "3porin.inc"` appended, and that include
+only `#declare`s `porin`. Until something instantiates it the frame is sky and
+ground plane, so there is no reference still to keep.
+
+The remaining stills here -- `st_helens.png`, `damavand.png`, `brain.png` and
+`mouse_brain.png` -- come from the PyVista pipeline rather than POV-Ray, and so
+have no `right` vector to match; they are rendered at the shape their scene is
+composed for. See [docs/pyvista-datasets.md](../docs/pyvista-datasets.md).
 
 ## quilts/
 

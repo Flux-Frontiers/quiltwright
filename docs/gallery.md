@@ -50,6 +50,22 @@ built from: B-DNA and Z-DNA under glass, on a marble stand, over sea and sky.
 
 *`bj.pov` -- "DNA Under Glass": B-DNA under the jar, sea and sky behind.*
 
+![DNA Under Glass, 16:9 light-field cut](../renders/stills/bell_jar_bj_holo.png)
+
+*`bj_holo.pov` -- the same still life recomposed for a Looking Glass panel:
+16:9, title lifted into the sky above the dome, signature moved out over open
+water at the lower right. Both sit on (or within a fraction of a pixel of) the
+focal plane, where a light-field display holds them sharp; in `bj.pov` they are
+camera-pinned overlays 70-74 units from the eye, in front of the scene itself.
+The lens opens 53.13 -> 55.32 degrees to make room for the title, which
+`bj.pov`'s framing has none of.*
+
+![DNA Under Glass, 9:16 portrait cut](../renders/stills/bell_jar_bj_portrait.png)
+
+*`bj_portrait.pov` -- the 9:16 companion, for the tall panels. Same eye and the
+same treatment of the lettering; the lens is set by the pedestal's width, which
+is what overruns a narrow frame.*
+
 ![DNA under glass, on black](../renders/stills/bell_jar_bj_black.png)
 
 *`bj_black.pov` -- the same still life on black, for print.*
@@ -86,9 +102,10 @@ water under a rainbow.
 *`3porin.pov` -- self-contained apart from `rainbow.inc`; the scene the
 release `.ini` is written for.*
 
-![Porin, plain background](../renders/stills/porin_3porin2.png)
-
-*`3porin2.pov` -- a plain-background test cut of the same barrel.*
+*`3porin2.pov` is in the tree but has no still: it is the stock POV-Ray
+"Basic Scene Example" template with `#include "3porin.inc"` appended, and
+`3porin.inc` only `#declare`s `porin` -- nothing instantiates it, so the scene
+renders sky and ground and no barrel.*
 
 ---
 

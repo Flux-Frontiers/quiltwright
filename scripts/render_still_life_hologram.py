@@ -129,6 +129,45 @@ SCENES = {
         far=130.0,
         backdrop="sea and sky",
     ),
+    "bell-jar-holo": StillLife(
+        scene="bell_jar/bj_holo.pov",
+        # bj.pov re-composed for the panel: same eye, but 16:9 with the lens
+        # opened to 55.32 and the aim raised to y=20.95, which is what buys
+        # the sky the title needs.  The scene declares that camera itself, so
+        # this entry only has to restate it -- the quilt appends its own.
+        eye=(0.0, 35.0, -95.0),
+        aim=(0.0, 20.95, 0.0),
+        fov=55.32,
+        # Swept separately from bj.pov's, because the wider lens changes what
+        # share of the frame each surface holds.  The pedestal's front rim
+        # still appears at 72.  The subject is 25.8% of this frame and the
+        # backdrop creeps at 0.133%/unit, and 95% of the subject is in by 129
+        # once that creep is subtracted -- so the focal plane lands at 92.42,
+        # which is where the title and signature were placed.
+        near=72.0,
+        far=129.0,
+        backdrop="sea and sky",
+    ),
+    "bell-jar-portrait": StillLife(
+        scene="bell_jar/bj_portrait.pov",
+        # The 9:16 companion to bj_holo.  Same eye; the lens is set by the
+        # pedestal's width, which is the thing a narrow frame cannot hold.
+        eye=(0.0, 35.0, -95.0),
+        aim=(0.0, 21.92, 0.0),
+        fov=65.92,
+        # Neither bound is what the sweep prints unedited.  The raw near is
+        # 61: this lens looks 40.8 degrees down at the frame's lower rim, so
+        # the sea arrives there well in front of the subject, and buying zero
+        # parallax for a strip of foreground water would push the jar off the
+        # glass.  68 is the signature, the nearest content meant to be read.
+        # The far bound is the knee -- 0.071%/unit of backdrop creep taken off
+        # a 50.4% subject puts 95% of it in by 113.
+        near=68.0,
+        far=113.0,
+        backdrop="sea and sky",
+        caveat="composed 9:16 -- pass --device 16-portrait (or 27-/32-portrait, "
+        "go); the default landscape panel will letterbox it",
+    ),
     "porin": StillLife(
         scene="porin/3porin.pov",
         # location <0,0,-1100>, look_at origin, direction <0,0,1>, up
