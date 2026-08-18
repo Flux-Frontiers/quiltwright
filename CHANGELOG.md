@@ -20,8 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   software running at all. `Calibration.load()` reads the device's
   `visual.json` verbatim, `{"value": ...}` wrappers and all, and implements
   both calibration generations: the classic third-of-a-pixel RGB stripe and
-  the configVersion 3.0 `subpixelCells`/`CellPatternMode` diamond layouts of
-  gen3 panels, which the classic formula silently mis-registers. The port is
+  the configVersion 3.0 `subpixelCells`/`CellPatternMode` layouts of gen3
+  panels, which put R and G on one row and B on the other and mirror between
+  columns — a layout the classic formula does not mis-register so much as
+  ignore, picking a different view for every pixel on LKG-J00332, by up to 47
+  of 48. The port is
   pinned by a scalar transliteration of the shader in the test suite and by
   `ProcessPitch`/`ProcessSlope` values cross-checked against LKG-Toolkit;
   registration was verified by eye on a real 16" Landscape (LKG-J00332),

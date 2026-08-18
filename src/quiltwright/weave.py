@@ -18,10 +18,13 @@ the Unity plugin's HLSL conversion) together with LKG-Toolkit's
 calibration generations:
 
 * classic (Portrait-era): flat one-third-pixel RGB stride, and
-* configVersion 3.0 (gen3): explicit per-channel ``subpixelCells`` offsets
-  selected by a ``CellPatternMode`` parity pattern.  The gen3 path is the
-  one the classic formula silently gets wrong — the RGB triads on these
-  panels are diamond-arranged, not striped.
+* gen3 (configVersion 3.0): explicit per-channel ``subpixelCells`` offsets,
+  selected per pixel by ``CellPatternMode``.  These panels put R and G on
+  one row and B on the other — a 2-over-1 delta, ordered R, B, G left to
+  right — mirrored vertically on alternate columns.  The classic formula
+  assumes all three emitters share a row at a flat third-pixel stride, so
+  it gets this path badly wrong rather than slightly: on LKG-J00332 every
+  pixel picks a different view, by up to 47 of 48.
 
 Two things break the effect completely and neither is detectable from code:
 the panel must run at its **true native resolution** (no HiDPI scaling — one
@@ -64,9 +67,9 @@ class SubpixelCell:
     """Physical offsets of one pixel's R, G and B emitters, in pixel units.
 
     Gen3 panels do not lay their subpixels out in the classic vertical
-    R|G|B stripe; the emitters sit in a diamond arrangement that also
-    alternates between neighbouring pixel columns.  Each cell describes one
-    variant of the arrangement; ``CellPatternMode`` decides which cell a
+    R|G|B stripe: R and G sit on one row with B alone on the other, and the
+    arrangement mirrors vertically between neighbouring pixel columns.  Each
+    cell describes one variant; ``CellPatternMode`` decides which cell a
     given screen pixel uses.
     """
 

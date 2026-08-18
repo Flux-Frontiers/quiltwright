@@ -245,7 +245,7 @@ class TestWeaveQuilt:
 
     def test_subpixel_cell_offsets_shift_views(self, gen3_cal):
         # Zeroing the cells (classic path) must produce a different weave
-        # than the gen3 diamond layout — otherwise the offsets are ignored.
+        # than the gen3 delta layout — otherwise the offsets are ignored.
         from dataclasses import replace
 
         spec = QuiltSpec(columns=8, rows=6, quilt_width=64, quilt_height=48, aspect=1.777)
