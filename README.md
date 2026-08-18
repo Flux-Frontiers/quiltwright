@@ -1,4 +1,6 @@
-# Quiltwright
+<p align="center">
+  <img src="https://raw.githubusercontent.com/suchanek/quiltwright/v0.6.0/assets/logo_pack/quiltwright_logo_512.png" alt="Quiltwright" width="320"/>
+</p>
 
 [![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](LICENSE)
@@ -7,7 +9,7 @@
 [![Tests](https://github.com/suchanek/quiltwright/actions/workflows/tests.yml/badge.svg)](https://github.com/suchanek/quiltwright/actions/workflows/tests.yml)
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.21798503-blue.svg)](https://doi.org/10.5281/zenodo.21798503)
 
-**Holographic output for scientific visualisation.**
+**Quiltwright** -- holographic output for scientific visualisation.
 
 *Eric G. Suchanek, PhD — Flux-Frontiers*
 
