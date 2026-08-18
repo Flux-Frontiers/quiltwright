@@ -9,6 +9,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **`quiltwright.weave` — pre-lensed native frames, no Bridge required.** The
+  panel's lenticular sheet is a passive optic: anything that puts the correctly
+  interleaved subpixels behind it fuses into a hologram, including the macOS
+  wallpaper engine. `weave_quilt(quilt, spec, cal)` is a NumPy port of Bridge's
+  `Lenticular_RGBA_With_Aspect` shader (nearest-view mode) that turns a quilt
+  into a native-resolution image registered to one specific display; set it as
+  that display's desktop wallpaper and the desktop is a static hologram — OS
+  wallpaper slideshows become hologram slideshows, with no Looking Glass
+  software running at all. `Calibration.load()` reads the device's
+  `visual.json` verbatim, `{"value": ...}` wrappers and all, and implements
+  both calibration generations: the classic third-of-a-pixel RGB stripe and
+  the configVersion 3.0 `subpixelCells`/`CellPatternMode` layouts of gen3
+  panels, which put R and G on one row and B on the other and mirror between
+  columns. Applying the classic formula to a gen3 panel misregisters 80% of
+  subpixels on LKG-J00332, by a median of 2 views and at most 6 of 48 — and
+  by a different amount per channel, which is what turns it into colour
+  fringing. The port is
+  pinned by a scalar transliteration of the shader in the test suite and by
+  `ProcessPitch`/`ProcessSlope` values cross-checked against LKG-Toolkit;
+  registration was verified by eye on a real 16" Landscape (LKG-J00332),
+  st-helens and porin quilts fusing as wallpaper on the first try.
+
 - **`ty` type checking, in CI and pre-commit.** Astral's checker joins the dev
   group and gates `src/` in both places. Turning it on surfaced 17 diagnostics,
   all fixed below; it now runs clean in 0.24 s, which is fast enough to sit on

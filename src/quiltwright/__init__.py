@@ -10,6 +10,9 @@ backends feed the same assembler:
     quiltwright.povray   POV-Ray scenes, ray-traced off-axis views
     quiltwright.hld      Hololuminescent Displays, which play ordinary
                          2-D video rather than quilts
+    quiltwright.weave    CPU port of the lenticular shader: pre-lensed
+                         native frames a panel shows without Bridge
+                         (e.g. as the desktop wallpaper)
 
 Scene sources are separate from the backends above:
 
@@ -49,6 +52,7 @@ _LAZY: dict[str, str] = {
     "BRIDGE_URL": "lfd",
     "Box": "povgen",
     "CONNECTIVITIES": "tvb_data",
+    "Calibration": "weave",
     "Clearance": "povray",
     "Connectome": "tvb_data",
     "Cylinder": "povgen",
@@ -69,6 +73,7 @@ _LAZY: dict[str, str] = {
     "SURFACES": "tvb_data",
     "Sphere": "povgen",
     "SphereSweep": "povgen",
+    "SubpixelCell": "weave",
     "Texture": "povgen",
     "Union": "povgen",
     "add_floor_shadow": "hld",
@@ -117,6 +122,7 @@ _LAZY: dict[str, str] = {
     "to_pov": "povgen",
     "view_disparity": "lfd",
     "view_offsets": "lfd",
+    "weave_quilt": "weave",
 }
 
 
@@ -196,6 +202,10 @@ __all__ = [
     "save_quilt",
     "save_and_cast_quilt",
     "find_ffmpeg",
+    # Native weaving (pre-lensed frames, no Bridge)
+    "Calibration",
+    "SubpixelCell",
+    "weave_quilt",
     # Looking Glass Bridge
     "BRIDGE_URL",
     "DEPTH_LABELS",
