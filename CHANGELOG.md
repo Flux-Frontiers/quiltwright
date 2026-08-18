@@ -47,12 +47,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   context, and a minute per commit invites `--no-verify`, which would skip the
   fast hooks too.
 
+- **A `quiltwright` console script, and `quiltwright weave` as its first
+  command.** Weaving a wallpaper had meant hand-writing a script per quilt;
+  `quiltwright weave scene_qs8x6a1.77778.png --cal visual.json` does the same
+  job from a shell, recovering the tiling grid from the Looking Glass filename
+  suffix when `--preset`/`--grid` are not given, and naming the output
+  `<stem>_native_<serial>.png` by default. Built on click, matching every
+  other repo in the fleet, which moves core's dependency footprint from numpy
+  and pillow to numpy, pillow and click.
+
 - **`lint`, `type-check` and `core-install` jobs in `tests.yml`.** The first two
   split work the test matrix was repeating once per interpreter. The third is
-  new coverage: `pyproject.toml` keeps core to numpy and pillow so a machine
-  that only casts pre-rendered quilts stays lean, and that holds only while the
-  seven `import pyvista` sites in `__init__`, `lfd`, `hld` and `tvb_data` stay
-  inside functions. Nothing else could see one move to module scope — every
+  new coverage: `pyproject.toml` keeps core to numpy, pillow and click so a
+  machine that only casts pre-rendered quilts stays lean, and that holds only
+  while the seven `import pyvista` sites in `__init__`, `lfd`, `hld` and
+  `tvb_data` stay inside functions. Nothing else could see one move to module
+  scope — every
   other job installs `[viz,video]`, and the tests use
   `pytest.importorskip("pyvista")`, which skips when PyVista is missing rather
   than asserting it is unused. The gate was verified by hoisting an import and

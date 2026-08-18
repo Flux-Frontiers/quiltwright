@@ -25,8 +25,8 @@ pip install "quiltwright[viz]"       # + PyVista/VTK rendering backend
 pip install "quiltwright[video]"     # + bundled ffmpeg for video encoding
 ```
 
-Core deliberately depends on nothing but numpy and pillow, so a machine that
-only casts pre-rendered quilts stays lean.
+Core deliberately depends on nothing but numpy, pillow and click, so a
+machine that only casts pre-rendered quilts stays lean.
 
 From source (for the example scenes, scripts, and tests):
 
