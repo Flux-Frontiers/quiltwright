@@ -1,7 +1,7 @@
 # Transcoding PyVista scenes to POV-Ray
 
 `quiltwright.povgen` writes `.pov` scenes from analytic primitives, so a scene
-composed in Python — or grown by a geometry engine such as `kg_utils.viz3d` —
+composed in Python -- or grown by a geometry engine such as `kg_utils.viz3d` --
 can be **ray-traced** by [`render_pov_quilt`](povray.md) instead of rasterised
 by VTK.
 
@@ -20,7 +20,7 @@ By the time geometry reaches a `pv.Plotter` it is already tessellated:
 two ways to get that into POV-Ray.
 
 **Dump the triangles** into a `mesh2`. Faithful and universal, but it keeps
-VTK's facets and costs a great deal of text, re-parsed once per view — 48
+VTK's facets and costs a great deal of text, re-parsed once per view -- 48
 times for a Portrait quilt.
 
 **Re-emit the intent.** A limb is a swept path of radii; a leaf is a ball at a
@@ -32,7 +32,7 @@ sphere_sweep { linear_spline, 24, <x,y,z>, r, ... }   // one limb
 object { Leaf translate <x,y,z> }                      // one leaf
 ```
 
-Measured on a 3000-leaf organic tree from `kg_utils.viz3d` — 99 limbs,
+Measured on a 3000-leaf organic tree from `kg_utils.viz3d` -- 99 limbs,
 192k triangles and 159k vertices once tessellated:
 
 | Form | Size |
@@ -43,26 +43,26 @@ Measured on a 3000-leaf organic tree from `kg_utils.viz3d` — 99 limbs,
 | analytic, plain spheres | 508 KB |
 
 So **15× to 25× smaller**, depending on how much per-leaf orientation you
-keep — the `matrix` on an oriented instance is most of the per-leaf cost. Plus
+keep -- the `matrix` on an oriented instance is most of the per-leaf cost. Plus
 an exact silhouette at any zoom and a bounding hierarchy the ray-tracer is
 good at. That quality difference is the reason to leave VTK, so `povgen`
 reaches for the analytic form first.
 
 The rule of thumb: if the producer knows *why* the geometry has its shape,
 re-emit the description. `mesh2` is the fallback for geometry that has no
-analytic description — volumes, isosurfaces, imported meshes — and is not yet
+analytic description -- volumes, isosurfaces, imported meshes -- and is not yet
 implemented.
 
 ### Where the pieces live
 
 `povgen` knows about primitives and SDL. It does **not** know about trees,
-graphs, or molecules — the producer supplies geometry, `povgen` writes the
+graphs, or molecules -- the producer supplies geometry, `povgen` writes the
 file. Concretely, for the organic-tree stack:
 
 | Layer | Supplies |
 |---|---|
-| `kg_utils.viz3d.limb_paths` | `[(points, radii), ...]` per limb — pure NumPy |
-| `kg_utils.viz3d.leaf_frames` | `(positions, directions)` per leaf — pure NumPy |
+| `kg_utils.viz3d.limb_paths` | `[(points, radii), ...]` per limb -- pure NumPy |
+| `kg_utils.viz3d.leaf_frames` | `(positions, directions)` per leaf -- pure NumPy |
 | `quiltwright.povgen` | turns either into SDL |
 
 Neither package imports the other. `limb_paths` and `leaf_frames` are the
@@ -89,15 +89,15 @@ camera = PovCamera(location=to_pov((0, 0, 8)), look_at=to_pov((0, 0, 0)), fov=40
 save_quilt(render_pov_quilt(path, spec, camera), "ball", spec)
 ```
 
-Scene coordinates are written **right-handed** — the same convention as
-PyVista, VTK and NumPy — and converted on emission. See §3.
+Scene coordinates are written **right-handed** -- the same convention as
+PyVista, VTK and NumPy -- and converted on emission. See section 3.
 
 Note the `to_pov` around the camera. **A `PovCamera` is not converted for
 you**: only `pov_camera_from_plotter` does that, and `camera_block` emits
 whatever it is handed. A hand-built camera has to be converted by the caller,
 or it will aim into the mirrored half of the world. This example would survive
-the mistake — the ball is at the origin, so its *z* is zero and a flip is
-invisible — which is exactly why it is worth spelling out here rather than
+the mistake -- the ball is at the origin, so its *z* is zero and a flip is
+invisible -- which is exactly why it is worth spelling out here rather than
 leaving to be discovered on a scene where it matters.
 
 ## 2. Carrying a plotter's viewpoint over
@@ -113,7 +113,7 @@ from quiltwright.povgen import pov_camera_from_plotter
 camera = pov_camera_from_plotter(plotter, fov=None)   # keep the scene's own FOV
 ```
 
-Pass the same `fov` to both backends and they frame identically — both run the
+Pass the same `fov` to both backends and they frame identically -- both run the
 same dolly arithmetic before sweeping. `fov=None` on both sides is what you
 want when comparing them.
 
@@ -124,7 +124,7 @@ want when comparing them.
 ## 3. Handedness
 
 PyVista, VTK and NumPy are right-handed. **POV-Ray is left-handed.** `povgen`
-authors everything right-handed and negates *z* on emission — the same
+authors everything right-handed and negates *z* on emission -- the same
 correction `pypdb2pov` applies to PDB coordinates. `pov_camera_from_plotter`
 applies the same conversion to the camera, so the two agree and the image
 *matches* the PyVista render rather than mirroring it.
@@ -157,7 +157,7 @@ Two consequences worth knowing:
 - **Rotations are conjugated** by the reflection, so an `Instance` matrix means
   the same thing in the mirrored world.
 - **Triangle winding reverses.** Irrelevant to the analytic primitives here,
-  none of which have a winding — but a future `mesh2` emitter must reverse each
+  none of which have a winding -- but a future `mesh2` emitter must reverse each
   face's index order or its normals will point inward and the surface will
   render black.
 
@@ -173,11 +173,11 @@ and using it will quietly recolour your whole scene.
 Lighting is *not* transcoded. VTK's default is a headlight at the camera, which
 POV-Ray does not reproduce and which looks flat when ray-traced anyway.
 `lights_from_bounds` gives a serviceable two-light rig sized to the scene so a
-transcoded scene renders legibly, and then you should light it properly —
+transcoded scene renders legibly, and then you should light it properly --
 area lights are most of what makes ray-tracing visibly better than VTK.
 
 **Tell it which way is up.** The rig places its key light "above and to the
-right," and `up` defaults to `+y` — right for a VTK scene, wrong for a `+z`-up
+right," and `up` defaults to `+y` -- right for a VTK scene, wrong for a `+z`-up
 one such as anything from `kg_utils.viz3d`. Left at the default there, the key
 light lands at `centre_z − 1.4·radius`: below the ground, lighting the subject
 from underneath.
@@ -191,10 +191,10 @@ and cannot know where your camera is, so a scene needing the key on a
 particular side should place its own lights.
 
 **`scene.bounds()` cannot see instances**, and instancing is the reason to use
-this module — so check the two don't collide before feeding bounds to a light
+this module -- so check the two don't collide before feeding bounds to a light
 rig or a camera. A tree gets away with it: its wood is swept and reaches the
 crown, so the bounds cover the subject even though every leaf is an instance.
-A scene whose subject *is* the instances does not — ten thousand instanced
+A scene whose subject *is* the instances does not -- ten thousand instanced
 boulders around one measurable marker post return the bounds of the post, and
 an entirely instanced scene returns `None`. Either keep one measurable
 primitive spanning the subject (an untextured `Box` is invisible to a render
@@ -219,7 +219,7 @@ scene.add(sphere_sweeps_from_paths(limb_paths(skeleton), Texture("#6b4a2f")))
 Two details `sphere_sweeps_from_paths` handles: consecutive duplicate points
 (which make POV-Ray's sweep solver degenerate) are dropped, and zero radii are
 raised to `min_radius`, because a zero-radius sweep end produces artifacts
-rather than a sharp tip. The `tolerance` default of 0.05 is deliberate too —
+rather than a sharp tip. The `tolerance` default of 0.05 is deliberate too --
 POV-Ray's own default of 1e-6 makes the solver miss thin sweeps at scene scale
 and drop segments.
 
@@ -236,7 +236,7 @@ scene.declare("Leaf", Sphere((0, 0, 0), 0.35))
 scene.add(instances_from_frames("Leaf", points, directions, Texture("#3f7d3f")))
 ```
 
-Orientation follows VTK's glyph convention — the prototype's **+x** axis is
+Orientation follows VTK's glyph convention -- the prototype's **+x** axis is
 aligned to each direction vector. The remaining two axes are completed
 deterministically, so a given input always produces the same file, but that
 completion is not VTK's: glyph **roll** will differ from a PyVista render even
@@ -253,7 +253,7 @@ the comparison isolates geometry from the two renderers' different lighting
 models.
 
 Measured agreement on the reference scene: **IoU ≈ 0.95**, with identical
-silhouette bounding boxes. The residual is antialiasing at the rim — the
+silhouette bounding boxes. The residual is antialiasing at the rim -- the
 extents land on the same rows and columns, which is what pins the lens.
 
 The scene is **deliberately asymmetric in depth**, and that is the whole point.
@@ -294,17 +294,17 @@ pytest tests/test_povgen_parity.py
 
 - **Do not emit a camera.** POV-Ray uses the last one parsed; yours will be
   overridden by the per-view camera with a warning.
-- **`transmit`, never `filter`,** for VTK-style opacity (§4).
-- **`linear_spline`, not `b_spline`,** for already-smoothed paths (§5).
+- **`transmit`, never `filter`,** for VTK-style opacity (section 4).
+- **`linear_spline`, not `b_spline`,** for already-smoothed paths (section 5).
 - **Smooth once, render twice.** `limb_paths` uses a NumPy Catmull-Rom that
   interpolates the same control points as `pv.Spline` but is not bit-identical
   to VTK's. When two backends must agree to the pixel, call `smooth_paths` once
   and give both the same points rather than letting each smooth its own.
 - **`sphere_sweep` ends are hemispherical; `tube` ends are flat.** A tapered
   limb therefore extends further past its thick end in POV-Ray than in
-  PyVista — about a pixel of centroid bias on a 200px tile. Harmless in a
+  PyVista -- about a pixel of centroid bias on a 200px tile. Harmless in a
   render, worth knowing when comparing them.
 - **Cost scales with view count.** A Portrait quilt is 48 full ray-traces. For
   radiosity or photons, render one view with the cache saved and the rest with
-  it loaded via `extra_args` — the lighting is identical across a sweep, so
+  it loaded via `extra_args` -- the lighting is identical across a sweep, so
   recomputing it per view is pure waste.

@@ -1,13 +1,13 @@
 # TVB Brain Datasets
 
-*Eric G. Suchanek, PhD — Flux-Frontiers*
+*Eric G. Suchanek, PhD -- Flux-Frontiers*
 
 Real human, macaque and mouse brain geometry from
 [The Virtual Brain](https://www.thevirtualbrain.org/) (TVB), fetched on
 demand and turned into PyVista meshes ready for the
 [LFD](lfd.md) and [HLD](hld.md) backends.
 
-This is a **scene source**, not an output backend — the same role POV-Ray
+This is a **scene source**, not an output backend -- the same role POV-Ray
 scenes and the PyVista example datasets in
 [pyvista-datasets.md](pyvista-datasets.md) play. It produces geometry and
 says nothing about how that geometry reaches a display.
@@ -36,7 +36,7 @@ canonical source and the only one this module reads.
 
 ### Licensing
 
-`tvb-data` is GPL-3.0; Quiltwright is BSD-3. Nothing is vendored — the
+`tvb-data` is GPL-3.0; Quiltwright is BSD-3. Nothing is vendored -- the
 archive is downloaded at runtime and cached outside the source tree, the
 same pattern `pyvista.examples` uses for its own downloads. That keeps the
 GPL data out of this repository and out of any Quiltwright distribution.
@@ -51,7 +51,7 @@ platform; the requested citation is available as
 
 ### Dependencies
 
-Loading needs only the standard library and NumPy — both already core
+Loading needs only the standard library and NumPy -- both already core
 dependencies. The PyVista bridge (`surface_polydata`,
 `connectome_polydata`) needs the `viz` extra:
 
@@ -61,8 +61,8 @@ poetry install --with viz          # enough for stills and quilts
 
 **No ffmpeg.** Nothing in this module encodes video, so nothing here pulls
 in `imageio-ffmpeg`. Rendering a TVB scene to a quilt still or an HLD still
-needs `viz` only. Video output — `render_quilt_video()`, `render_hld_video()`
-— is the same optional `video` group it has always been, and finds a system
+needs `viz` only. Video output -- `render_quilt_video()`, `render_hld_video()`
+-- is the same optional `video` group it has always been, and finds a system
 ffmpeg on `PATH` first.
 
 ### Caching
@@ -76,17 +76,17 @@ otherwise to the platform's native per-user cache directory:
 | Linux | `$XDG_CACHE_HOME/quiltwright/tvb`, default `~/.cache/quiltwright/tvb` |
 | Windows | `%LOCALAPPDATA%\quiltwright\Cache\tvb` |
 
-Resolved by `quiltwright.cache`, which every runtime download shares — the
+Resolved by `quiltwright.cache`, which every runtime download shares -- the
 Allen mouse atlas in `scripts/render_pyvista_hologram.py` lands in
 `allen_ccf` beside `tvb` under the same root. It uses
-[`platformdirs`](https://pypi.org/project/platformdirs/), matching PyVista —
+[`platformdirs`](https://pypi.org/project/platformdirs/), matching PyVista --
 which caches its own downloads via `pooch.os_cache` and so puts them in
 `~/Library/Caches/pyvista_3` on macOS. Hard-coding `~/.cache` would drop a
 337 MB file somewhere non-native on two of the three platforms.
 
 Downloads stream to a temporary file and are moved into place only after the
 MD5 check passes, so an interrupted transfer can never leave a truncated
-archive behind. Individual files are read straight out of the zip — the
+archive behind. Individual files are read straight out of the zip -- the
 337 MB is never expanded on disk.
 
 ```python
@@ -98,11 +98,11 @@ clear_cache()
 
 ## Datasets
 
-### Surfaces — `load_surface`, `surface_polydata`
+### Surfaces -- `load_surface`, `surface_polydata`
 
 | Name | Points | Triangles | Notes |
 |---|---|---|---|
-| `cortex_16384` | 16,384 | 32,760 | The workhorse — closed, and a comfortable quilt budget |
+| `cortex_16384` | 16,384 | 32,760 | The workhorse -- closed, and a comfortable quilt budget |
 | `cortex_80k` | 81,924 | 163,840 | Detail pass |
 | `cortex_2x120k` | 283,380 | 566,752 | Two hemispheres; decimate before a view sweep |
 | `inner_skull_4096` / `outer_skull_4096` / `outer_skin_4096` | 4,096 | 8,188 | Nested head shells |
@@ -111,13 +111,13 @@ clear_cache()
 | `face_8614` | 8,614 | 17,224 | |
 | `macaque_147k` | 147,460 | 294,912 | Macaque cortex |
 
-### Connectomes — `load_connectivity`, `connectome_polydata`
+### Connectomes -- `load_connectivity`, `connectome_polydata`
 
 `connectivity_66`, `_68`, `_76`, `_80`, `_96`, `_192`, `_998`, and
 `macaque_84`. Each carries a weights matrix, a tract-length matrix, and
 named 3-D region centres.
 
-### Region mappings — `load_region_mapping`
+### Region mappings -- `load_region_mapping`
 
 Per-vertex parcellation labels, paired by vertex count:
 
@@ -131,7 +131,7 @@ Per-vertex parcellation labels, paired by vertex count:
 `surface_polydata` validates the pairing and raises rather than producing a
 mis-coloured mesh.
 
-### Sensors — `load_sensors`
+### Sensors -- `load_sensors`
 
 EEG (`eeg_63`, `eeg_brainstorm_65`, `eeg_unitvector_62`), MEG (`meg_151`,
 `meg_248`, `meg_brainstorm_276`) and sEEG (`seeg_39`, `seeg_588`,
@@ -172,7 +172,7 @@ spec = QUILT_PRESETS["portrait"]
 save_quilt(render_quilt(p, spec), "cortex", spec)
 ```
 
-A connectome — region centres sized by weighted degree, strongest tracts as
+A connectome -- region centres sized by weighted degree, strongest tracts as
 weight-coloured tubes, inside a translucent cortex:
 
 ```python
@@ -187,13 +187,13 @@ p.add_mesh(edges, scalars="weight", cmap="autumn", show_scalar_bar=False)
 p.add_mesh(nodes, color="#ffe8a0")
 ```
 
-A full connectome is far too dense to fuse as a hologram — `percentile`
+A full connectome is far too dense to fuse as a hologram -- `percentile`
 keeps only the strongest tracts. 90 is a good default at 76 regions; push it
 to 99 at 998.
 
 ### Choosing a triangle budget
 
-A quilt renders the whole scene **once per view** — 48 times on a Portrait.
+A quilt renders the whole scene **once per view** -- 48 times on a Portrait.
 `cortex_16384` sweeps comfortably; `cortex_2x120k` at full density does not.
 Use `decimate` for quilts, and keep it low for HLD video, which is one
 ordinary render per frame.
@@ -230,7 +230,7 @@ and each is covered by a test:
 
 | Quirk | Where | Handling |
 |---|---|---|
-| **1-based triangle indices** | `cortex_2x120k` | Detected and rebased. Loading as-is yields an index one past the last vertex — a silently corrupt mesh, not an error. |
+| **1-based triangle indices** | `cortex_2x120k` | Detected and rebased. Loading as-is yields an index one past the last vertex -- a silently corrupt mesh, not an error. |
 | **Split hemispheres** | `cortex_2x120k` | `verticesl`/`verticesr` concatenated, right-hemisphere indices offset by the left vertex count, after each side is rebased independently. |
 | **Folder-nested members** | `macaque_147k` | Members matched by basename. |
 | **Float-encoded indices** | `macaque_147k` | `1.0000000e+00` parsed and checked for integrality. |
@@ -243,19 +243,19 @@ and each is covered by a test:
 
 The archive holds more than this module exposes:
 
-- **Simulated time series** — `nifti/time_series_152.nii.gz` and
+- **Simulated time series** -- `nifti/time_series_152.nii.gz` and
   `gifti/sample.time_series.gii`. These would drive a per-vertex scalar over
   time, turning an HLD turntable into an activity animation rather than a
   static orbit. Needs a NIfTI/GIFTI reader (`nibabel`).
-- **Mouse brains** — `mouse/allen_2mm` and `mouse/calabrese`, stored as HDF5
+- **Mouse brains** -- `mouse/allen_2mm` and `mouse/calabrese`, stored as HDF5
   and NIfTI volumes rather than plain-text surfaces. Note the overlap with
   the Allen CCFv3 atlas that `scripts/render_pyvista_hologram.py` already
   downloads directly; worth unifying if both get used.
-- **Sensors in a scene** — loadable today via `load_sensors`, but no helper
+- **Sensors in a scene** -- loadable today via `load_sensors`, but no helper
   yet places electrodes over the scalp shell.
-- **Projection matrices** and **local connectivity** — present in the
+- **Projection matrices** and **local connectivity** -- present in the
   archive, no obvious holographic use yet.
 
 ---
 
-*Part of Quiltwright — https://github.com/suchanek/quiltwright*
+*Part of Quiltwright -- https://github.com/suchanek/quiltwright*

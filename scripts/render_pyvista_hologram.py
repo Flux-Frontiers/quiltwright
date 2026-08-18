@@ -65,7 +65,7 @@ except ImportError:
     raise SystemExit(1) from None
 
 #: Allen Institute Mouse Brain Common Coordinate Framework (CCFv3) average
-#: template — a real volumetric atlas built from 1,675 C57BL/6J mice. Plain
+#: template -- a real volumetric atlas built from 1,675 C57BL/6J mice. Plain
 #: NRRD over HTTP, no API key or AllenSDK dependency. See
 #: docs/pyvista-datasets.md for the annotation (region-labeled) variant.
 ALLEN_CCF_TEMPLATE_URL = (
@@ -74,7 +74,7 @@ ALLEN_CCF_TEMPLATE_URL = (
 )
 #: Where the downloaded volumes live.  Platform-native (``~/Library/Caches``
 #: on macOS, not ``~/.cache``), shared with the other Quiltwright downloaders,
-#: and relocatable with ``$QUILTWRIGHT_ALLEN_CACHE`` — these volumes run from
+#: and relocatable with ``$QUILTWRIGHT_ALLEN_CACHE`` -- these volumes run from
 #: ~60 MB at 100 µm to ~1.5 GB at 10 µm, so putting them on another disk is a
 #: reasonable thing to want.
 ALLEN_CCF_CACHE = dataset_cache_dir("allen_ccf", env_var="QUILTWRIGHT_ALLEN_CACHE")

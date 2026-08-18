@@ -1,6 +1,6 @@
 """Dual-render parity: a povgen scene must land where the PyVista one does.
 
-The generator's job is *geometry and camera*, not photometry — POV-Ray's
+The generator's job is *geometry and camera*, not photometry -- POV-Ray's
 lighting model is not VTK's, and a scene worth ray-tracing wants its own
 lights anyway.  So these tests render the same scene through both backends
 with flat emissive surfaces and compare **silhouettes**, which isolates the
@@ -13,13 +13,13 @@ cannot detect the single most damaging bug this module could have.  The
 fixture therefore places one sphere well in front of the focal plane and
 another well behind it, at the same radius: perspective alone decides which
 looks bigger, so mirroring depth swaps them and the silhouette IoU collapses
-from ~0.96 to ~0.  Verified by mutation — reverting the flip in
+from ~0.96 to ~0.  Verified by mutation -- reverting the flip in
 :func:`~quiltwright.povgen.to_pov` fails
 :func:`test_asymmetric_scene_silhouette_matches` outright.
 
 That matters because ``povray.PovCamera.basis`` warns that getting the
 cross-product ordering wrong "mirrors the view sweep and inverts the
-hologram's depth" — an error that looks perfectly fine in any single view and
+hologram's depth" -- an error that looks perfectly fine in any single view and
 only shows up as inside-out depth on the physical panel.
 
 Both renderers must be present, so these skip on a machine with no ``povray``
@@ -63,7 +63,7 @@ FAR = ((0.8, 0.0, 3.0), 0.45)
 
 
 # ---------------------------------------------------------------------------
-# Scene construction — one description, two backends
+# Scene construction -- one description, two backends
 # ---------------------------------------------------------------------------
 
 
@@ -158,7 +158,7 @@ def centroid(mask: np.ndarray) -> tuple[float, float]:
 
 @pytest.fixture(scope="module")
 def single_view() -> QuiltSpec:
-    """One view, dead on axis — isolates the lens from the sweep."""
+    """One view, dead on axis -- isolates the lens from the sweep."""
     return QuiltSpec(columns=1, rows=1, quilt_width=TILE, quilt_height=TILE, aspect=1.0)
 
 
@@ -231,7 +231,7 @@ def test_scene_is_not_mirrored(single_view, tmp_path):
 def test_tilted_camera_up_vector_is_converted(single_view, tmp_path):
     """A camera rolled off the vertical exercises the *z* component of ``up``.
 
-    Every other test here leaves ``up`` at ``(0, 1, 0)``, whose *z* is zero —
+    Every other test here leaves ``up`` at ``(0, 1, 0)``, whose *z* is zero --
     so the handedness conversion applied to it is invisible and a camera
     bridge that forgot to convert ``sky`` would pass them all.  Rolling the
     camera about the view axis gives the up-vector a *z* component that has
@@ -272,7 +272,7 @@ def test_mixed_scene_silhouette_matches(three_views, tmp_path):
 
 
 def test_parallax_runs_the_same_way_in_both_backends(three_views, tmp_path):
-    """The view sweep must not be mirrored — an inverted hologram looks fine per view."""
+    """The view sweep must not be mirrored -- an inverted hologram looks fine per view."""
     quilt_pv, quilt_pov = render_both(three_views, tmp_path, with_limb=True)
     xs_pv = [centroid(m)[0] for m in silhouettes(quilt_pv, three_views)]
     xs_pov = [centroid(m)[0] for m in silhouettes(quilt_pov, three_views)]

@@ -4,7 +4,7 @@ Tests for :mod:`quiltwright.tvb_data`.
 These never touch the network.  A synthetic ``tvb_data.zip`` is built in a
 temporary directory and ``$QUILTWRIGHT_TVB_CACHE`` is pointed at it, so the
 parsing, registry and cache logic is exercised against the same member
-layout as the real 337 MB Zenodo archive — including its quirks: split
+layout as the real 337 MB Zenodo archive -- including its quirks: split
 hemispheres, 1-based triangle indices, folder-nested members, bz2-compressed
 members and an empty vertex-normals stub.
 """
@@ -22,7 +22,7 @@ import pytest
 from quiltwright import tvb_data
 
 # ---------------------------------------------------------------------------
-# Fixtures — a miniature stand-in for the real archive
+# Fixtures -- a miniature stand-in for the real archive
 # ---------------------------------------------------------------------------
 
 # A unit tetrahedron: small enough to assert on exactly.
@@ -150,7 +150,7 @@ def test_clear_cache_removes_archive(fake_archive):
 
 
 # ---------------------------------------------------------------------------
-# Index-base normalisation — the quirk that silently corrupts meshes
+# Index-base normalisation -- the quirk that silently corrupts meshes
 # ---------------------------------------------------------------------------
 
 
@@ -311,7 +311,7 @@ def test_nearest_labels_returns_one_label_per_target():
 
 
 # ---------------------------------------------------------------------------
-# Registry consistency — catches typos without downloading anything
+# Registry consistency -- catches typos without downloading anything
 # ---------------------------------------------------------------------------
 
 

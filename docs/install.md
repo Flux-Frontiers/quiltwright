@@ -2,10 +2,10 @@
 
 Quiltwright is a Python package plus, depending on what you want to do, up to
 three external pieces: a renderer (PyVista/VTK or POV-Ray), an encoder
-(ffmpeg), and the Looking Glass Bridge driver. Nothing needs all of them —
+(ffmpeg), and the Looking Glass Bridge driver. Nothing needs all of them --
 this page goes layer by layer, and each section says who can skip it.
 
-| You want to… | You need |
+| You want to... | You need |
 |---|---|
 | Compute quilt geometry, tile views, cast pre-rendered quilts | core package + Bridge |
 | Render quilts from PyVista/VTK scenes | `[viz]` extra |
@@ -62,8 +62,8 @@ Verify with:
 povray --version
 ```
 
-The repo ships a complete test scene — "Eric's Science Museum", 1995-97, see
-[about-the-image.md](about-the-image.md) — under [pov-scenes/](../pov-scenes/),
+The repo ships a complete test scene -- "Eric's Science Museum", 1995-97, see
+[about-the-image.md](about-the-image.md) -- under [pov-scenes/](../pov-scenes/),
 so you can exercise this layer with no scene files of your own:
 
 ```bash
@@ -82,10 +82,10 @@ Displays, specs, and software all live at the
    background as a menu-bar/tray daemon serving HTTP on `localhost:33334`.
 2. Connect the display with **both** cables: USB-C (data and calibration)
    and HDMI/DisplayPort (video).
-3. Probe the device before your first render — quilt specs differ between
+3. Probe the device before your first render -- quilt specs differ between
    hardware generations, and Bridge reports the truth. The probe commands
    and the fields to read are in
-   [lfd.md § Ask the panel what it wants](lfd.md#2-ask-the-panel-what-it-wants).
+   [lfd.md: Ask the panel what it wants](lfd.md#2-ask-the-panel-what-it-wants).
 4. Optionally install **Looking Glass Studio** (same downloads page), a
    quilt player/library: drag any `*_qs*.png` / `*_qs*.mp4` in and playback
    settings are auto-detected from the filename.
@@ -98,7 +98,7 @@ the glass.
 Only needed for `render_quilt_video()` (quilt MP4s) and the HLD masters in
 `quiltwright.hld`. Quiltwright looks for `ffmpeg` on `PATH` first, then
 falls back to the binary bundled with the `[video]` extra
-(`imageio-ffmpeg`) — so either of these works:
+(`imageio-ffmpeg`) -- so either of these works:
 
 ```bash
 brew install ffmpeg                  # system ffmpeg
@@ -109,13 +109,13 @@ pip install "quiltwright[video]"     # or the bundled one
 first is the one that matters:
 
 - **Licence.** The `imageio-ffmpeg` wrapper is BSD-2-Clause, but the binary it
-  bundles is built `--enable-gpl --enable-version3` — a GPLv3 ffmpeg. Calling
+  bundles is built `--enable-gpl --enable-version3` -- a GPLv3 ffmpeg. Calling
   it as a subprocess does not affect Quiltwright's own BSD-3-Clause terms, but
   anyone *redistributing* a bundled environment (a Docker image, a conda pack,
   a PyInstaller app) inherits GPLv3 obligations. That should be a choice, not
-  a default. A system ffmpeg — whose build and licence you control — avoids
+  a default. A system ffmpeg -- whose build and licence you control -- avoids
   the question entirely, which is why `PATH` is searched first.
-- **Size.** ~21–31 MB to download, ~80 MB installed, against a core of numpy
+- **Size.** ~21-31 MB to download, ~80 MB installed, against a core of numpy
   and pillow.
 - **Redundancy.** If you already have ffmpeg on `PATH`, the bundled copy is
   never executed.
@@ -129,7 +129,7 @@ install time. Check with `ffmpeg -h encoder=libx265`.
 Optional; feeds the POV-Ray backend with molecular structures. There are two
 implementations, writing byte-identical scenes.
 
-**`pypdb2pov`, the Python port** — no compiler, no dependencies, reads mmCIF,
+**`pypdb2pov`, the Python port** -- no compiler, no dependencies, reads mmCIF,
 and importable from the same script that renders the quilt:
 
 ```bash
@@ -137,7 +137,7 @@ git clone https://github.com/suchanek/pdb2pov
 pip install ./pdb2pov/python
 ```
 
-**`pdb2pov`, the C program** — the 1993 original, whose portability fixes now
+**`pdb2pov`, the C program** -- the 1993 original, whose portability fixes now
 live upstream, so a fresh clone just builds:
 
 ```bash
@@ -167,7 +167,7 @@ curl -s -X PUT -H 'Content-Type: application/json' \
      -d '{"name":"probe"}' http://localhost:33334/enter_orchestration  # Bridge
 ```
 
-The test suite is layered the same way — tests skip cleanly for layers that
+The test suite is layered the same way -- tests skip cleanly for layers that
 are absent, and report what they skipped:
 
 ```bash
@@ -184,7 +184,7 @@ pip install -e ".[viz,video]" pytest
 xvfb-run -a pytest
 ```
 
-`poetry install --with dev` pulls `imageio-ffmpeg` for the same reason — it is
+`poetry install --with dev` pulls `imageio-ffmpeg` for the same reason -- it is
 the only skip condition a Python dependency can lift, since the PyVista tests
 additionally need a GL stack and an X server. Add `--with viz,video` for the
 rest.

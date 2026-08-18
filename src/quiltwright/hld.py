@@ -3,7 +3,7 @@ Hololuminescent Display (HLD) Renderer
 ======================================
 
 Renders PyVista scenes as videos for Looking Glass *Hololuminescent
-Displays* — the HLD product line (16" / 27" / 86" Portrait).
+Displays* -- the HLD product line (16" / 27" / 86" Portrait).
 
 HLDs are a different technology from the classic light-field Looking Glass
 devices (which consume multi-view quilts; see
@@ -11,7 +11,7 @@ devices (which consume multi-view quilts; see
 "alcove" volume embedded in its optical stack; ordinary **flat 2-D video**
 is multiply-blended into that volume.  The consequences for rendering:
 
-* **Pure white pixels are invisible** — they show only the holographic
+* **Pure white pixels are invisible** -- they show only the holographic
   alcove.  Subjects must sit on a white background.
 * The subject should be **centred inside safe-area margins** (~9% top,
   3% bottom/left/right) so it stays within the alcove.
@@ -37,7 +37,7 @@ Typical usage::
     render_hld_video(p, "torus")              # -> torus_hld.mp4 (10s orbit)
     p.close()
 
-Part of Quiltwright — https://github.com/suchanek/quiltwright
+Part of Quiltwright -- https://github.com/suchanek/quiltwright
 Author: Eric G. Suchanek, PhD
 """
 
@@ -67,7 +67,7 @@ def _require_pyvista(fn_name: str) -> None:
         )
 
 
-#: Master render resolution — 4K landscape (16:9) as required by HLD Author.
+#: Master render resolution -- 4K landscape (16:9) as required by HLD Author.
 #: One master serves all HLD sizes; players downscale for the 16".
 HLD_RESOLUTION: tuple[int, int] = (3840, 2160)
 
@@ -229,7 +229,7 @@ def render_hld_video(
     :param orbit_degrees: Total orbit over the clip; 360 loops seamlessly.
         Pass 0 to disable the turntable (use *on_frame*).
     :param resolution: Render ``(width, height)``; default 3840×2160.
-    :param crf: x265 quality (lower = better; 15–20 sensible).
+    :param crf: x265 quality (lower = better; 15-20 sensible).
     :param rotate_for_player: Rotate 90° CCW before output.  Leave ``False``
         (default) for HLD Author and signage/HDMI delivery.
     :param on_frame: Optional ``callback(frame_index)`` before each frame.
@@ -306,11 +306,11 @@ def add_floor_shadow(
     translucent voxel clouds, so this paints a flattened grey disc just
     below the subject's bounding box.
 
-    On a **white** background (HLD): the disc fades centre→light-grey,
-    rim→white, so the rim is invisible against the background.
+    On a **white** background (HLD): the disc fades centre->light-grey,
+    rim->white, so the rim is invisible against the background.
 
     On a **dark** background (interactive viewer): pass ``dark_bg=True``
-    to flip the ramp — centre→dark-grey, rim→black — so the shadow reads
+    to flip the ramp -- centre->dark-grey, rim->black -- so the shadow reads
     correctly instead of appearing as a glowing white disc.
 
     :param plotter: Active ``pv.Plotter``.
@@ -319,7 +319,7 @@ def add_floor_shadow(
     :param opacity: Shadow darkness (0 = none, 1 = full grey at centre).
     :param scale: Shadow radius as a fraction of the subject's half-extent;
         keep it > 1 so the shadow spreads past the footprint.
-    :param dark_bg: If ``True``, use a dark-background–compatible ramp
+    :param dark_bg: If ``True``, use a dark-background-compatible ramp
         (centre = dark grey, rim = black).  Default ``False`` is optimised
         for HLD's white background (centre = light grey, rim = white).
     """
@@ -339,14 +339,14 @@ def add_floor_shadow(
     r = np.linalg.norm(pts[:, :2] - np.array([cx, cy]), axis=1) / max(radius, 1e-12)
     disc.point_data["shadow"] = (1.0 - np.clip(r, 0.0, 1.0)) ** 2
     if dark_bg:
-        # "Greys_r": 0=black → 1=white.
-        # clim=(0, 3) maps the peak scalar (1.0) to position 0.33 → ~#555555.
+        # "Greys_r": 0=black -> 1=white.
+        # clim=(0, 3) maps the peak scalar (1.0) to position 0.33 -> ~#555555.
         # Rim scalar (0.0) stays black and blends into the dark background.
         cmap, clim = "Greys_r", (0.0, 3.0)
     else:
-        # "Greys": 0=white → 1=black.  Rim (scalar=0) fades to white and
+        # "Greys": 0=white -> 1=black.  Rim (scalar=0) fades to white and
         # disappears into the HLD white background.
-        # clim max = 1.5 maps the peak scalar to 0.67 → ~#555555 dark grey,
+        # clim max = 1.5 maps the peak scalar to 0.67 -> ~#555555 dark grey,
         # clearly visible against the white HLD background.
         cmap, clim = "Greys", (0.0, 1.5)
     plotter.add_mesh(

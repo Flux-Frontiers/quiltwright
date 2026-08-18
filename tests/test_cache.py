@@ -2,7 +2,7 @@
 Tests for :mod:`quiltwright.cache`.
 
 The point of this module is that every runtime download agrees on one
-location, and that the location is the platform's own — not the XDG layout
+location, and that the location is the platform's own -- not the XDG layout
 that only happens to be right on Linux.  Both properties are checked here,
 along with the per-dataset environment overrides.
 """

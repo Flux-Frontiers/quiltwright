@@ -2,8 +2,8 @@
 """
 Measure a POV-Ray scene's depth range by plane sweep.
 
-The depth budget wants two numbers from a scene — where its nearest content
-sits and where its farthest *structured* content ends — and guessing them
+The depth budget wants two numbers from a scene -- where its nearest content
+sits and where its farthest *structured* content ends -- and guessing them
 costs a render to find out.  This measures them.
 
 An opaque, self-lit plane is slid along the view axis at distance ``d`` from
@@ -20,7 +20,7 @@ frame::
 Three cautions, each learned the hard way:
 
 *Render at the quality you will ship.*  POV-Ray disables transparency and
-refraction below ``+Q8``, which makes glass opaque — a cheap probe run at
+refraction below ``+Q8``, which makes glass opaque -- a cheap probe run at
 ``+Q3`` reports a room with no windows and no sky at all.
 
 *Measure through the camera you will render with.*  A hologram's eye is
@@ -58,11 +58,11 @@ def _triple(text: str) -> tuple[float, float, float]:
     """Parse an ``x,y,z`` command-line vector."""
     parts = text.replace(" ", "").split(",")
     if len(parts) != 3:
-        raise argparse.ArgumentTypeError(f"expected x,y,z — got {text!r}")
+        raise argparse.ArgumentTypeError(f"expected x,y,z -- got {text!r}")
     try:
         return tuple(float(p) for p in parts)
     except ValueError as exc:
-        raise argparse.ArgumentTypeError(f"expected three numbers — got {text!r}") from exc
+        raise argparse.ArgumentTypeError(f"expected three numbers -- got {text!r}") from exc
 
 
 def _wrapper(scene: Path, camera: PovCamera, aspect: float, dist: float | None) -> str:
@@ -132,7 +132,7 @@ def sweep(
     """Fraction of the frame nearer than each distance.
 
     :param scene: Scene to probe.  Not modified.
-    :param camera: Camera to measure through — the one you will render with.
+    :param camera: Camera to measure through -- the one you will render with.
     :param distances: Distances along the view axis to test, in scene units.
     :param quality: POV-Ray ``+Q``.  Keep at 8 or above or glass reads solid.
     :param extra_args: Additional POV-Ray arguments, e.g. ``["+MV3.1"]`` for
@@ -268,7 +268,7 @@ def main() -> int:
             5000.0,
         ]
     else:
-        # A scene composed at some other scale — porin sits 1100 units out —
+        # A scene composed at some other scale -- porin sits 1100 units out --
         # wants its probes where its content is, not 200 of them in front of it.
         grid = [*np.linspace(args.min_distance, args.max_distance, 200), 5000.0]
     print(f"Sweeping {scene.name} through {len(grid)} planes at {args.width}x{args.height}")

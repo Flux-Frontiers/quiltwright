@@ -111,7 +111,7 @@ class TestCameraBlock:
         np.testing.assert_allclose(v["location"], [2.0, 0.0, -10.0], atol=1e-12)
 
     def test_image_plane_stays_parallel(self, camera):
-        """right/up must not rotate with offset — that is what keeps the
+        """right/up must not rotate with offset -- that is what keeps the
         projection off-axis rather than toed-in."""
         a = parse_vectors(camera_block(camera, offset=0.0, aspect=1.0))
         b = parse_vectors(camera_block(camera, offset=3.0, aspect=1.0))
@@ -170,7 +170,7 @@ class TestAimed:
 
     def test_lateral_shift_slides_eye_and_aim_together(self):
         """The look-at point rides along with the eye, so the view direction
-        is untouched — the whole point of shifting rather than re-aiming."""
+        is untouched -- the whole point of shifting rather than re-aiming."""
         cam = PovCamera.aimed((0, 0, 0), (0, 0, 10), fov=30.0, lateral_shift=-5.0)
         np.testing.assert_allclose(cam.location, [-5, 0, 0], atol=1e-12)
         np.testing.assert_allclose(cam.look_at, [-5, 0, 10], atol=1e-12)
@@ -219,7 +219,7 @@ class TestClearance:
     @pytest.mark.parametrize("cone", [35.0, 50.0])
     def test_uncorrected_cones_do_not_fit_the_museum(self, museum, cone):
         """The documented 35 deg standard and the 16" Landscape's own 50 deg
-        both walk through the wall — the failure this class exists to catch,
+        both walk through the wall -- the failure this class exists to catch,
         and the one that shows up only in the views nobody previews."""
         spec = replace(QUILT_PRESETS["16-landscape"], view_cone=cone)
         assert not museum.fits(spec, 48.5)
@@ -262,7 +262,7 @@ class TestDepthBudget:
 
     def test_harmonic_focal_plane_balances_the_extremes(self, spec):
         """Near and far disparity match when the focal plane sits at their
-        harmonic mean — the property the museum camera is built on."""
+        harmonic mean -- the property the museum camera is built on."""
         cam = PovCamera(location=(0, 0, 0), look_at=(0, 0, 5952 / 127), fov=53.13)
         rows = dict((label, px) for label, _, px in depth_budget(spec, cam, {"n": 31.0, "f": 96.0}))
         assert rows["n"] == pytest.approx(rows["f"], rel=1e-6)
@@ -323,7 +323,7 @@ requires_povray = pytest.mark.skipif(
 
 # Three emissive markers at different depths.  The green one sits exactly on
 # the focal plane; the others straddle it.  They are separated vertically so
-# none occludes another — an occluded marker's centroid drifts with the
+# none occludes another -- an occluded marker's centroid drifts with the
 # visible crescent, which would masquerade as parallax.
 DEPTH_SCENE = """
 #version 3.7;
@@ -390,7 +390,7 @@ class TestRenderPovQuilt:
 
     def test_view_zero_is_leftmost_eye(self, scene, tiny_spec, camera):
         """Moving the eye right must push nearer objects left, and view 0 is
-        the leftmost eye — so the near marker travels right-to-left across
+        the leftmost eye -- so the near marker travels right-to-left across
         the view order."""
         from quiltwright.povray import render_pov_quilt
 
@@ -416,7 +416,7 @@ class TestRenderPovQuilt:
     def test_anamorphic_quilt_assembles(self, scene, camera):
         """The 16" Landscape shape: views are captured at 16:9 and squeezed
         into 4:3 tiles.  Scaled down 10x, the squeeze factor is the device's
-        own 0.75 — tiles 96x72 holding views rendered 128x72.
+        own 0.75 -- tiles 96x72 holding views rendered 128x72.
         """
         from quiltwright.povray import render_pov_quilt
 

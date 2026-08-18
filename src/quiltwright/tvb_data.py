@@ -4,7 +4,7 @@ TVB Dataset Loader
 
 Downloads and parses demonstration data from `The Virtual Brain
 <https://www.thevirtualbrain.org/>`_ (TVB) so that real human, macaque and
-mouse brain geometry can be fed to the holographic backends — Looking Glass
+mouse brain geometry can be fed to the holographic backends -- Looking Glass
 light-field quilts (:mod:`quiltwright.lfd`) and Hololuminescent Display
 video (:mod:`quiltwright.hld`).
 
@@ -23,7 +23,7 @@ the canonical source and the only one this module uses.
 
 Nothing is vendored into Quiltwright.  The archive is fetched on first use
 and cached on disk, exactly as :mod:`pyvista.examples` does for its own
-downloads — which also keeps TVB's GPL-3.0 licensing out of this BSD-3
+downloads -- which also keeps TVB's GPL-3.0 licensing out of this BSD-3
 source tree.  See :func:`cache_dir` for cache placement and overrides.
 
 Dependencies
@@ -55,7 +55,7 @@ Surfaces (:func:`load_surface`)
     ``surface_147k``.
 
 Connectivity (:func:`load_connectivity`)
-    Region-level connectomes at 66/68/76/80/96/192/998 nodes — a weights
+    Region-level connectomes at 66/68/76/80/96/192/998 nodes -- a weights
     matrix, a tract-length matrix and named 3-D region centres, which is
     everything needed to draw a connectome as nodes-and-tubes in space.
 
@@ -92,7 +92,7 @@ For a ready-made CLI over these datasets, see the ``--tvb-demo`` mode of
 `WaveRider <https://github.com/Flux-Frontiers/waverider>`_, which wires
 scene presets on top of this module.
 
-Part of Quiltwright — https://github.com/suchanek/quiltwright
+Part of Quiltwright -- https://github.com/suchanek/quiltwright
 Author: Eric G. Suchanek, PhD
 """
 
@@ -143,7 +143,7 @@ __all__ = [
 # Source of record
 # ---------------------------------------------------------------------------
 
-#: Zenodo record for ``tvb-data`` 2.8.1 — the canonical distribution.
+#: Zenodo record for ``tvb-data`` 2.8.1 -- the canonical distribution.
 TVB_DATA_DOI = "10.5281/zenodo.10128131"
 
 #: Direct download URL for the ``tvb_data.zip`` archive (~337 MB).
@@ -155,11 +155,11 @@ TVB_DATA_MD5 = "08ae19833ba8ac158c91fbcb988b9bf0"  # pragma: allowlist secret
 #: Version string of the pinned Zenodo record.
 TVB_DATA_VERSION = "2.8.1"
 
-#: Expected archive size in bytes — used only for download progress display.
+#: Expected archive size in bytes -- used only for download progress display.
 _TVB_DATA_BYTES = 337_115_643
 
 #: License of the downloaded data.  Not vendored; fetched at runtime.
-TVB_LICENSE = "GPL-3.0 (The Virtual Brain) — downloaded at runtime, not redistributed"
+TVB_LICENSE = "GPL-3.0 (The Virtual Brain) -- downloaded at runtime, not redistributed"
 
 #: Citation requested by the TVB project for scientific publications.
 TVB_CITATION = (
@@ -172,7 +172,7 @@ _CACHE_ENV = "QUILTWRIGHT_TVB_CACHE"
 _ARCHIVE_NAME = "tvb_data.zip"
 
 # ---------------------------------------------------------------------------
-# Dataset registries — logical name -> path inside the archive
+# Dataset registries -- logical name -> path inside the archive
 # ---------------------------------------------------------------------------
 
 #: Triangulated surfaces.  Each value is the member path inside
@@ -204,7 +204,7 @@ CONNECTIVITIES: dict[str, str] = {
 }
 
 #: Per-vertex parcellation labels.  Keys pair with a surface of matching
-#: vertex count — ``regionMapping_16k_76`` goes with ``cortex_16384``.
+#: vertex count -- ``regionMapping_16k_76`` goes with ``cortex_16384``.
 REGION_MAPPINGS: dict[str, str] = {
     "regionMapping_16k_76": "tvb_data/regionMapping/regionMapping_16k_76.txt",
     "regionMapping_16k_192": "tvb_data/regionMapping/regionMapping_16k_192.txt",
@@ -268,7 +268,7 @@ class _SurfaceArrays:
 def cache_dir() -> Path:
     """Return the directory where the TVB archive is cached.
 
-    ``$QUILTWRIGHT_TVB_CACHE`` overrides the location entirely — useful for
+    ``$QUILTWRIGHT_TVB_CACHE`` overrides the location entirely -- useful for
     shared or read-only installs, CI, putting a 337 MB archive on a different
     volume, and pointing several checkouts at one copy.  Otherwise the
     platform's native cache root is used; see
@@ -460,7 +460,7 @@ def _member_reader(archive: zipfile.ZipFile):
       under the uncompressed name.
 
     :param archive: An open :class:`zipfile.ZipFile`.
-    :return: ``(read, available)`` — a callable taking an uncompressed
+    :return: ``(read, available)`` -- a callable taking an uncompressed
         basename and returning bytes, and the set of available basenames.
     """
     mapping: dict[str, str] = {}
@@ -508,7 +508,7 @@ def _to_zero_based(triangles: np.ndarray, n_vertices: int) -> np.ndarray:
     latter as-is yields an index one past the last vertex, which produces a
     silently corrupt mesh rather than an error.
 
-    A file is treated as 1-based only when it is unambiguous — the smallest
+    A file is treated as 1-based only when it is unambiguous -- the smallest
     index is 1 *and* the largest is exactly ``n_vertices``.
 
     :param triangles: ``(m, 3)`` vertex indices as stored.
@@ -669,7 +669,7 @@ def load_sensors(name: str, *, quiet: bool = False) -> tuple[np.ndarray, np.ndar
 
 
 # ---------------------------------------------------------------------------
-# PyVista bridge — requires the 'viz' extras
+# PyVista bridge -- requires the 'viz' extras
 # ---------------------------------------------------------------------------
 
 try:
@@ -744,7 +744,7 @@ def surface_polydata(
         mesh can be coloured by parcellation.  The vertex counts must match.
     :param smooth_iters: Laplacian smoothing iterations (0 disables).
         Applied *after* the region scalars are attached, so labels survive.
-    :param decimate: Fraction of triangles to remove, 0.0–1.0.  Useful for
+    :param decimate: Fraction of triangles to remove, 0.0-1.0.  Useful for
         ``cortex_2x120k`` (566 752 triangles), which is heavy to sweep
         across 48 quilt views.
     :param quiet: Suppress download progress output.
@@ -764,7 +764,7 @@ def surface_polydata(
         if len(labels) != mesh.n_points:
             raise ValueError(
                 f"Region mapping '{region_mapping}' has {len(labels)} labels but "
-                f"surface '{name}' has {mesh.n_points} vertices — they do not pair."
+                f"surface '{name}' has {mesh.n_points} vertices -- they do not pair."
             )
         mesh.point_data["region"] = labels
 
@@ -796,7 +796,7 @@ def connectome_polydata(
 ):
     """Build node and edge meshes for a TVB connectome.
 
-    Edges below the *percentile* of non-zero connection weights are dropped —
+    Edges below the *percentile* of non-zero connection weights are dropped --
     a full connectome is far too dense to read as a hologram, and the
     strongest tracts are what carry the structure.
 
@@ -821,7 +821,7 @@ def connectome_polydata(
         raise ValueError(f"Connectome '{name}' has no non-zero weights.")
     threshold = np.percentile(nonzero, percentile) if percentile > 0 else nonzero.min()
 
-    # Upper triangle only — TVB weight matrices are effectively symmetric for
+    # Upper triangle only -- TVB weight matrices are effectively symmetric for
     # display purposes, and drawing both directions doubles the tube count.
     rows, cols = np.nonzero(np.triu(weights >= threshold, k=1))
     if len(rows) == 0:

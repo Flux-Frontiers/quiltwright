@@ -9,13 +9,13 @@
 Renders existing POV-Ray scenes as Looking Glass quilts, without porting the
 scene to another renderer and without modifying a single line of it. Companion
 to [lfd.md](lfd.md), which covers the PyVista path and the Bridge/Studio setup;
-everything downstream of quilt assembly — filenames, casting, playback — is
+everything downstream of quilt assembly -- filenames, casting, playback -- is
 shared. For rendering molecular structures this way, see
 [pdb2pov.md](pdb2pov.md).
 
 This page explains the mechanism. For the step-by-step procedure of getting a
-particular archive scene through it — parsing, reading its camera, measuring
-its depths, and the traps at each step — see
+particular archive scene through it -- parsing, reading its camera, measuring
+its depths, and the traps at each step -- see
 [pov-workflow.md](pov-workflow.md).
 
 ---
@@ -24,7 +24,7 @@ its depths, and the traps at each step — see
 
 A ray-tracer is an unusual thing to drive from a light-field pipeline, and the
 reason to bother is content. Decades of POV-Ray scenes exist that were composed
-for depth — interiors, still lifes, molecular sets — and they were built with
+for depth -- interiors, still lifes, molecular sets -- and they were built with
 global illumination, real refraction through glass, and correct shadows. That
 is exactly what a holographic display flatters, and it is expensive to
 reproduce in a rasteriser.
@@ -38,7 +38,7 @@ The driver does four things:
 2. Sweeps the eye across the view cone using an **off-axis projection**
    expressed directly in POV-Ray's camera vectors.
 3. Ray-traces each view at the quilt's tile resolution.
-4. Hands the views to `assemble_quilt()` — the same renderer-agnostic
+4. Hands the views to `assemble_quilt()` -- the same renderer-agnostic
    assembler the PyVista path uses.
 
 ```python
@@ -55,7 +55,7 @@ save_quilt(quilt, "museum", spec)      # -> museum_qs8x6a1.77778.png
 
 ## 1. The off-axis camera, in POV-Ray
 
-This is the load-bearing trick, and POV-Ray supports it natively — which is
+This is the load-bearing trick, and POV-Ray supports it natively -- which is
 not obvious, because the feature is a side effect of how its camera is
 specified rather than a documented capability.
 
@@ -63,11 +63,11 @@ POV-Ray builds the frustum from four vectors: `location` is the eye,
 `direction` places the **centre of the image plane** relative to it, and
 `right`/`up` **span** that plane. Critically, POV-Ray does *not*
 re-orthogonalise them. Tilting `direction` while holding `right` and `up`
-fixed leaves the image plane parallel to itself and shears the frustum — an
+fixed leaves the image plane parallel to itself and shears the frustum -- an
 asymmetric-frustum projection, which is precisely what a light-field display
 requires.
 
-The obvious alternative — pointing each view at the subject with `look_at` —
+The obvious alternative -- pointing each view at the subject with `look_at` --
 is "toe-in". It *rotates* the camera, which introduces vertical parallax and
 keystone distortion, and the display cannot fuse the result. Toe-in produces
 ghosting where off-axis produces depth.
@@ -94,15 +94,15 @@ Two rules follow, and both are enforced in code:
   plausible-looking image. `camera_block()` computes `|direction|` explicitly
   and a test asserts the keyword never appears.
 - **Get the handedness right.** POV-Ray is left-handed: `right = sky × forward`.
-  Inverting it mirrors the sweep and turns the hologram inside out — near
-  objects recede, far objects advance. A test pins the `+y`/`+z` → `+x` case.
+  Inverting it mirrors the sweep and turns the hologram inside out -- near
+  objects recede, far objects advance. A test pins the `+y`/`+z` -> `+x` case.
 
 POV-Ray warns `Camera vectors are not perpendicular` on every view. That
 warning *is* the shear; it is expected and benign.
 
 ### Verification
 
-A three-marker scene — spheres at depths 6, 10 and 14, focal plane at 10 —
+A three-marker scene -- spheres at depths 6, 10 and 14, focal plane at 10 --
 renders with the on-plane marker pinned to the centre pixel across the whole
 sweep while the others separate in opposite directions. Measured against
 theory:
@@ -148,15 +148,15 @@ Three consequences are worth internalising:
 - **The focal plane belongs at the harmonic mean of the depth range**, not the
   midpoint. Disparity grows with `|1 − Z/z|`, which is asymmetric in depth, so
   the arithmetic midpoint leaves near content far worse off. Equalising the
-  two ends gives `Z = 2/(1/near + 1/far)` — `focal_distance_for_range()`. With
+  two ends gives `Z = 2/(1/near + 1/far)` -- `focal_distance_for_range()`. With
   the far plane at infinity it reduces to `2 × near`.
 
-Roughly 4–5 px is the practical ceiling; past ~8 px expect visible ghosting on
+Roughly 4-5 px is the practical ceiling; past ~8 px expect visible ghosting on
 hard edges.
 
 ---
 
-## 3. Sweep clearance — the constraint peculiar to interiors
+## 3. Sweep clearance -- the constraint peculiar to interiors
 
 The quilt sweeps the eye laterally by `Z · tan(cone/2)`. For an object on a
 turntable that distance is empty space. **Inside a room it is furniture and
@@ -166,7 +166,7 @@ At a 35° cone with the museum's focal plane, the sweep is ±14.8 units. The
 room's usable lateral corridor, measured by rendering at candidate offsets and
 watching for the frame to collapse to the unlit back face of a wall, is only
 −18 to +8. The first full render of this scene therefore had **11 of its 48
-views showing the outside of a wall** — and the failure is quiet, because the
+views showing the outside of a wall** -- and the failure is quiet, because the
 centre view (the one you preview) is perfect.
 
 The fix is to probe the corridor, recentre the eye within it, and derive the
@@ -188,7 +188,7 @@ room = Clearance(left=-18.0, right=8.0, margin=2.0)   # measured, in scene units
 camera = PovCamera.aimed(
     (15.0, 20.0, 6.0), (58.0, 19.0, 53.0),   # the scene's own eye and aim
     fov=53.13,                               # the scene's own lens
-    focal_distance=focal_distance_for_range(31.0, 96.0),   # measured, see § 4
+    focal_distance=focal_distance_for_range(31.0, 96.0),   # measured, see section 4
     lateral_shift=room.centre,               # -5: middle of the corridor
 )
 spec = replace(QUILT_PRESETS["16-landscape"], view_cone=room.cone(camera.focal_distance))
@@ -197,22 +197,22 @@ spec = replace(QUILT_PRESETS["16-landscape"], view_cone=room.cone(camera.focal_d
 For the museum that gives 26.4°, comfortably inside both the 16" Landscape's
 50° native cone and the documented 35° standard. `format_depth_budget(...,
 clearance=room)` prints the sweep extent against the measured walls and warns
-when it exceeds them — print it before committing to the render, since this is
+when it exceeds them -- print it before committing to the render, since this is
 the failure that costs an hour of ray-tracing to discover.
 
 Worth noting: narrowing the cone to fit costs less than it appears. With the
 focal plane at the harmonic mean, the disparity at the depth extremes depends
 on the *physical baseline* and the scene's depth range, not on where the focal
-plane sits — so trading cone for clearance trades look-around, not sharpness.
+plane sits -- so trading cone for clearance trades look-around, not sharpness.
 
 ---
 
-## 4. Case study — the museum
+## 4. Case study -- the museum
 
 "Eric's Science Museum", a POV-Ray scene begun in 1995: molecular exhibits
 under bell jars in a room borrowed from Michael "meek" Mittelstadt, with the
 models generated by pdb2pov in 1997. What is on display, and why the scene
-exists, is [about-the-image.md](about-the-image.md) — this section is only
+exists, is [about-the-image.md](about-the-image.md) -- this section is only
 about the numbers.
 
 It is near-ideal light-field content: a foreground pedestal, mid-depth framed
@@ -221,14 +221,14 @@ art, and an arched window onto terrain and sky at infinity.
 **Measured scene properties.** The depth range comes from
 [`scripts/measure_depth_range.py`](../scripts/measure_depth_range.py), which
 slides an opaque plane along the view axis and scores how much of the frame
-stays in front of it — a cumulative depth histogram of the shot. Run it
+stays in front of it -- a cumulative depth histogram of the shot. Run it
 through the camera you will render with, at the quality you will ship: POV-Ray
 disables transparency below `+Q8`, and a cheap probe reports a room with no
 windows and no sky at all.
 
 | Property | Value | How |
 |----------|-------|-----|
-| Nearest geometry | 31 units | first distance occupying >0.1% of frame — the near pedestal's tabletop |
+| Nearest geometry | 31 units | first distance occupying >0.1% of frame -- the near pedestal's tabletop |
 | Structured far content | 96 units | 95% of everything occludable is nearer than this |
 | Sky through window | effective infinity, 6.1% of frame | never occludes at any finite distance |
 | Lateral corridor | −18 to +8 units | eye offsets before the frame collapses to a wall |
@@ -261,7 +261,7 @@ can afford the disparity anyway.
 *Centre view (view 24) of the finished quilt, 960×720.*
 
 **Verification on the finished quilt.** Near and far features must shift in
-*opposite* directions about a stationary focal plane — the signature of a
+*opposite* directions about a stationary focal plane -- the signature of a
 correct off-axis render. Measured by 1-D cross-correlation of a feature crop
 between two views 11 gaps apart, scaled to the device's 720 px tile:
 
@@ -275,13 +275,13 @@ The middle row is the load-bearing one: the left-hand painting happens to sit
 within a unit of the focal plane, and it stays put while everything around it
 moves in opposite directions.
 
-Pick crops with a single dominant depth. A wide, near-horizontal surface — the
-pedestal's disc, say — spans tens of units front to back, and correlating
+Pick crops with a single dominant depth. A wide, near-horizontal surface -- the
+pedestal's disc, say -- spans tens of units front to back, and correlating
 across it returns a number that belongs to no particular feature. Crops must
 also be chosen on a view *between* the two being compared, or the feature has
 already slid out of the box.
 
-All 48 tiles are populated, with a brightness spread of 7.3 across the sweep —
+All 48 tiles are populated, with a brightness spread of 7.3 across the sweep --
 no collapsed views.
 
 ![Museum parallax](museum_parallax.png)
@@ -309,11 +309,11 @@ python scripts/render_museum_hologram.py --cast          # straight to the displ
 | Field | Meaning |
 |-------|---------|
 | `location` | Eye position in scene units |
-| `look_at` | Aim point — **becomes the focal plane**, so it lands on the glass |
+| `look_at` | Aim point -- **becomes the focal plane**, so it lands on the glass |
 | `sky` | Up-hint for the camera basis (default `(0,1,0)`) |
 | `fov` | *Vertical* field of view in degrees |
 
-Methods: `focal_distance`, `basis()` → `(forward, right, up)`,
+Methods: `focal_distance`, `basis()` -> `(forward, right, up)`,
 `image_plane_distance()`.
 
 `PovCamera.aimed(location, aim, *, fov, focal_distance=None, lateral_shift=0.0,
@@ -330,18 +330,18 @@ camera's right vector.
 
 | Member | Meaning |
 |--------|---------|
-| `centre` | Offset that puts the eye in the middle of the corridor — feed to `lateral_shift` |
+| `centre` | Offset that puts the eye in the middle of the corridor -- feed to `lateral_shift` |
 | `half_width` | Usable travel either side of `centre`, net of `margin` |
 | `cone(focal_distance)` | Widest view cone whose outermost eye still clears the walls |
 | `fits(spec, focal_distance)` | Whether the sweep `spec` asks for stays inside the corridor |
 
 ### Reporting
 
-- `sweep_extent(spec, focal_distance)` — half-width of the lateral eye travel
+- `sweep_extent(spec, focal_distance)` -- half-width of the lateral eye travel
   the sweep needs, i.e. the largest `view_offsets()` magnitude in closed form.
-- `depth_budget(spec, camera, depths)` — `(label, depth, disparity_px)` per
+- `depth_budget(spec, camera, depths)` -- `(label, depth, disparity_px)` per
   labelled depth; `math.inf` is accepted for sky.
-- `format_depth_budget(spec, camera, depths, *, clearance=None, soft_px=5.5)` —
+- `format_depth_budget(spec, camera, depths, *, clearance=None, soft_px=5.5)` --
   the same as a printable report, flagging depths above `soft_px` and warning
   when the sweep leaves `clearance`.
 
@@ -352,7 +352,7 @@ camera's right vector.
 | `include_paths` | Extra `#include` search directories. The scene's own directory is always searched. |
 | `view_cone` | Override the spec's cone in degrees |
 | `antialias` | POV-Ray `+A` threshold; lower is better. `None` disables |
-| `quality` | POV-Ray `+Q` level, 0–11 |
+| `quality` | POV-Ray `+Q` level, 0-11 |
 | `jobs` | Concurrent POV-Ray processes (see below) |
 | `binary` | Executable path; also settable via `POVRAY_BINARY` |
 | `extra_args` | Raw POV-Ray flags, e.g. radiosity cache options |
@@ -364,9 +364,9 @@ Returns a `uint8` RGB array; pair with `save_quilt()` and `cast_quilt()` from
 ### `render_pov_views(scene, spec, camera, out_dir, ...)`
 
 The same render as `render_pov_quilt()` with the assembly step removed. **The
-camera geometry is identical** — the same off-axis sheared frustum, the same
-focal plane on `look_at`, the same `view_offsets()` — and only the output
-packing differs. Frames are written into `out_dir` as `view000.png …
+camera geometry is identical** -- the same off-axis sheared frustum, the same
+focal plane on `look_at`, the same `view_offsets()` -- and only the output
+packing differs. Frames are written into `out_dir` as `view000.png ...
 viewNNN.png`, **view 0 leftmost**, and the paths come back in view order.
 
 It takes `render_pov_quilt`'s arguments minus the quilt-assembly ones, plus:
@@ -379,7 +379,7 @@ It takes `render_pov_quilt`'s arguments minus the quilt-assembly ones, plus:
 That is the form consumers other than a light-field panel ask for: a hologram
 printer slicing views into hogels, or a lenticular interlacer. Pair it with
 `sweep_spec()` / `LITIHOLO_SWEEP` from [`quiltwright.lfd`](lfd.md) when the view
-count is not a convenient rectangle — a quilt grid cannot express a prime count,
+count is not a convenient rectangle -- a quilt grid cannot express a prime count,
 and a single-row sweep can.
 
 ```python
@@ -393,15 +393,15 @@ paths = render_pov_views("risedronate.pov", LITIHOLO_SWEEP, camera, "sweep/")
 whose parallax exceeds what the medium resolves ghosts on a lens sheet, and
 there is no evidence that hogels are more forgiving. `LITIHOLO_SWEEP` puts 2.05°
 between adjacent views against a Portrait quilt's 0.74°, so it has *less* margin
-than a quilt — see [lfd.md](lfd.md) for what that does and does not establish
+than a quilt -- see [lfd.md](lfd.md) for what that does and does not establish
 about the printer.
 
 ### Supporting helpers in `quiltwright.lfd`
 
-- `assemble_quilt(views, spec)` — renderer-agnostic tiling; consumes views
+- `assemble_quilt(views, spec)` -- renderer-agnostic tiling; consumes views
   lazily and validates the count.
-- `view_disparity(spec, fov, focal_distance, depth)` — adjacent-view shift in px.
-- `focal_distance_for_range(near, far)` — harmonic-mean focal distance.
+- `view_disparity(spec, fov, focal_distance, depth)` -- adjacent-view shift in px.
+- `focal_distance_for_range(near, far)` -- harmonic-mean focal distance.
 
 ---
 
@@ -422,14 +422,14 @@ one view with the cache saved and the rest with it loaded, via `extra_args`.
 The museum uses neither, which is why it renders as fast as it does.
 
 **`jobs` is usually best left at 1.** POV-Ray already threads a single render
-across all cores. Raise it only when per-render startup dominates — very small
+across all cores. Raise it only when per-render startup dominates -- very small
 tiles or preview passes.
 
 **RGBD quilts are not a shortcut here.** Bridge supports them and `cast_quilt`
 carries the `isRGBD` flag, but POV-Ray 3.7 has no native depth output and
-faking one requires overriding every object's texture — invasive and
+faking one requires overriding every object's texture -- invasive and
 unreliable on a complex scene. Render the views.
 
 **Preview at quarter size.** Disparity scales with tile height, so a preview
-quilt genuinely has lower disparity than the final — the composition and view
+quilt genuinely has lower disparity than the final -- the composition and view
 validity transfer, the ghosting margin does not.

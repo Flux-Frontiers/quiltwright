@@ -8,8 +8,8 @@ subpixel according to the device's factory calibration.  This module runs
 the same shader once, in NumPy, and writes the result out as an ordinary
 image at the panel's exact native resolution.
 
-Displayed 1:1 on the panel — most usefully as the macOS desktop wallpaper
-of the Looking Glass display — that image reconstructs as a static hologram
+Displayed 1:1 on the panel -- most usefully as the macOS desktop wallpaper
+of the Looking Glass display -- that image reconstructs as a static hologram
 with full parallax, no Bridge process required.
 
 The math is a port of Bridge's ``Lenticular_RGBA_With_Aspect`` shader (via
@@ -20,8 +20,8 @@ calibration generations:
 * classic (Portrait-era): flat one-third-pixel RGB stride, and
 * gen3 (configVersion 3.0): explicit per-channel ``subpixelCells`` offsets,
   selected per pixel by ``CellPatternMode``.  These panels put R and G on
-  one row and B on the other — a 2-over-1 delta, ordered R, B, G left to
-  right — mirrored vertically on alternate columns.
+  one row and B on the other -- a 2-over-1 delta, ordered R, B, G left to
+  right -- mirrored vertically on alternate columns.
 
 The classic formula assumes R, G, B run left to right at 0, 1/3 and 2/3 of a
 pixel.  Gen3 runs **R, B, G** at -0.31, 0.00 and +0.28, so applying the classic
@@ -38,12 +38,12 @@ B            100%        5 views         6
 
 Green happens to land near its assumed slot and survives; blue is assumed at
 2/3 while it physically sits at the pixel centre, so it fares worst.  The
-damage is therefore not a scrambled frame but a *differential* one — a
+damage is therefore not a scrambled frame but a *differential* one -- a
 feature's red, green and blue arrive from viewing angles up to five views
 apart, which reads as colour fringing that worsens with parallax.
 
 Two things break the effect completely and neither is detectable from code:
-the panel must run at its **true native resolution** (no HiDPI scaling — one
+the panel must run at its **true native resolution** (no HiDPI scaling -- one
 resample destroys the subpixel registration), and nothing may mix the RGB
 channels after weaving (Night Shift, True Tone, matrix ICC profiles), since
 each channel of each pixel carries a *different view*.
@@ -60,7 +60,7 @@ Typical usage::
     native = weave_quilt(quilt, spec, cal)
     Image.fromarray(native).save("scene_native.png")
 
-Part of Quiltwright — https://github.com/suchanek/quiltwright
+Part of Quiltwright -- https://github.com/suchanek/quiltwright
 Author: Eric G. Suchanek, PhD
 """
 
@@ -101,7 +101,7 @@ class SubpixelCell:
 class Calibration:
     """Per-unit optical calibration of a Looking Glass panel.
 
-    Every panel is calibrated at the factory — lens pitch, slant and phase
+    Every panel is calibrated at the factory -- lens pitch, slant and phase
     differ unit to unit, which is why a woven frame is registered to one
     specific display.  The values live in the device's ``visual.json``
     (readable via Looking Glass Bridge); :meth:`load` accepts that file
@@ -113,7 +113,7 @@ class Calibration:
     :param dpi: Panel pixel density.
     :param screen_w: Native panel width in pixels.
     :param screen_h: Native panel height in pixels.
-    :param flip_x: ``flipImageX`` — mirrors the tilt when >= 0.5.
+    :param flip_x: ``flipImageX`` -- mirrors the tilt when >= 0.5.
     :param cell_pattern_mode: Subpixel-cell selection pattern (0-4).
     :param cells: Per-cell subpixel offsets; empty means the classic
         one-third-pixel RGB stripe layout.
@@ -181,7 +181,7 @@ class Calibration:
     def processed_pitch(self) -> float:
         """Shader-space pitch: view cycles across the panel width.
 
-        LKG-Toolkit's ``Calibration.ProcessPitch`` — the raw lenticules-
+        LKG-Toolkit's ``Calibration.ProcessPitch`` -- the raw lenticules-
         per-inch scaled to screen widths and foreshortened by the lens
         slant.
         """
@@ -235,7 +235,7 @@ def weave_quilt(
     quilt view that subpixel physically radiates toward, and the value is
     copied from that view.  Nearest-neighbour everywhere: when the quilt
     tile size is an integer multiple of the panel resolution (all official
-    presets are) sampling is exact, and no filtering ever mixes channels —
+    presets are) sampling is exact, and no filtering ever mixes channels --
     each channel of each output pixel carries a different view, so any
     cross-channel blur is view crosstalk.
 

@@ -455,7 +455,7 @@ def test_the_key_light_is_above_the_subject_for_any_up_axis(up, axis):
 
 
 def test_the_rig_rotates_rigidly_with_up():
-    """Only the frame turns — distances from the subject are unchanged."""
+    """Only the frame turns -- distances from the subject are unchanged."""
     lo, hi = np.array([-2.0, -1.0, 0.0]), np.array([2.0, 3.0, 20.0])
     centre = (lo + hi) / 2.0
     spans = [
@@ -469,7 +469,7 @@ def test_the_rig_rotates_rigidly_with_up():
 
 def test_the_fill_crosses_to_the_other_side_and_stays_lower_than_the_key():
     """
-    "Opposite" is only across the *right* axis — the fill stays on the same
+    "Opposite" is only across the *right* axis -- the fill stays on the same
     side in up and front, and lower, which is what a fill is. It is dimmer and
     shadowless besides.
     """
@@ -500,7 +500,7 @@ def test_the_key_lands_on_the_side_the_caller_names():
     The bug this parameter exists for, and the one `up=` does not cover: the
     derived side for a +z-up scene is +y, and a frame_tree camera stands off
     along -y. So the rig lit the back of the tree and the lens looked at its
-    shadow — a scene that is structurally perfect and renders dark.
+    shadow -- a scene that is structurally perfect and renders dark.
     """
     lo, hi = np.array([-2.0, -2.0, 0.0]), np.array([2.0, 2.0, 20.0])
     centre = (lo + hi) / 2.0
@@ -629,7 +629,7 @@ def test_pov_camera_from_plotter_is_the_thing_that_converts():
 
 
 # ---------------------------------------------------------------------------
-# ground_slab — a finite floor to catch a shadow
+# ground_slab -- a finite floor to catch a shadow
 # ---------------------------------------------------------------------------
 
 
@@ -664,12 +664,12 @@ def test_ground_slab_is_never_degenerate_for_a_flat_subject():
 
 
 # ---------------------------------------------------------------------------
-# pov_camera_from_frame — the sibling for callers with no plotter
+# pov_camera_from_frame -- the sibling for callers with no plotter
 # ---------------------------------------------------------------------------
 
 
 class _Frame:
-    """Duck-typed stand-in for kg_utils.viz3d.CameraFrame — not imported here."""
+    """Duck-typed stand-in for kg_utils.viz3d.CameraFrame -- not imported here."""
 
     position = (1.0, -90.0, 15.0)
     focal_point = (1.0, 0.0, 15.0)
@@ -730,7 +730,7 @@ def test_a_non_positive_zoom_is_an_error_not_a_flipped_camera():
 
 
 # ---------------------------------------------------------------------------
-# swept_scene — the composer that makes a new consumer cheap
+# swept_scene -- the composer that makes a new consumer cheap
 # ---------------------------------------------------------------------------
 
 
@@ -776,7 +776,7 @@ def test_swept_scene_lights_the_subject_before_laying_the_floor():
     """
     Regression the composer exists to make unrepeatable. The rig is sized from
     scene bounds and the slab is wider than the subject, so measuring after
-    laying it makes the scene radius the slab's half-diagonal — flattening the
+    laying it makes the scene radius the slab's half-diagonal -- flattening the
     subject and shrinking its shadow to nothing.
     """
     sweeps, pts, dirs = _subject()

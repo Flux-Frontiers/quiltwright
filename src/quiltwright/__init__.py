@@ -1,5 +1,5 @@
 """
-Quiltwright — holographic output for Looking Glass displays.
+Quiltwright -- holographic output for Looking Glass displays.
 
 Turns a rendered scene into a *quilt*: the tiled multi-view image that
 lenticular light-field displays fuse into real depth.  Two rendering
@@ -16,7 +16,7 @@ backends feed the same assembler:
 
 Scene sources are separate from the backends above:
 
-    quiltwright.tvb_data  Real brain geometry from The Virtual Brain —
+    quiltwright.tvb_data  Real brain geometry from The Virtual Brain --
                           cortical surfaces, connectomes, parcellations,
                           downloaded on demand
 
@@ -42,8 +42,8 @@ Author: Eric G. Suchanek, PhD
 #
 # ``lfd`` imports PyVista when it is installed, and ``povray`` imports ``lfd``
 # for the quilt assembler.  Eager re-exports here meant that reaching for
-# ``quiltwright.povgen`` — a NumPy-only module whose whole purpose is writing
-# scenes without a rendering stack — loaded VTK on the way past.  Binding the
+# ``quiltwright.povgen`` -- a NumPy-only module whose whole purpose is writing
+# scenes without a rendering stack -- loaded VTK on the way past.  Binding the
 # names on first use instead keeps the public API identical while letting the
 # analytic path stay as light as it claims to be.
 # ---------------------------------------------------------------------------

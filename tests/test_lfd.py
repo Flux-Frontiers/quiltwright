@@ -208,7 +208,7 @@ class TestQuiltSpec:
 
 
 # ---------------------------------------------------------------------------
-# Gen3 16" Landscape — the device these renders target
+# Gen3 16" Landscape -- the device these renders target
 # ---------------------------------------------------------------------------
 
 
@@ -219,7 +219,7 @@ class TestSixteenLandscape:
     is the awkward one: its tiles are stored *anamorphically*, so the pixel
     aspect of a tile is not the aspect of the view it holds.  Almost every
     property below looks like a typo until that is understood, which is
-    precisely why they are pinned here — "correcting" the preset to make the
+    precisely why they are pinned here -- "correcting" the preset to make the
     numbers agree is a plausible mistake that would distort every render.
     """
 
@@ -238,7 +238,7 @@ class TestSixteenLandscape:
         assert landscape.aspect == 1.77778
 
     def test_native_cone_is_50_degrees(self, landscape):
-        """Wider than the 35 deg QuiltSpec default — the device's own optics,
+        """Wider than the 35 deg QuiltSpec default -- the device's own optics,
         not the rendering convention."""
         default = QuiltSpec(columns=1, rows=1, quilt_width=8, quilt_height=8, aspect=1.0)
         assert landscape.view_cone == 50.0
@@ -281,7 +281,7 @@ class TestSixteenLandscape:
     def test_assembly_squeezes_views_into_tiles(self):
         """A 16:9 view laid into a 4:3 tile must lose width, not height.
 
-        Run at 1/10 scale — same aspects and squeeze factor, 1% of the
+        Run at 1/10 scale -- same aspects and squeeze factor, 1% of the
         pixels.  The full-resolution equivalent is marked slow below.
         """
         spec = QuiltSpec(columns=8, rows=6, quilt_width=768, quilt_height=432, aspect=1.77778)
@@ -335,11 +335,11 @@ class TestSixteenLandscape:
     def test_museum_depth_budget(self, landscape):
         """The published museum figures, on this device's real 720 px tiles.
 
-        Anchors the whole chain — preset, cone, focal plane, tile height — to
+        Anchors the whole chain -- preset, cone, focal plane, tile height -- to
         the depth range measured by scripts/measure_depth_range.py: nearest
         geometry at 31 units, 95% of occludable content within 96, and the
         remaining ~6% of frame sky left out of the balance on purpose
-        (docs/povray.md § 4).
+        (docs/povray.md section 4).
         """
         spec = replace(landscape, view_cone=26.42)  # clearance-limited
         z = focal_distance_for_range(31.0, 96.0)
@@ -350,7 +350,7 @@ class TestSixteenLandscape:
 
     def test_native_cone_costs_the_budget(self, landscape):
         """At the device's full 50 deg cone the same scene doubles its
-        disparity, past the ~5 px comfort ceiling — the trade the museum
+        disparity, past the ~5 px comfort ceiling -- the trade the museum
         script makes when it narrows the cone for wall clearance."""
         z = focal_distance_for_range(31.0, 96.0)
         assert view_disparity(landscape, 53.13, z, 31.0) == pytest.approx(7.31, abs=0.01)
