@@ -21,10 +21,26 @@ calibration generations:
 * gen3 (configVersion 3.0): explicit per-channel ``subpixelCells`` offsets,
   selected per pixel by ``CellPatternMode``.  These panels put R and G on
   one row and B on the other — a 2-over-1 delta, ordered R, B, G left to
-  right — mirrored vertically on alternate columns.  The classic formula
-  assumes all three emitters share a row at a flat third-pixel stride, so
-  it gets this path badly wrong rather than slightly: on LKG-J00332 every
-  pixel picks a different view, by up to 47 of 48.
+  right — mirrored vertically on alternate columns.
+
+The classic formula assumes R, G, B run left to right at 0, 1/3 and 2/3 of a
+pixel.  Gen3 runs **R, B, G** at -0.31, 0.00 and +0.28, so applying the classic
+stride to a gen3 panel misplaces two channels of three.  Measured on
+LKG-J00332, out of 48 views:
+
+===========  ==========  ==============  ===============
+channel      differs     median offset   worst offset
+===========  ==========  ==============  ===============
+R            100%        2 views         3
+G            40%         0 views         1
+B            100%        5 views         6
+===========  ==========  ==============  ===============
+
+Green happens to land near its assumed slot and survives; blue is assumed at
+2/3 while it physically sits at the pixel centre, so it fares worst.  The
+damage is therefore not a scrambled frame but a *differential* one — a
+feature's red, green and blue arrive from viewing angles up to five views
+apart, which reads as colour fringing that worsens with parallax.
 
 Two things break the effect completely and neither is detectable from code:
 the panel must run at its **true native resolution** (no HiDPI scaling — one

@@ -22,9 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   both calibration generations: the classic third-of-a-pixel RGB stripe and
   the configVersion 3.0 `subpixelCells`/`CellPatternMode` layouts of gen3
   panels, which put R and G on one row and B on the other and mirror between
-  columns — a layout the classic formula does not mis-register so much as
-  ignore, picking a different view for every pixel on LKG-J00332, by up to 47
-  of 48. The port is
+  columns. Applying the classic formula to a gen3 panel misregisters 80% of
+  subpixels on LKG-J00332, by a median of 2 views and at most 6 of 48 — and
+  by a different amount per channel, which is what turns it into colour
+  fringing. The port is
   pinned by a scalar transliteration of the shader in the test suite and by
   `ProcessPitch`/`ProcessSlope` values cross-checked against LKG-Toolkit;
   registration was verified by eye on a real 16" Landscape (LKG-J00332),
