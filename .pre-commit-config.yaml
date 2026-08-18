@@ -54,15 +54,27 @@ repos:
 
   - repo: local
     hooks:
+      # `.venv/bin/<tool>` rather than `poetry run <tool>`. `poetry run` resolves
+      # against whichever environment the calling shell advertises, so an
+      # inherited VIRTUAL_ENV from a *different* repo silently redirects these
+      # hooks there — the tool is then missing ("Command not found: ty") or,
+      # worse, present but wrong, and the failure looks like a code problem.
+      # It also puts `poetry` itself on the critical path for every commit.
+      # An explicit venv path is immune to both and needs nothing on PATH.
       - id: ty
         name: ty
-        entry: poetry run ty check src/
+        # `--python .venv` is not redundant with the path above: ty resolves
+        # site-packages from VIRTUAL_ENV, so an inherited one from another repo
+        # makes even `.venv/bin/ty` type-check against the wrong environment.
+        # Without it this reports 19 diagnostics ("Cannot resolve imported
+        # module numpy") that say nothing about this code.
+        entry: .venv/bin/ty check src/ --python .venv
         language: system
         pass_filenames: false
         always_run: true
       - id: pytest
         name: pytest
-        entry: poetry run pytest --tb=short -q
+        entry: .venv/bin/pytest --tb=short -q
         language: system
         pass_filenames: false
         always_run: true
