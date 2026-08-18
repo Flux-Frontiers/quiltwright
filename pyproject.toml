@@ -60,10 +60,11 @@ classifiers = [
 ]
 requires-python = ">=3.12,<3.14"
 
-# Core stays deliberately small: quilt geometry, tiling, filenames and the
-# Bridge HTTP client need nothing but numpy and pillow.  The renderers are
-# extras so a machine that only casts pre-rendered quilts stays lean.
-dependencies = ["numpy>=1.26", "pillow>=10.0"]
+# Core stays deliberately small: quilt geometry, tiling, filenames, the
+# Bridge HTTP client and the `quiltwright` CLI need nothing but numpy, pillow
+# and click.  The renderers are extras so a machine that only casts
+# pre-rendered quilts stays lean.
+dependencies = ["numpy>=1.26", "pillow>=10.0", "click>=8.1.0,<9"]
 
 [project.optional-dependencies]
 viz = ["pyvista>=0.44"]
@@ -77,6 +78,9 @@ Homepage = "https://github.com/suchanek/quiltwright"
 Repository = "https://github.com/suchanek/quiltwright"
 Documentation = "https://github.com/suchanek/quiltwright/tree/main/docs"
 Issues = "https://github.com/suchanek/quiltwright/issues"
+
+[project.scripts]
+quiltwright = "quiltwright.cli:main"
 
 # ---------------------------------------------------------------------------
 # Dependency groups (poetry)

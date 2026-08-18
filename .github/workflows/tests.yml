@@ -88,13 +88,16 @@ jobs:
   core-install:
     name: Core-only install
     runs-on: ubuntu-latest
-    # `pyproject.toml` keeps core to numpy and pillow so a machine that only
-    # casts pre-rendered quilts stays lean, and the README sells that as
+    # `pyproject.toml` keeps core to numpy, pillow and click so a machine that
+    # only casts pre-rendered quilts stays lean, and the README sells that as
     # `pip install quiltwright`. The promise holds only while the seven
     # `import pyvista` sites in __init__, lfd, hld and tvb_data stay inside
     # functions. No other job can see one move to module scope: they all
     # install `[viz,video]`, and the tests use `pytest.importorskip("pyvista")`,
     # which skips when PyVista is missing rather than asserting it is unused.
+    # It also proves the `quiltwright` console script loads and runs on a
+    # core-only install -- an entry point importing something extras-only
+    # would be dead on `pip install quiltwright` with nothing here to catch it.
     steps:
       - uses: actions/checkout@v7
 
@@ -144,3 +147,8 @@ jobs:
               )
           print(f"all {len(names)} submodules import without the renderers")
           PY
+
+      - name: Run the console script on a core-only install
+        run: |
+          /tmp/core/bin/quiltwright --help
+          /tmp/core/bin/quiltwright weave --help
