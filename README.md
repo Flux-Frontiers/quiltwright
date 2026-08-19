@@ -173,6 +173,11 @@ quilt = render_pov_quilt("pov-scenes/museum/museum.pov", spec, camera,
 save_quilt(quilt, "museum", spec)
 ```
 
+A 2026 cut of the museum, `museum_2026.pov`, is composed for the panel rather
+than for paper: 16:9, the oval mirror where the Risedronate picture hung, and
+both pedestals moved inward to flank the alcove. The 1999 original is
+untouched beside it.
+
 The museum scene above ships in [pov-scenes/](pov-scenes/), and
 [scripts/render_museum_hologram.py](scripts/render_museum_hologram.py) renders
 it end-to-end with a measured depth budget -- the worked case study in
@@ -264,13 +269,16 @@ make                      # the default goal is help; rendering is always explic
 make help                 # every target, and the still names
 ```
 
-#### Stills
+#### The gallery
 
-One full-quality frame per scene, into `renders/gallery/`. These are committed:
-they are the diffable record of what each scene looks like.
+One full-quality frame per scene, into [`gallery/`](gallery/), catalogued in
+[docs/gallery.md](docs/gallery.md). These are committed: they are the diffable
+record of what each scene looks like, and the presented work rather than a
+build artefact -- which is why they sit at the top level and not under
+`renders/`, where everything is output and only `reports/` is kept.
 
 ```bash
-make stills                       # all of them
+make gallery                      # all of them
 make still-bell_jar_bj_holo       # just one
 ```
 
@@ -425,7 +433,7 @@ QUILT_PRESETS["16-landscape"]      # 8x6 views, 7680x4320, aspect 1.7778
 | [docs/pdb2pov.md](docs/pdb2pov.md) | Rendering molecular structures from PDB and mmCIF files as holograms, from the shell or in-process |
 | [docs/hld.md](docs/hld.md) | Hololuminescent Displays, which play ordinary 2-D video rather than quilts |
 | [docs/about-the-image.md](docs/about-the-image.md) | The museum scene: what is on display, and the thirty-year pipeline behind it |
-| [docs/gallery.md](docs/gallery.md) | The reference stills every quilt is swept from, one per scene, and how to regenerate them |
+| [docs/gallery.md](docs/gallery.md) | Every image in `gallery/`, which scene made it, and the aspect each must be rendered at |
 
 ---
 

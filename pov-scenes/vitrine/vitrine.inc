@@ -77,7 +77,17 @@
 #ifndef (VIT_LABEL)      #declare VIT_LABEL      = "";    #end  // "" = no plaque
 #ifndef (VIT_SIGN)       #declare VIT_SIGN       = 1;     #end  // 0 = unsigned
 #ifndef (VIT_SIGN_TEXT)  #declare VIT_SIGN_TEXT  = "EGS 2026"; #end
-#ifndef (VIT_SIGN_INSET) #declare VIT_SIGN_INSET = 2.2;   #end  // deg from the edge
+#ifndef (VIT_SIGN_INSET) #declare VIT_SIGN_INSET = 1.0;   #end  // deg from the edge
+// The plate is sized to its label, between these bounds.  A fixed plate makes
+// the type shrink to fit -- "GREEN FLUORESCENT PROTEIN" ended up a third the
+// size of "OMPF PORIN" on identical brass, which reads as a mistake.
+#ifndef (VIT_PLAQUE_MIN) #declare VIT_PLAQUE_MIN  = 1.95;  #end  // arc, units
+// Capped at roughly a 40 degree half-angle.  Past that the plate is turning
+// away from the eye faster than it is gaining width, so the last word and the
+// signature sit on a receding curve and stop being readable -- widening
+// further buys nothing and costs legibility.
+#ifndef (VIT_PLAQUE_MAX) #declare VIT_PLAQUE_MAX  = 2.30;  #end
+#ifndef (VIT_TYPE)       #declare VIT_TYPE        = 0.170; #end  // preferred size
 #ifndef (VIT_SOFT)       #declare VIT_SOFT       = 0;     #end  // area light: slow, better
 #ifndef (VIT_WALL_HUE)   #declare VIT_WALL_HUE   = <0.30, 0.33, 0.34>; #end
 #ifndef (VIT_KEY)        #declare VIT_KEY        = 1.00;  #end  // key light scale
@@ -165,13 +175,35 @@
          [1.00 color rgb <0.17, 0.17, 0.19>]
       }
    }
-   finish { ambient 0.04 diffuse 0.5 reflection 0.06 specular 0.4 roughness 0.02 }
+   finish { ambient 0.04 diffuse 0.42 reflection { 0.08, 0.30 fresnel on }
+            specular 0.62 roughness 0.010 }
 }
 
+// Brass.  `metallic` on both the highlight and the reflection is what makes
+// it read as metal rather than as a yellow plastic: it tints them with the
+// pigment instead of leaving them white, which is how a conductor behaves.
+// Low diffuse and high brilliance keep the body dark so the highlights carry
+// the form -- a metal that is bright everywhere has no shape.
 #declare Vit_Brass_Tex = texture {
-   pigment { color rgb <0.78, 0.64, 0.30> }
-   finish { ambient 0.08 diffuse 0.42 brilliance 3 reflection 0.30
-            specular 0.75 roughness 0.015 metallic }
+   pigment { color rgb <0.88, 0.71, 0.33> }
+   // Barely-there planishing.  A perfectly flat metal face in a plain grey
+   // room has nothing to reflect and reads as painted card; agitating the
+   // normal a fraction makes the highlight break up and travel as the view
+   // sweeps, which is most of what tells the eye "metal".
+   normal { bumps 0.018 scale 0.09 }
+   finish {
+      ambient 0.11
+      diffuse 0.44
+      brilliance 3.0
+      metallic
+      // Two highlights, deliberately: a tight specular for the glint that
+      // travels as the view sweeps, and a broad phong sheen so the plate is
+      // not black between glints.  A grey gallery gives a mirror little to
+      // reflect, so on a flat face the highlights have to do the work.
+      specular 1.0 roughness 0.0035
+      phong 0.45 phong_size 55
+      reflection { 0.20, 0.64 metallic }
+   }
 }
 
 // Museum glass.  Unlike the 1993 bell jar this has a real interior, so it
@@ -381,7 +413,10 @@ union {
    #local P_Rb = Vitrine_Plinth_R(P_Y - P_H);
    #local P_Rt = Vitrine_Plinth_R(P_Y + P_H);
    #local P_Rm = (P_Rb + P_Rt) / 2;
-   #local P_Arc = 2.10;                      // arc length of the brass, in units
+   // Size the plate to the label rather than the label to the plate.
+   #local P_Pad = VIT_TYPE * 1.15;           // brass either side of the type
+   #local P_Want = Vitrine_Text_Width(VIT_LABEL, VIT_TYPE) + 2 * P_Pad;
+   #local P_Arc = min(VIT_PLAQUE_MAX, max(VIT_PLAQUE_MIN, P_Want));
    #local P_HalfA = degrees(P_Arc / 2 / P_Rm);
    #local P_Xh = (P_Rm + P_T) * sin(radians(P_HalfA));
 
@@ -395,9 +430,10 @@ union {
          texture { Vit_Brass_Tex }
       }
 
-      // Lettering.
-      #local L_N  = strlen(VIT_LABEL);
-      #local L_Sc = min(0.175, 1.86 / (L_N * 0.62));
+      // Lettering.  At the preferred size unless the widest allowed plate
+      // still cannot hold it, in which case shrink by exactly the shortfall.
+      #local L_Fit = (P_Arc - 2 * P_Pad) / Vitrine_Text_Width(VIT_LABEL, VIT_TYPE);
+      #local L_Sc  = VIT_TYPE * min(1.0, L_Fit);
       union {
          Vitrine_Wrapped_Text(VIT_LABEL, L_Sc, P_Rm + P_T, 0.026, 0, 0.038)
          texture {

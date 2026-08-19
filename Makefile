@@ -1,7 +1,7 @@
 # Quiltwright render targets.
 #
 #   make help            list targets
-#   make gallery         all reference stills -> renders/gallery/
+#   make gallery         all reference stills -> gallery/
 #   make still-museum    one still (see STILL TARGETS below)
 #   make quilts          all Looking Glass quilts -> renders/quilts/
 #   make quilt-porin     one quilt
@@ -54,7 +54,7 @@ JOBS    ?= 1
 # their own).  +FN: PNG.  -D: no preview window.
 POVFLAGS ?= +FN -D +Q11 +A0.1
 
-GALLERY := $(abspath renders/gallery)
+GALLERY := $(abspath gallery)
 INC      = ../myinclude
 
 # Regenerated every run so a changed RENDER_THREADS always takes effect.
@@ -70,7 +70,7 @@ $(THREAD_INI):
 
 # --- STILL TARGETS ---------------------------------------------------------
 # still-<name> renders pov-scenes/$(DIR)/$(SCENE) at $(SIZE) to
-# renders/gallery/<name>.png.  disc1.pov is absent: it does not render on
+# gallery/<name>.png.  disc1.pov is absent: it does not render on
 # Linux (asks for the standard includes in upper case).
 
 still-bell_jar_bj:           DIR=bell_jar
@@ -118,17 +118,25 @@ still-museum_pg:             DIR=museum
 still-museum_pg:             SCENE=museum_pg.pov
 still-museum_pg:             SIZE=+W1500 +H1200
 
+still-museum_2026:           DIR=museum
+still-museum_2026:           SCENE=museum_2026.pov
+still-museum_2026:           SIZE=+W1920 +H1080
+
 still-lambda_main:           DIR=lambda
 still-lambda_main:           SCENE=lambda_main.pov
 still-lambda_main:           SIZE=+W1920 +H1080
 
+# The vitrine exhibits are deliberately not here: they need pdb2pov's include
+# directory, whose path is per-machine (`pypdb2pov --include-dir` prints it),
+# so they render through scripts/render_vitrine.py rather than through a make
+# target that would have to guess.  See pov-scenes/vitrine/README.md.
 STILL_TARGETS := still-bell_jar_bj still-bell_jar_bj_holo \
                  still-bell_jar_bj_portrait still-bell_jar_bj_black \
                  still-bell_jar_bdna \
                  still-bell_jar_yinyang still-bell_jar_bdna_variant \
                  still-porin_3porin \
                  still-museum still-museum_970211 \
-                 still-museum_pg still-lambda_main
+                 still-museum_pg still-museum_2026 still-lambda_main
 
 still-%: $(THREAD_INI)
 	@mkdir -p $(GALLERY)
@@ -136,9 +144,9 @@ still-%: $(THREAD_INI)
 		+O$(GALLERY)/$*.png $(SIZE) $(POVFLAGS) +WT$(RENDER_THREADS)
 
 .PHONY: gallery stills
-gallery: $(STILL_TARGETS)  ## render every reference still -> renders/gallery/
+gallery: $(STILL_TARGETS)  ## render every reference still -> gallery/
 # Kept so anything that already types `make stills` still works.  renders/
-# stills/ is now local scratch; the committed set is renders/gallery/.
+# stills/ is now local scratch; the committed set is gallery/.
 stills: gallery
 
 # --- QUILTS ----------------------------------------------------------------
