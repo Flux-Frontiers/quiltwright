@@ -49,16 +49,16 @@ PDB2POV_INCLUDE = Path.home() / "repos/pdb2pov/python/src/pypdb2pov/include"
 # hand: the scene prints them at parse time via Vitrine_Report(), so a drift
 # shows up in the render log rather than silently.
 
-EYE = (0.0, 0.78, -8.00)
-AIM = (0.0, -0.42, 0.00)
-FOV_V = 38.5
+EYE = (0.0, 0.95, -6.90)
+AIM = (0.0, -1.30, 0.00)
+FOV_V = 44.0
 ASPECT = 16 / 9
 
 #: Nearest content: the front of the bell jar.  Farthest: the alcove's back
 #: wall.  Both are analytic here, which is the whole advantage of a room you
 #: built rather than one you inherited -- no plane-sweep probing.
-NEAR = 6.634
-FAR = 11.400
+NEAR = 5.534
+FAR = 10.300
 
 #: The alcove's side walls, in scene units either side of the eye.
 ROOM = Clearance(left=-5.30, right=5.30, margin=0.50)

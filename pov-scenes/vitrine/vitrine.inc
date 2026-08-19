@@ -67,10 +67,10 @@
 #ifndef (VIT_POST)       #declare VIT_POST       =  1;     #end  // brass mount pin
 
 // Camera.
-#ifndef (VIT_CAM_D)      #declare VIT_CAM_D      =  8.00; #end  // eye at z = -this
-#ifndef (VIT_CAM_Y)      #declare VIT_CAM_Y      =  0.78; #end
-#ifndef (VIT_AIM_Y)      #declare VIT_AIM_Y      = -0.42; #end
-#ifndef (VIT_FOV_V)      #declare VIT_FOV_V      = 38.5;  #end  // vertical, degrees
+#ifndef (VIT_CAM_D)      #declare VIT_CAM_D      =  6.90; #end  // eye at z = -this
+#ifndef (VIT_CAM_Y)      #declare VIT_CAM_Y      =  0.95; #end
+#ifndef (VIT_AIM_Y)      #declare VIT_AIM_Y      = -1.30; #end
+#ifndef (VIT_FOV_V)      #declare VIT_FOV_V      = 44.0;  #end  // vertical, degrees
 #ifndef (VIT_ASPECT)     #declare VIT_ASPECT     = 16/9;  #end
 
 // Look.
@@ -127,8 +127,17 @@
    }
    // A little reflection is not decoration: the mirrored jar is a second depth
    // cue under the object, and depth cues are the whole point of the display.
-   finish { ambient 0.03 diffuse 0.35 reflection 0.16 specular 0.35 roughness 0.012 }
+   // Fresnel: grazing angles toward the back of the room mirror hard while
+   // the floor underfoot stays stone, which is how polished stone actually
+   // behaves and gives the reflection a gradient instead of a flat sheen.
+   finish {
+      ambient 0.02 diffuse 0.26
+      reflection { 0.10, 0.55 fresnel on }
+      specular 0.45 roughness 0.008
+   }
 }
+
+#declare Vit_Floor_Int = interior { ior 1.6 }
 
 #declare Vit_Plinth_Tex = texture {
    pigment {
@@ -435,6 +444,7 @@ union {
       <-VIT_SIDE, VIT_FLOOR - VIT_THICK, -VIT_CAM_D - 1.0>,
       < VIT_SIDE, VIT_FLOOR,              VIT_BACK>
       texture { Vit_Floor_Tex }
+      interior { Vit_Floor_Int }
    }
    // Back wall.
    box {
