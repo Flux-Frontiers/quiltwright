@@ -345,6 +345,281 @@ class Box(Primitive):
 
 
 @dataclass(frozen=True)
+class Mesh2(Primitive):
+    """A POV-Ray ``mesh2`` -- shared vertex, normal and texture lists.
+
+    The fallback this module's docstring names: for geometry with no analytic
+    description -- an isosurface, a volume, a molecular cartoon exported from
+    somewhere else -- there is nothing to re-emit the intent of, and triangles
+    are the honest representation.
+
+    Prefer this over many separate one-triangle objects.  A generator that
+    emits a ``mesh2`` per face pays for a vertex list, a normal list and a
+    texture list on every triangle: PyMOL's ``cmd.get_povray()`` does exactly
+    that, and an OmpF porin trimer's cartoon costs 41 MB that way against
+    7.2 MB coalesced.  :func:`coalesce_mesh2` performs that merge on text
+    already written; this class avoids needing it.
+
+    **Winding.**  Negating *z* is a reflection, and a reflection reverses
+    triangle orientation, so every face's indices are emitted in reverse under
+    ``handedness="flip-z"``.  Without that, POV-Ray sees inward-facing normals
+    and lights the mesh from behind.  ``normal_indices`` is reversed in step,
+    since it is parallel to ``faces``.
+
+    :param vertices: ``(N, 3)`` points in right-handed world coordinates.
+    :param faces: Triples of indices into *vertices*.
+    :param normals: ``(M, 3)`` vectors, right-handed; ``None`` for a faceted
+        mesh, which POV-Ray shades flat.
+    :param normal_indices: Triples of indices into *normals*, parallel to
+        *faces*.  Defaults to *faces* when *normals* is given, which is right
+        whenever there is one normal per vertex.
+    :param textures: Textures the faces index into, for per-vertex colour.
+    :param face_textures: Triples of indices into *textures*, one per face
+        corner, parallel to *faces*.
+    :param texture: A texture for the whole mesh.  Independent of *textures*;
+        POV-Ray applies it where the per-vertex list does not reach.
+    """
+
+    vertices: Sequence[Sequence[float]]
+    faces: Sequence[Sequence[int]]
+    normals: Sequence[Sequence[float]] | None = None
+    normal_indices: Sequence[Sequence[int]] | None = None
+    textures: Sequence[Texture | str] = ()
+    face_textures: Sequence[Sequence[int]] | None = None
+    texture: Texture | str | None = None
+
+    def __post_init__(self) -> None:
+        if self.normal_indices is not None and self.normals is None:
+            raise ValueError("normal_indices given without normals")
+        if self.face_textures is not None and not self.textures:
+            raise ValueError("face_textures given without textures")
+        for name, seq in (
+            ("normal_indices", self.normal_indices),
+            ("face_textures", self.face_textures),
+        ):
+            if seq is not None and len(seq) != len(self.faces):
+                raise ValueError(f"{name} has {len(seq)} entries, faces has {len(self.faces)}")
+
+    def sdl(self, handedness: str = "flip-z") -> str:
+        """:return: ``mesh2 { vertex_vectors {...} ... face_indices {...} }``."""
+        flip = handedness == "flip-z"
+
+        def block(keyword: str, items: Sequence[str]) -> str:
+            return f"  {keyword} {{ {len(items)},\n    " + ",\n    ".join(items) + "\n  }\n"
+
+        out = ["mesh2 {\n"]
+        out.append(block("vertex_vectors", [_vec(to_pov(v, handedness)) for v in self.vertices]))
+
+        if self.normals is not None:
+            # A normal is a direction, not a position, but the reflection acts
+            # on it the same way -- mirroring the world mirrors its normals.
+            out.append(block("normal_vectors", [_vec(to_pov(n, handedness)) for n in self.normals]))
+
+        if self.textures:
+            out.append(block("texture_list", [_texture_suffix(t).strip() for t in self.textures]))
+
+        def wind(triple: Sequence[int]) -> tuple[int, int, int]:
+            a, b, c = (int(i) for i in triple)
+            return (a, c, b) if flip else (a, b, c)
+
+        faces: list[str] = []
+        for i, face in enumerate(self.faces):
+            entry = "<{}, {}, {}>".format(*wind(face))
+            if self.face_textures is not None:
+                entry += ", " + ", ".join(str(int(t)) for t in wind(self.face_textures[i]))
+            faces.append(entry)
+        out.append(block("face_indices", faces))
+
+        if self.normals is not None:
+            source = self.normal_indices if self.normal_indices is not None else self.faces
+            out.append(block("normal_indices", ["<{}, {}, {}>".format(*wind(t)) for t in source]))
+
+        suffix = _texture_suffix(self.texture)
+        out.append((suffix.strip() + "\n") if suffix else "")
+        out.append("}")
+        return "".join(out)
+
+
+def _matching_brace(text: str, open_at: int) -> int:
+    """Index just past the ``}`` closing the ``{`` at *open_at*.
+
+    Brace counting rather than a regex: ``mesh2`` blocks contain nested
+    ``texture { pigment { ... } }``, which no non-recursive pattern closes
+    correctly, and getting it wrong truncates geometry silently.
+
+    :raises ValueError: If the brace is never closed.
+    """
+    depth = 0
+    for i in range(open_at, len(text)):
+        if text[i] == "{":
+            depth += 1
+        elif text[i] == "}":
+            depth -= 1
+            if depth == 0:
+                return i + 1
+    raise ValueError(f"unclosed brace at {open_at}")
+
+
+def _named_list(body: str, keyword: str) -> str | None:
+    """Contents of ``keyword { ... }`` inside *body*, or ``None`` if absent."""
+    at = body.find(keyword)
+    if at < 0:
+        return None
+    open_at = body.find("{", at)
+    if open_at < 0:
+        return None
+    return body[open_at + 1 : _matching_brace(body, open_at) - 1]
+
+
+def _top_level_items(items: str) -> list[str]:
+    """Split a POV list on commas that are not inside brackets or braces."""
+    out, depth, start = [], 0, 0
+    for i, ch in enumerate(items):
+        if ch in "{<":
+            depth += 1
+        elif ch in "}>":
+            depth -= 1
+        elif ch == "," and depth == 0:
+            out.append(items[start:i].strip())
+            start = i + 1
+    tail = items[start:].strip()
+    if tail:
+        out.append(tail)
+    return out
+
+
+def coalesce_mesh2(text: str) -> str:
+    """Merge every ``mesh2`` in *text* into one with shared lists.
+
+    Written for generators that emit one ``mesh2`` per triangle, each carrying
+    its own three-entry vertex, normal and texture lists.  PyMOL's
+    ``cmd.get_povray()`` is the case in hand: a GFP cartoon arrives as 17,140
+    single-face meshes and 9.3 MB, and leaves as one mesh and 1.5 MB, because
+    51,420 vertices collapse to 8,654 and 51,420 textures to 215.
+
+    The merge is exact.  Vertices, normals and textures are deduplicated on
+    their emitted text, so nothing is fused that was not already identical,
+    and ``normal_indices`` is carried through explicitly rather than being
+    assumed parallel to the faces -- which preserves per-face normal
+    assignment, so smooth shading is unchanged.
+
+    Text that is not a ``mesh2`` is left exactly where it was; the merged mesh
+    replaces the first one and the rest are dropped.  A block that does not
+    parse is left alone rather than discarded, so a scene never loses geometry
+    to this function.
+
+    :param text: POV-Ray source.
+    :return: The same source with its meshes merged.
+    """
+    blocks: list[tuple[int, int, str]] = []
+    at = 0
+    while True:
+        found = text.find("mesh2", at)
+        if found < 0:
+            break
+        open_at = text.find("{", found)
+        if open_at < 0:
+            break
+        try:
+            end = _matching_brace(text, open_at)
+        except ValueError:
+            break
+        blocks.append((found, end, text[open_at + 1 : end - 1]))
+        at = end
+
+    if len(blocks) < 2:
+        return text
+
+    verts: dict[str, int] = {}
+    norms: dict[str, int] = {}
+    texs: dict[str, int] = {}
+    faces: list[str] = []
+    normal_idx: list[str] = []
+    kept: list[tuple[int, int]] = []
+    saw_normals = False
+
+    def intern(store: dict[str, int], key: str) -> int:
+        got = store.get(key)
+        if got is None:
+            got = store[key] = len(store)
+        return got
+
+    for start, end, body in blocks:
+        v_raw = _named_list(body, "vertex_vectors")
+        f_raw = _named_list(body, "face_indices")
+        if v_raw is None or f_raw is None:
+            kept.append((start, end))
+            continue
+        n_raw = _named_list(body, "normal_vectors")
+        t_raw = _named_list(body, "texture_list")
+        ni_raw = _named_list(body, "normal_indices")
+
+        v_local = [intern(verts, t) for t in _top_level_items(v_raw)[1:]]
+        n_local = [intern(norms, t) for t in _top_level_items(n_raw)[1:]] if n_raw else []
+        t_local = [intern(texs, t) for t in _top_level_items(t_raw)[1:]] if t_raw else []
+        saw_normals = saw_normals or bool(n_local)
+
+        f_items = _top_level_items(f_raw)[1:]
+        ni_items = _top_level_items(ni_raw)[1:] if ni_raw else []
+
+        # face_indices entries are "<a,b,c>" optionally followed by bare
+        # texture indices, one per corner.  Walk rather than zip: the trailing
+        # indices are siblings of the vector, not a nested list.
+        i = 0
+        face_no = 0
+        while i < len(f_items):
+            tri = f_items[i]
+            i += 1
+            corners = [int(x) for x in tri.strip("<> ").split(",")]
+            entry = "<{}, {}, {}>".format(*(v_local[c] for c in corners))
+            picks = []
+            while i < len(f_items) and not f_items[i].startswith("<"):
+                picks.append(int(f_items[i]))
+                i += 1
+            if picks and t_local:
+                entry += ", " + ", ".join(str(t_local[p]) for p in picks)
+            faces.append(entry)
+
+            if n_local:
+                if face_no < len(ni_items):
+                    nc = [int(x) for x in ni_items[face_no].strip("<> ").split(",")]
+                else:
+                    nc = corners
+                normal_idx.append("<{}, {}, {}>".format(*(n_local[c] for c in nc)))
+            face_no += 1
+
+    if not faces:
+        return text
+
+    def block(keyword: str, items: Sequence[str]) -> str:
+        return f"  {keyword} {{ {len(items)},\n    " + ",\n    ".join(items) + "\n  }\n"
+
+    merged = ["mesh2 {\n", block("vertex_vectors", list(verts))]
+    if saw_normals:
+        merged.append(block("normal_vectors", list(norms)))
+    if texs:
+        merged.append(block("texture_list", list(texs)))
+    merged.append(block("face_indices", faces))
+    if saw_normals:
+        merged.append(block("normal_indices", normal_idx))
+    merged.append("}")
+    mesh = "".join(merged)
+
+    keep = set(kept)
+    out, cursor, placed = [], 0, False
+    for start, end, _ in blocks:
+        out.append(text[cursor:start])
+        if (start, end) in keep:
+            out.append(text[start:end])
+        elif not placed:
+            out.append(mesh)
+            placed = True
+        cursor = end
+    out.append(text[cursor:])
+    return "".join(out)
+
+
+@dataclass(frozen=True)
 class SphereSweep(Primitive):
     """A POV-Ray ``sphere_sweep`` -- a tapered tube through a polyline.
 
