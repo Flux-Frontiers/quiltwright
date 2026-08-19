@@ -1,9 +1,9 @@
 # Vitrine: hemoglobin
 
-**Generated:** 2026-08-19 08:55:47  
+**Generated:** 2026-08-19 18:16:13  
 **Machine:** Apple M5 Max, 64 GB RAM  
-**Repository:** quiltwright @ `a40bcd3` (feat/vitrine-exhibit)  
-**Commit:** 2026-08-19 08:49:41 -0400 -- fix(vitrine): HEMOGLOBIN, not HAEMOGLOBIN  
+**Repository:** quiltwright @ `691f0e1` (feat/vitrine-exhibit)  
+**Commit:** 2026-08-19 18:11:32 -0400 -- feat(vitrine): sign the plate, and lift the wrapped lettering into a macro  
 **Scene:** `pov-scenes/vitrine/exhibit_hemoglobin.pov` sha256 `1d89629d152d82ac`  
 **Python:** 3.12.13  |  **quiltwright:** 0.7.0  |  **numpy:** 2.5.2  |  **POV-Ray:** POV-Ray 3.7.0.10.unofficial  
 **Host:** turing  |  **OS:** macOS-27.0-arm64-arm-64bit  
@@ -38,4 +38,4 @@
 |---|---|
 | File | `/Users/egs/repos/quiltwright/renders/quilts/vitrine-hemoglobin_qs8x6a1.77778.png` |
 | Size | 14.9 MB |
-| SHA-256 | `1085419afeab009c297285ea60db98968bad2eec6997a98b0ec6194f7cb1980c` |
+| SHA-256 | `f285427a628165a352c802dae62b5f25220d20bc884c30644aacdd158e3487ca` |
