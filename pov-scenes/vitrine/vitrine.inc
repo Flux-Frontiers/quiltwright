@@ -180,6 +180,19 @@
                                    fade_color <0.92, 0.97, 0.95> }
 
 // ---------------------------------------------------------------------------
+// Vitrine_Plinth_R(Y) -- the shaft's radius at height Y.
+//
+// The shaft is tapered, so anything that has to sit flush against it -- the
+// plaque, for one -- needs the local radius rather than the nominal one.
+// ---------------------------------------------------------------------------
+
+#macro Vitrine_Plinth_R(Y)
+   (VIT_PLINTH_R * 1.06
+    + (Y - VIT_FLOOR) / ((VIT_PLINTH_TOP - 0.16) - VIT_FLOOR)
+      * (VIT_PLINTH_R - VIT_PLINTH_R * 1.06))
+#end
+
+// ---------------------------------------------------------------------------
 // Vitrine_Mount(Obj, EncR) -- normalise a pdb2pov object onto the plinth.
 //
 // pdb2pov centres its structures on the origin and reports the enclosing
@@ -274,28 +287,86 @@ union {
    }
 
    #if (strlen(VIT_LABEL) > 0)
-   // Plaque, canted up toward the eye the way a real one is.
+   // Plaque.  A flat slab tangent to a round plinth reads as a sticker, so
+   // this is a band of the plinth's own surface: a conical shell sharing the
+   // shaft's taper, with the lettering laid around it glyph by glyph.
+   #local P_H  = 0.21;                       // half-height
+   #local P_T  = 0.028;                      // how far it stands proud
+   #local P_Y  = VIT_PLINTH_TOP - 0.60;      // centre height
+   #local P_Rb = Vitrine_Plinth_R(P_Y - P_H);
+   #local P_Rt = Vitrine_Plinth_R(P_Y + P_H);
+   #local P_Rm = (P_Rb + P_Rt) / 2;
+   #local P_Arc = 2.10;                      // arc length of the brass, in units
+   #local P_HalfA = degrees(P_Arc / 2 / P_Rm);
+   #local P_Xh = (P_Rm + P_T) * sin(radians(P_HalfA));
+
    union {
-      box {
-         <-1.02, -0.20, -0.030>, <1.02, 0.20, 0.030>
+      intersection {
+         difference {
+            cone { <0, -P_H, 0>, P_Rb + P_T, <0, P_H, 0>, P_Rt + P_T }
+            cone { <0, -P_H - 0.02, 0>, P_Rb - 0.004, <0, P_H + 0.02, 0>, P_Rt - 0.004 }
+         }
+         box { <-P_Xh, -P_H - 0.01, -(P_Rm + P_T + 0.02)>, <P_Xh, P_H + 0.01, -0.02> }
          texture { Vit_Brass_Tex }
       }
-      // Auto-fit: a plaque is a fixed size and the label is not, so derive the
-      // type size from the string length rather than letting "GREEN
-      // FLUORESCENT PROTEIN" run off the brass.
-      #local L_Sc = min(0.185, 1.62 / (strlen(VIT_LABEL) * 0.62));
-      text {
-         ttf "timrom.ttf" VIT_LABEL 0.05, 0
-         scale L_Sc
-         // Centre it: text{} grows to +x from the origin.
-         translate <-strlen(VIT_LABEL) * L_Sc * 0.31, -L_Sc * 0.34, -0.052>
-         texture {
-            pigment { color rgb <0.16, 0.13, 0.07> }
-            finish { ambient 0.05 diffuse 0.45 specular 0.15 }
-         }
-      }
-      rotate -20 * x
-      translate <0, VIT_PLINTH_TOP - 0.62, -VIT_PLINTH_R * 1.02>
+
+      // Lettering, wrapped.  Each glyph is measured with max_extent() and
+      // placed at its own angle, so the spacing stays proportional on the
+      // curve instead of the monospaced look a fixed step would give.
+      #local L_N  = strlen(VIT_LABEL);
+      #local L_Sc = min(0.175, 1.86 / (L_N * 0.62));
+      #local L_Gap = L_Sc * 0.16;
+      // `scale` inside text{} scales the extrusion too, so ask for a depth
+      // that survives it: without this the lettering is 0.009 units deep and
+      // sits buried in the brass, showing only the tips of the capitals.
+      #local L_Dp = 0.038 / L_Sc;
+
+      // Pass one: total width, so the string can be centred.
+      #local L_W = 0;
+      #local L_I = 1;
+      #while (L_I <= L_N)
+         #local L_Ch = substr(VIT_LABEL, L_I, 1);
+         #if (strcmp(L_Ch, " ") = 0)
+            #local L_W = L_W + L_Sc * 0.42;
+         #else
+            #local L_G = text { ttf "timrom.ttf" L_Ch L_Dp, 0 scale L_Sc };
+            #local L_W = L_W + (max_extent(L_G).x - min_extent(L_G).x) + L_Gap;
+         #end
+         #local L_I = L_I + 1;
+      #end
+
+      // Pass two: place them.  POV-Ray is left-handed and its default camera
+      // looks along +z, so text{} already reads correctly to a viewer on the
+      // -z side and needs no flip -- it extrudes away from that viewer, into
+      // the plinth, which is exactly what raised lettering should do.
+      #local L_Cur = -L_W / 2;
+      #local L_I = 1;
+      #while (L_I <= L_N)
+         #local L_Ch = substr(VIT_LABEL, L_I, 1);
+         #if (strcmp(L_Ch, " ") = 0)
+            #local L_Cur = L_Cur + L_Sc * 0.42;
+         #else
+            #local L_G = text { ttf "timrom.ttf" L_Ch L_Dp, 0 scale L_Sc };
+            #local L_Gw = max_extent(L_G).x - min_extent(L_G).x;
+            #local L_A = degrees((L_Cur + L_Gw / 2) / P_Rm);
+            object {
+               L_G
+               // Centre the glyph on its own angular slot, then stand it up
+               // on the shell facing outward.
+               translate <-(min_extent(L_G).x + L_Gw / 2), -L_Sc * 0.36, 0>
+               translate <0, 0, -(P_Rm + P_T + 0.030)>
+               rotate -L_A * y
+               texture {
+                  pigment { color rgb <0.15, 0.12, 0.06> }
+                  finish { ambient 0.04 diffuse 0.40 specular 0.18 roughness 0.03 }
+               }
+            }
+            #local L_Cur = L_Cur + L_Gw + L_Gap;
+         #end
+         #local L_I = L_I + 1;
+      #end
+
+      translate <0, P_Y, 0>
    }
    #end
 }
@@ -352,11 +423,11 @@ union {
 
 #macro Vitrine_Lights()
    light_source {
-      <-3.2, 4.6, -3.8>
-      color rgb <1.00, 0.965, 0.90> * (1.15 * VIT_KEY)
+      <-2.6, 5.4, -3.0>
+      color rgb <1.00, 0.965, 0.90> * (1.10 * VIT_KEY)
       spotlight
-      point_at <0, VIT_PLINTH_TOP + 0.4, 0>
-      radius 17 falloff 30 tightness 6
+      point_at <0, VIT_PLINTH_TOP - 0.2, 0.2>
+      radius 19 falloff 34 tightness 6
       #if (VIT_SOFT)
       area_light <0.9, 0, 0>, <0, 0, 0.9>, 5, 5
       adaptive 1
@@ -365,7 +436,7 @@ union {
    }
    light_source {
       <4.6, 2.1, -6.4>
-      color rgb <0.86, 0.91, 1.00> * (0.34 * VIT_KEY)
+      color rgb <0.86, 0.91, 1.00> * (0.24 * VIT_KEY)
       shadowless
    }
    light_source {
@@ -373,6 +444,24 @@ union {
       color rgb <0.90, 0.95, 1.00> * (0.22 * VIT_KEY)
       shadowless
    }
+   // Ceiling downlight.  The key rakes across the case and models it, but a
+   // raking light throws its shadow mostly out of frame.  This one comes from
+   // almost overhead and slightly front, so the plinth and jar lay a shadow
+   // on the floor that the eye can actually read -- the cue that says the
+   // exhibit is standing on something rather than pasted onto it.
+   light_source {
+      <-1.3, VIT_CEIL - 0.25, -1.9>
+      color rgb <1.00, 0.98, 0.94> * (1.00 * VIT_KEY)
+      spotlight
+      point_at <0.5, VIT_FLOOR, 0.7>
+      radius 15 falloff 27 tightness 10
+      #if (VIT_SOFT)
+      area_light <0.7, 0, 0>, <0, 0, 0.7>, 5, 5
+      adaptive 1
+      jitter
+      #end
+   }
+
    // Wall pool: a broad soft spot on the back wall behind the case, so the
    // silhouette separates instead of sitting on a flat field.
    light_source {
@@ -386,7 +475,7 @@ union {
    // Floor bounce, faint, keeps the underside of the molecule from going flat.
    light_source {
       <0, VIT_FLOOR + 0.3, -2.2>
-      color rgb <1.00, 0.94, 0.86> * (0.13 * VIT_KEY)
+      color rgb <1.00, 0.94, 0.86> * (0.08 * VIT_KEY)
       shadowless
    }
 #end
