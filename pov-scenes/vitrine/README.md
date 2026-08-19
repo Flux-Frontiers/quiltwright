@@ -98,6 +98,8 @@ Set any of these before `#include "vitrine.inc"`.
 | Parameter | Default | Effect |
 |---|---|---|
 | `VIT_LABEL` | `""` | Plaque text; empty means no plaque. Type size auto-fits the brass |
+| `VIT_SIGN` | 1 | Maker's mark, lower right of the plaque. 0 leaves the plate unsigned |
+| `VIT_SIGN_TEXT` | `"EGS 2026"` | What the mark says |
 | `VIT_FILL` | 1.12 | Molecule size in exhibit units. The enclosing sphere circumscribes, so elongated structures read small here -- raise it for those |
 | `VIT_JAR` | 1 | 0 gives an open plinth with no glass |
 | `VIT_JAR_GAP` | 1.22 | Shell radius as a multiple of `VIT_FILL` |
@@ -110,6 +112,13 @@ Set any of these before `#include "vitrine.inc"`.
 | `VIT_WALL_HUE` | `<0.30,0.33,0.34>` | Gallery wall colour |
 | `VIT_KEY` | 1.00 | Overall light level |
 | `VIT_SOFT` | 0 | Area key light: soft shadows, much slower |
+
+Both the label and the signature go through `Vitrine_Wrapped_Text(Str, Sc,
+Rad, Yd, ACtr, Dp)`, which lays a string round a cylinder one glyph at a time,
+measuring each with `max_extent()` so the spacing stays proportional on the
+curve. It emits untextured objects, so a caller wraps it in a `union` and
+textures that -- useful for anything else that has to read off a curved
+surface.
 
 `Vitrine_Report()` prints the eye, aim, lens, near, far, jar radius, clearance
 and widest legal cone at parse time, so the numbers `render_vitrine.py` uses

@@ -75,6 +75,8 @@
 
 // Look.
 #ifndef (VIT_LABEL)      #declare VIT_LABEL      = "";    #end  // "" = no plaque
+#ifndef (VIT_SIGN)       #declare VIT_SIGN       = 1;     #end  // 0 = unsigned
+#ifndef (VIT_SIGN_TEXT)  #declare VIT_SIGN_TEXT  = "EGS 2026"; #end
 #ifndef (VIT_SOFT)       #declare VIT_SOFT       = 0;     #end  // area light: slow, better
 #ifndef (VIT_WALL_HUE)   #declare VIT_WALL_HUE   = <0.30, 0.33, 0.34>; #end
 #ifndef (VIT_KEY)        #declare VIT_KEY        = 1.00;  #end  // key light scale
@@ -178,6 +180,71 @@
 
 #declare Vit_Glass_Int = interior { ior 1.52 fade_distance 3.0 fade_power 1001
                                    fade_color <0.92, 0.97, 0.95> }
+
+// ---------------------------------------------------------------------------
+// Vitrine_Wrapped_Text(Str, Sc, Rad, Yd, ACtr, Dp) -- lettering laid round a
+// cylinder, one glyph at a time.
+//
+// Each glyph is measured with max_extent() and given its own angle, so the
+// spacing stays proportional on the curve instead of the monospaced look a
+// fixed angular step gives.  Emits bare objects and no texture, so the caller
+// wraps the call in a union and textures that.
+//
+// :param Str: the string.
+// :param Sc: glyph scale.
+// :param Rad: radius of the surface the lettering stands on.
+// :param Yd: vertical offset from the run's own centre line.
+// :param ACtr: centre angle in degrees; 0 is dead front, positive is right.
+// :param Dp: how far the lettering stands proud, in units.
+// ---------------------------------------------------------------------------
+
+#macro Vitrine_Wrapped_Text(Str, Sc, Rad, Yd, ACtr, Dp)
+   #local W_N = strlen(Str);
+   #local W_Gap = Sc * 0.16;
+   // `scale` inside text{} scales the extrusion too, so ask for a depth that
+   // survives it: without this the lettering is a hundredth of a unit deep and
+   // sits buried in the brass, showing only the tips of the capitals.
+   #local W_Dp = Dp / Sc;
+
+   // Pass one: total width, so the string can be centred on ACtr.
+   #local W_W = 0;
+   #local W_I = 1;
+   #while (W_I <= W_N)
+      #local W_Ch = substr(Str, W_I, 1);
+      #if (strcmp(W_Ch, " ") = 0)
+         #local W_W = W_W + Sc * 0.42;
+      #else
+         #local W_G = text { ttf "timrom.ttf" W_Ch W_Dp, 0 scale Sc };
+         #local W_W = W_W + (max_extent(W_G).x - min_extent(W_G).x) + W_Gap;
+      #end
+      #local W_I = W_I + 1;
+   #end
+
+   // Pass two: place them.  POV-Ray is left-handed and its default camera
+   // looks along +z, so text{} already reads correctly to a viewer on the -z
+   // side and needs no flip -- it extrudes away from that viewer, into the
+   // surface, which is exactly what raised lettering should do.
+   #local W_Cur = -W_W / 2;
+   #local W_I = 1;
+   #while (W_I <= W_N)
+      #local W_Ch = substr(Str, W_I, 1);
+      #if (strcmp(W_Ch, " ") = 0)
+         #local W_Cur = W_Cur + Sc * 0.42;
+      #else
+         #local W_G = text { ttf "timrom.ttf" W_Ch W_Dp, 0 scale Sc };
+         #local W_Gw = max_extent(W_G).x - min_extent(W_G).x;
+         #local W_A = ACtr + degrees((W_Cur + W_Gw / 2) / Rad);
+         object {
+            W_G
+            translate <-(min_extent(W_G).x + W_Gw / 2), Yd - Sc * 0.36, 0>
+            translate <0, 0, -(Rad + Dp)>
+            rotate -W_A * y
+         }
+         #local W_Cur = W_Cur + W_Gw + W_Gap;
+      #end
+      #local W_I = W_I + 1;
+   #end
+#end
 
 // ---------------------------------------------------------------------------
 // Vitrine_Plinth_R(Y) -- the shaft's radius at height Y.
@@ -310,60 +377,29 @@ union {
          texture { Vit_Brass_Tex }
       }
 
-      // Lettering, wrapped.  Each glyph is measured with max_extent() and
-      // placed at its own angle, so the spacing stays proportional on the
-      // curve instead of the monospaced look a fixed step would give.
+      // Lettering.
       #local L_N  = strlen(VIT_LABEL);
       #local L_Sc = min(0.175, 1.86 / (L_N * 0.62));
-      #local L_Gap = L_Sc * 0.16;
-      // `scale` inside text{} scales the extrusion too, so ask for a depth
-      // that survives it: without this the lettering is 0.009 units deep and
-      // sits buried in the brass, showing only the tips of the capitals.
-      #local L_Dp = 0.038 / L_Sc;
+      union {
+         Vitrine_Wrapped_Text(VIT_LABEL, L_Sc, P_Rm + P_T, 0.026, 0, 0.038)
+         texture {
+            pigment { color rgb <0.15, 0.12, 0.06> }
+            finish { ambient 0.04 diffuse 0.40 specular 0.18 roughness 0.03 }
+         }
+      }
 
-      // Pass one: total width, so the string can be centred.
-      #local L_W = 0;
-      #local L_I = 1;
-      #while (L_I <= L_N)
-         #local L_Ch = substr(VIT_LABEL, L_I, 1);
-         #if (strcmp(L_Ch, " ") = 0)
-            #local L_W = L_W + L_Sc * 0.42;
-         #else
-            #local L_G = text { ttf "timrom.ttf" L_Ch L_Dp, 0 scale L_Sc };
-            #local L_W = L_W + (max_extent(L_G).x - min_extent(L_G).x) + L_Gap;
-         #end
-         #local L_I = L_I + 1;
-      #end
-
-      // Pass two: place them.  POV-Ray is left-handed and its default camera
-      // looks along +z, so text{} already reads correctly to a viewer on the
-      // -z side and needs no flip -- it extrudes away from that viewer, into
-      // the plinth, which is exactly what raised lettering should do.
-      #local L_Cur = -L_W / 2;
-      #local L_I = 1;
-      #while (L_I <= L_N)
-         #local L_Ch = substr(VIT_LABEL, L_I, 1);
-         #if (strcmp(L_Ch, " ") = 0)
-            #local L_Cur = L_Cur + L_Sc * 0.42;
-         #else
-            #local L_G = text { ttf "timrom.ttf" L_Ch L_Dp, 0 scale L_Sc };
-            #local L_Gw = max_extent(L_G).x - min_extent(L_G).x;
-            #local L_A = degrees((L_Cur + L_Gw / 2) / P_Rm);
-            object {
-               L_G
-               // Centre the glyph on its own angular slot, then stand it up
-               // on the shell facing outward.
-               translate <-(min_extent(L_G).x + L_Gw / 2), -L_Sc * 0.36, 0>
-               translate <0, 0, -(P_Rm + P_T + 0.030)>
-               rotate -L_A * y
-               texture {
-                  pigment { color rgb <0.15, 0.12, 0.06> }
-                  finish { ambient 0.04 diffuse 0.40 specular 0.18 roughness 0.03 }
-               }
-            }
-            #local L_Cur = L_Cur + L_Gw + L_Gap;
-         #end
-         #local L_I = L_I + 1;
+      // Signature, lower right, the way a maker's mark sits on a real plate:
+      // small, shallower, and set in from the edge rather than centred.
+      #if (VIT_SIGN & strlen(VIT_SIGN_TEXT) > 0)
+      #local S_Sc = L_Sc * 0.40;
+      union {
+         Vitrine_Wrapped_Text(VIT_SIGN_TEXT, S_Sc, P_Rm + P_T,
+                              -P_H * 0.60, P_HalfA * 0.58, 0.020)
+         texture {
+            pigment { color rgb <0.20, 0.16, 0.09> }
+            finish { ambient 0.04 diffuse 0.38 specular 0.14 roughness 0.04 }
+         }
+      }
       #end
 
       translate <0, P_Y, 0>
