@@ -395,6 +395,16 @@ class TestBridgeStatus:
 
 
 class TestBridgeReset:
+    @pytest.fixture(autouse=True)
+    def _on_a_mac(self, monkeypatch):
+        """Reset is macOS-only; the process logic under test is not.
+
+        The command refuses outright off darwin, so CI on Linux would only
+        ever exercise that refusal. Pretend to be a Mac and test the part
+        that has behaviour.
+        """
+        monkeypatch.setattr(cmd_bridge.sys, "platform", "darwin")
+
     def test_signals_the_processes_it_found(self, runner, monkeypatch):
         killed = []
         pids = [111, 222]
@@ -415,3 +425,9 @@ class TestBridgeReset:
         assert result.exit_code == 0, result.output
         assert not launched
         assert "no Bridge process was running" in result.output
+
+    def test_refuses_off_macos(self, runner, monkeypatch):
+        monkeypatch.setattr(cmd_bridge.sys, "platform", "linux")
+        result = runner.invoke(cli, ["bridge", "reset"])
+        assert result.exit_code == 1
+        assert "macOS only" in result.output
