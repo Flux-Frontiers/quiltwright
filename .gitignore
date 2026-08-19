@@ -33,6 +33,11 @@ htmlcov/
 renders/*
 !renders/README.md
 !renders/stills/
+# Run reports are the provenance record for renders whose output is *not*
+# committed -- a quilt is a 25-40 MB release asset, its report is 2 kB of
+# text saying which scene, commit, camera and POV-Ray made it. Ignoring
+# these would leave the quilts unaccounted for.
+!renders/reports/
 # Quilts are never committed -- one 16" landscape quilt is 25-40 MB.  These
 # two patterns have no slash, so git applies them at every depth: a quilt is
 # ignored wherever it is written, not just under renders/.  Overriding that

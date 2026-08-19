@@ -142,35 +142,40 @@ stills: $(STILL_TARGETS)  ## render every reference still
 # The scripts place the focal plane from measured depths and sweep the view
 # cone; see docs/pov-workflow.md.  Output: renders/quilts/<subject>_qs....png
 
+# Every full quilt writes a run report to renders/reports/ -- the quilt itself
+# is a gitignored release asset, so the report is the only committed record of
+# which scene, commit, camera and POV-Ray produced it. Previews skip it: they
+# are iterations, and reports are tracked.
+#
 # EXTRA_ARGS passes through to the render script, e.g.
 #   make quilt-museum EXTRA_ARGS="--antialias 0.1"
 EXTRA_ARGS ?=
 
 .PHONY: quilt-bell-jar quilt-bell-jar-holo quilt-bell-jar-portrait quilt-porin quilt-lambda quilt-museum quilts
 quilt-bell-jar:  $(THREAD_INI)  ## bell jar quilt, 16" landscape (~3 min uncapped on 18 cores)
-	$(PYTHON) scripts/render_still_life_hologram.py bell-jar --jobs $(JOBS) $(EXTRA_ARGS)
+	$(PYTHON) scripts/render_still_life_hologram.py bell-jar --jobs $(JOBS) --report $(EXTRA_ARGS)
 
 # bj_holo.pov: the same scene re-composed 16:9, with the title and signature
 # moved out to the focal plane.  Native landscape, so no --fov correction.
 quilt-bell-jar-holo:  $(THREAD_INI)  ## recomposed bell jar quilt, 16" landscape
-	$(PYTHON) scripts/render_still_life_hologram.py bell-jar-holo --jobs $(JOBS) $(EXTRA_ARGS)
+	$(PYTHON) scripts/render_still_life_hologram.py bell-jar-holo --jobs $(JOBS) --report $(EXTRA_ARGS)
 
 # bj_portrait.pov: the 9:16 companion, for the tall panels (16/27/32-portrait,
 # go).  Pass --device to pick one; the default 16-landscape would letterbox it.
 quilt-bell-jar-portrait:  $(THREAD_INI)  ## portrait bell jar quilt, 16" portrait
-	$(PYTHON) scripts/render_still_life_hologram.py bell-jar-portrait --device 16-portrait --jobs $(JOBS) $(EXTRA_ARGS)
+	$(PYTHON) scripts/render_still_life_hologram.py bell-jar-portrait --device 16-portrait --jobs $(JOBS) --report $(EXTRA_ARGS)
 
 quilt-porin:  $(THREAD_INI)  ## porin quilt, 16" landscape (~2 min uncapped on 18 cores)
-	$(PYTHON) scripts/render_still_life_hologram.py porin --jobs $(JOBS) $(EXTRA_ARGS)
+	$(PYTHON) scripts/render_still_life_hologram.py porin --jobs $(JOBS) --report $(EXTRA_ARGS)
 
 # Composed 16:9 in 1998 (right <HDTV>), so its framing is native on a landscape
 # panel and no --fov correction is needed.  Its timing is the only one measured
 # under the defaults above (16 threads, JOBS=1); the other three predate the cap.
 quilt-lambda:  $(THREAD_INI)  ## lambda repressor quilt, 16" landscape (~2.5 min at 16 threads)
-	$(PYTHON) scripts/render_still_life_hologram.py lambda --jobs $(JOBS) $(EXTRA_ARGS)
+	$(PYTHON) scripts/render_still_life_hologram.py lambda --jobs $(JOBS) --report $(EXTRA_ARGS)
 
 quilt-museum:  $(THREAD_INI)  ## museum quilt, 16" landscape (~6 min uncapped; the slow one)
-	$(PYTHON) scripts/render_museum_hologram.py --jobs $(JOBS) $(EXTRA_ARGS)
+	$(PYTHON) scripts/render_museum_hologram.py --jobs $(JOBS) --report $(EXTRA_ARGS)
 
 quilts: quilt-bell-jar quilt-porin quilt-lambda quilt-museum  ## all four quilts
 

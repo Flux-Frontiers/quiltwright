@@ -855,6 +855,7 @@ def cast_quilt(
     bridge_url: str = BRIDGE_URL,
     playlist: str = "quiltwright",
     timeout: float = 10.0,
+    head_index: int = -1,
 ) -> dict:
     """Show a saved quilt on the connected Looking Glass via Bridge.
 
@@ -868,6 +869,13 @@ def cast_quilt(
     :param bridge_url: Base URL of the Bridge HTTP API.
     :param playlist: Name of the Bridge playlist to (re)create.
     :param timeout: HTTP timeout in seconds per request.
+    :param head_index: Which Bridge output device to play on.  ``-1`` lets
+        Bridge choose, which is right on a single-panel machine.  Bridge
+        enumerates ordinary monitors alongside Looking Glass panels -- a
+        laptop screen appears as ``hardwareVersion: thirdparty`` with no
+        calibration -- so on a multi-display box the default can land the
+        window somewhere that is not the glass.  ``available_output_devices``
+        lists the indices; ``quiltwright cast --check`` prints them.
     :return: Decoded JSON response of the final ``play_playlist`` call.
     """
     token = _enter_orchestration(bridge_url, timeout)
@@ -875,7 +883,7 @@ def cast_quilt(
     _bridge_post(
         bridge_url,
         "show_window",
-        {"orchestration": token, "show_window": True, "head_index": -1},
+        {"orchestration": token, "show_window": True, "head_index": head_index},
         timeout,
     )
     _bridge_post(
@@ -904,7 +912,7 @@ def cast_quilt(
     return _bridge_post(
         bridge_url,
         "play_playlist",
-        {"orchestration": token, "name": playlist, "head_index": -1},
+        {"orchestration": token, "name": playlist, "head_index": head_index},
         timeout,
     )
 

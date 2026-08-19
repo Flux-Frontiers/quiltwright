@@ -13,11 +13,18 @@
 
 *Eric G. Suchanek, PhD -- Flux-Frontiers*
 
-Quiltwright is the last stage of two scientific rendering pipelines. It takes
-scenes that already exist -- geometric ML manifolds from
-[WaveRider](https://github.com/Flux-Frontiers/waverider), molecular structures
-from [pdb2pov](https://github.com/suchanek/pdb2pov) -- and puts them on
-holographic hardware, in glasses-free depth.
+Quiltwright is the last stage of a scientific rendering pipeline -- any
+pipeline that ends in a scene. It takes what you already have, whether that is
+a PyVista or VTK scene built in memory, a POV-Ray scene on disk, or a `.pov`
+file written thirty years ago by someone who is no longer around to explain
+it, and puts it on holographic hardware in glasses-free depth. Nothing is
+rewritten to get there: a POV-Ray scene is ray-traced unmodified, with a
+camera appended per view.
+
+It is used that way by [WaveRider](https://github.com/Flux-Frontiers/waverider)
+for geometric ML manifolds and by
+[pdb2pov](https://github.com/suchanek/pdb2pov) for molecular structures, but
+neither is a prerequisite. If you can render it, you can hang it in the air.
 
 ![Eric's Science Museum, the canonical POV-Ray render](https://raw.githubusercontent.com/suchanek/quiltwright/v0.6.0/renders/stills/museum.png)
 
@@ -40,21 +47,6 @@ returned, not raised, so a Bridge that isn't running never costs the render.
 `QuiltSpec.scaled()` shrinks a quilt for faster Bridge loads while keeping the
 dimensions a multiple of the tile grid, so views stay pixel-aligned.
 
-**v0.5.0 (2026-08-16).** `quiltwright.povgen` writes POV-Ray scenes from
-analytic primitives, so a scene composed in Python -- or grown by a geometry
-engine -- can be ray-traced instead of rasterised by VTK. It re-emits *intent*
-rather than triangles: a limb becomes a `sphere_sweep`, a leaf a `sphere`. On a
-3000-leaf tree that is 839 KB of SDL against roughly 12.5 MB for the equivalent
-`mesh2` dump, with exact silhouettes at any zoom.
-
-**v0.4.0 (2026-08-14).** `depth_report()` brings the depth budget to PyVista
-scenes without building a throwaway `PovCamera`, and models the `fov` and `zoom`
-`render_quilt()` will actually sweep at -- which the hand-rolled copies it
-replaces did not. Python 3.13 joined the tested matrix.
-
-**v0.3.x (2026-08-10).** Brain geometry from The Virtual Brain as a scene
-source, and the LitiHolo view sweep documented as a third output.
-
 _Full history: [CHANGELOG.md](CHANGELOG.md) and
 [releases](https://github.com/suchanek/quiltwright/releases)._
 
@@ -73,14 +65,20 @@ _Full history: [CHANGELOG.md](CHANGELOG.md) and
                                +------------------+                       (in development)
 ```
 
-**Two scene sources.** WaveRider's voxel and manifold visualiser builds
-PyVista/VTK scenes in memory; `render_quilt()` sweeps them. pdb2pov turns PDB
-files into POV-Ray molecular scenes on disk, some of them decades old;
-`render_pov_quilt()` ray-traces them, appending a camera per view and modifying
-nothing. The two backends meet at a shared, renderer-agnostic assembler. Scenes
-need not come from either pipeline: `quiltwright.tvb_data` fetches real brain
-geometry from [The Virtual Brain](docs/tvb-data.md), and PyVista's own example
-datasets work as-is.
+**Two backends, not two pipelines.** `render_quilt()` sweeps any PyVista/VTK
+scene held in memory. `render_pov_quilt()` ray-traces any POV-Ray scene on
+disk, appending a camera per view and modifying nothing -- which is what lets
+it render files written decades ago, by tools that no longer exist, without
+touching them. The two meet at a shared, renderer-agnostic assembler, so
+everything downstream of that point is indifferent to which one produced the
+views.
+
+What feeds the backends is open. WaveRider's voxel and manifold visualiser and
+pdb2pov's PDB conversion are the two that drove the design, but
+`quiltwright.tvb_data` pulls real brain geometry from
+[The Virtual Brain](docs/tvb-data.md), PyVista's own example datasets work
+as-is, `quiltwright.povgen` writes POV-Ray from analytic primitives, and a
+plain `.pov` file off your disk needs no pipeline at all.
 
 **Two display technologies**, which are easy to confuse because one company
 sells both. *Light-field displays* (LFD -- Portrait, Go, 16"/27"/32"/65") are
@@ -235,6 +233,125 @@ is a narrower claim than compatibility. The two open questions -- whether a hoge
 slicer expects off-axis frusta or a toe-in arc, and whether 2.05° is too coarse
 -- are written up in
 [docs/lfd.md](docs/lfd.md#what-this-does-and-does-not-establish).
+
+---
+
+## Driving it from the shell
+
+Everything above is the library, which is where a scene arrives from whichever
+pipeline built it. Two things sit around that: a `Makefile` for the scenes this
+repository happens to ship, and a CLI for the stage *after* the assembler,
+which does not care what produced the quilt.
+
+### `make` -- the bundled archive
+
+The repository ships the 1993-99 POV-Ray scenes, and a `Makefile` that renders
+them with their measured depth budgets already dialled in, so a hologram from a
+clean clone is one command rather than a script you have to write. This covers
+the *bundled* scenes only. A WaveRider manifold or a freshly converted
+structure does not come through here -- it comes through the library, or through
+[scripts/render_pyvista_hologram.py](scripts/render_pyvista_hologram.py) for the
+PyVista subjects -- and it lands in the same `renders/quilts/`, where the CLI
+below picks it up regardless of origin.
+
+```bash
+make                      # the default goal is help; rendering is always explicit
+make help                 # every target, and the still names
+```
+
+#### Stills
+
+One full-quality frame per scene, into `renders/stills/`. These are committed:
+they are the diffable record of what each scene looks like.
+
+```bash
+make stills                       # all of them
+make still-bell_jar_bj_holo       # just one
+```
+
+Each renders at **its own declared aspect** -- POV-Ray maps `right` to image
+width whatever pixel dimensions you ask for, so a mismatched frame stretches
+silently. The Makefile carries the correct size per scene; the table is in
+[docs/pov-workflow.md](docs/pov-workflow.md).
+
+#### Quilts
+
+Into `renders/quilts/`, through the render scripts, which inject a device
+camera and place the focal plane from measured near/far depths rather than
+from the scene's own aim point:
+
+```bash
+make quilts                       # bell jar, porin, lambda, museum
+make quilt-bell-jar-holo          # one, 16:9
+make quilt-bell-jar-portrait      # the 9:16 companion, for tall panels
+make preview-museum               # quarter-size, for iterating on composition
+```
+
+Preview first when you are changing a composition -- a preview is seconds per
+view where a full quilt is minutes, and the depth budget it prints is the same
+one the full render will use.
+
+Two knobs worth knowing:
+
+```bash
+make quilt-porin EXTRA_ARGS="--cast"          # send it to the panel when done
+make quilt-museum EXTRA_ARGS="--antialias 0.1"
+make quilts RENDER_THREADS=$(sysctl -n hw.ncpu)   # use the whole box
+```
+
+`RENDER_THREADS` defaults to **`ncpu - 2`**, leaving two cores for the rest of
+the machine so a multi-minute render does not make the desktop unusable. It
+reaches POV-Ray through a generated `POVINI`, because the render scripts invoke
+`povray` themselves and a command-line `+WT` would override them. `JOBS` stays
+at 1 on purpose: POV-Ray already threads one render across every core, so extra
+processes only split it.
+
+The same two cores are held back when you call a render script directly, where
+there is no `POVINI` to carry the Makefile's value -- `--threads N` sets it
+explicitly, and `--threads 0` lets POV-Ray take everything, which is its own
+default. A `Work_Threads` line in `POVINI` always wins over the courtesy cap,
+so `make quilts RENDER_THREADS=...` keeps working.
+
+#### Run reports
+
+Every full quilt writes a Markdown provenance record to `renders/reports/`.
+A quilt is a 25-40 MB gitignored release asset; the report is the committed
+record of how it was made -- scene file *and its SHA-256*, repository commit and
+whether the tree was dirty, camera and measured depths, the depth budget
+verbatim, the parallelism actually used, timings, and the output's own digest.
+Pass `--report` to either render script to get one outside `make`.
+
+### `quiltwright` -- the CLI, downstream of both backends
+
+Installed as `quiltwright`, core-only (numpy, pillow, click). Everything here
+operates on a *quilt*, which is where the two scene sources have already met:
+a manifold swept out of PyVista and a molecular scene ray-traced from POV-Ray
+produce the same artifact, and these commands treat them identically.
+
+```bash
+quiltwright bridge status       # is Bridge actually able to draw?
+quiltwright bridge reset        # kill and relaunch a wedged daemon
+
+quiltwright cast renders/quilts/bell-jar-holo_qs8x6a1.77778.png
+quiltwright cast --check        # which displays can Bridge see?
+
+quiltwright weave renders/quilts/bell-jar-holo_qs8x6a1.77778.png --cal visual.json
+quiltwright wallpaper bell-jar-holo_native_LKG-J00332.png
+```
+
+`cast` recovers the tiling from the `_qs<cols>x<rows>a<aspect>` filename suffix
+that `save_quilt()` writes, so it usually needs no flags whatever produced the
+views. `weave` then `wallpaper` is the **no-Bridge path**:
+a woven frame is already interleaved for one panel, so setting it as that
+panel's desktop picture makes the desktop a hologram with nothing running.
+`wallpaper` matches the frame to the right display by the panel serial both
+carry.
+
+When the glass stays black, `bridge status` is the first thing to run. Bridge
+keeps its HTTP port open and keeps issuing session tokens after crashing
+internally, so a cast can report success at every step against a daemon that
+will never draw -- `status` checks the port, the session, the device list *and*
+whether any device is actually a Looking Glass, then gives a verdict.
 
 ---
 

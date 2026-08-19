@@ -8,6 +8,7 @@ kept where follows weight:
 |---|---|---|
 | `stills/` | Full-quality single-frame references, one per scene | committed (~14 MB) -- the diffable record of what each scene looks like |
 | `quilts/` | Looking Glass quilts, written here by the render scripts | release assets (25-40 MB each) -- rendered on CI by `release.yml`, or locally via `make release-assets` |
+| `reports/` | Run reports -- one Markdown provenance record per full quilt | committed (~2 kB each) -- the only record of how a gitignored quilt was made |
 | `views/` | Per-view captures, test frames and experiments | local scratch, never committed |
 
 `make stills`, `make quilts`, or per-scene targets (`make help`) drive all of
@@ -58,6 +59,19 @@ The remaining stills here -- `st_helens.png`, `damavand.png`, `brain.png` and
 `mouse_brain.png` -- come from the PyVista pipeline rather than POV-Ray, and so
 have no `right` vector to match; they are rendered at the shape their scene is
 composed for. See [docs/pyvista-datasets.md](../docs/pyvista-datasets.md).
+
+## reports/
+
+`make quilt-<name>` writes one, or pass `--report` to either render script
+(`--report PATH` to place it yourself). It records the provenance a PNG cannot
+carry: the scene file *and its SHA-256*, the repository commit and whether the
+tree was dirty, the camera and measured depths, the depth budget verbatim as
+printed, wall-clock timing, and the output's own digest.
+
+The scene hash matters more than the commit. Composing a scene means rendering
+against an edited working copy, so the commit alone can name a tree the render
+never saw -- the header says `+ uncommitted changes` when that is the case, and
+the scene digest pins the actual input either way.
 
 ## quilts/
 

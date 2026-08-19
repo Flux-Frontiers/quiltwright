@@ -80,7 +80,7 @@ Documentation = "https://github.com/suchanek/quiltwright/tree/main/docs"
 Issues = "https://github.com/suchanek/quiltwright/issues"
 
 [project.scripts]
-quiltwright = "quiltwright.cli:main"
+quiltwright = "quiltwright.cli.main:cli"
 
 # ---------------------------------------------------------------------------
 # Dependency groups (poetry)

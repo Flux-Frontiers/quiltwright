@@ -47,6 +47,7 @@ from pathlib import Path
 
 from quiltwright.lfd import QUILT_PRESETS, focal_distance_for_range, save_quilt
 from quiltwright.povray import PovCamera, format_depth_budget, render_pov_quilt
+from quiltwright.runreport import RunReport, povray_parallelism
 
 POV_SCENES = Path(__file__).resolve().parents[1] / "pov-scenes"
 
@@ -204,6 +205,66 @@ SCENES = {
 }
 
 
+def _run_report(args, subject, spec, camera, budget, elapsed):
+    """Assemble this run's report.
+
+    Everything here is what the quilt itself cannot tell you afterwards: the
+    scene and commit it came from, the camera it was swept through, and the
+    disparity figures it was judged against.  The budget is embedded verbatim
+    rather than recomputed, so the report and the console cannot disagree.
+
+    :param args: Parsed command line.
+    :param subject: The :class:`StillLife` rendered.
+    :param spec: Quilt specification, after any overrides.
+    :param camera: Centre-view camera.
+    :param budget: Formatted depth budget, as printed.
+    :param elapsed: Wall-clock render time, in seconds.
+    :return: The report, ready to write.
+    """
+    report = RunReport(
+        f"{args.subject} hologram" + (" (preview)" if args.preview else ""),
+        scene=POV_SCENES / subject.scene,
+    )
+    report.table(
+        "Run configuration",
+        [
+            ("subject", args.subject),
+            ("device", args.device),
+            ("quilt", f"{spec.quilt_width}x{spec.quilt_height}"),
+            ("tile", f"{spec.tile_width}x{spec.tile_height}"),
+            ("aspect", f"{spec.aspect:.4f}"),
+            ("views", spec.n_views),
+            ("view cone", f"{spec.view_cone:.1f} deg"),
+            ("anti-aliasing", "off (preview)" if args.preview else f"+A{args.antialias} +AM2 +R4"),
+            ("POV-Ray quality", "+Q11"),
+        ],
+    )
+    report.table("Parallelism", povray_parallelism(args.jobs, args.threads))
+    report.table(
+        "Camera",
+        [
+            ("eye", subject.eye),
+            ("aim", subject.aim),
+            ("field of view", f"{subject.fov} deg vertical"),
+            ("focal distance", f"{camera.focal_distance:.3f}"),
+            ("near (measured)", subject.near),
+            ("far (measured, knee)", subject.far),
+            ("excluded from balance", subject.backdrop),
+        ],
+    )
+    report.pre("Depth budget", budget)
+    report.table(
+        "Timing",
+        [
+            ("wall clock", f"{elapsed:.0f} s"),
+            ("per view", f"{elapsed / spec.n_views:.1f} s"),
+        ],
+    )
+    if subject.caveat:
+        report.section("Caveat", subject.caveat)
+    return report
+
+
 def main() -> int:
     """Render (and optionally cast) one still-life quilt.
 
@@ -261,9 +322,30 @@ def main() -> int:
     )
     parser.add_argument("--jobs", type=int, default=1, help="concurrent POV-Ray processes")
     parser.add_argument(
+        "--threads",
+        type=int,
+        default=None,
+        help="POV-Ray worker threads per process.  Left alone, two cores are "
+        "held back so the machine stays usable during a multi-minute render; "
+        "0 lets POV-Ray take every core, which is its own default.  A "
+        "Work_Threads line in the INI named by POVINI wins over this default "
+        "(that is how the Makefile's RENDER_THREADS reaches POV-Ray).",
+    )
+    parser.add_argument(
         "--out", default=None, help="output stem; defaults to renders/quilts/<subject>"
     )
     parser.add_argument("--cast", action="store_true", help="send to Looking Glass Bridge")
+    parser.add_argument(
+        "--report",
+        nargs="?",
+        const="",
+        default=None,
+        metavar="PATH",
+        help="write a Markdown run report with full provenance.  Bare, it "
+        "lands in renders/reports/ named for the quilt; with a path, there. "
+        "A quilt carries nothing inside it saying which scene, commit, "
+        "camera or POV-Ray produced it -- this is where that is recorded.",
+    )
     parser.add_argument("--keep-views", help="directory to retain per-view PNGs in")
     args = parser.parse_args()
 
@@ -296,18 +378,17 @@ def main() -> int:
         f"  quilt            {spec.quilt_width}x{spec.quilt_height}, "
         f"tiles {spec.tile_width}x{spec.tile_height}"
     )
-    print(
-        format_depth_budget(
-            spec,
-            camera,
-            {
-                "nearest geometry": subject.near,
-                "focal plane": camera.focal_distance,
-                "structured far": subject.far,
-                f"{subject.backdrop} (infinite)": math.inf,
-            },
-        )
+    budget = format_depth_budget(
+        spec,
+        camera,
+        {
+            "nearest geometry": subject.near,
+            "focal plane": camera.focal_distance,
+            "structured far": subject.far,
+            f"{subject.backdrop} (infinite)": math.inf,
+        },
     )
+    print(budget)
     if subject.caveat:
         print(f"  note: {subject.caveat}")
 
@@ -319,6 +400,7 @@ def main() -> int:
         include_paths=[POV_SCENES / "myinclude", POV_SCENES],
         antialias=None if args.preview else args.antialias,
         quality=11,
+        threads=args.threads,
         # Recursive supersampling rather than the default adaptive single
         # pass: the bell jar's rim and the beta-barrel's ribbon edges are the
         # highest-contrast lines in either frame, and stair-stepping on them
@@ -335,6 +417,11 @@ def main() -> int:
     stem = args.out or f"renders/quilts/{args.subject}"
     out = save_quilt(quilt, f"{stem}-preview" if args.preview else stem, spec)
     print(f"  wrote {out}  ({elapsed:.0f}s, {elapsed / spec.n_views:.1f}s/view)")
+
+    if args.report is not None:
+        report = _run_report(args, subject, spec, camera, budget, elapsed)
+        dest = args.report or f"renders/reports/{Path(out).stem}.md"
+        print(f"  report {report.write(dest, output=out)}")
 
     if args.cast:
         from quiltwright.lfd import cast_quilt

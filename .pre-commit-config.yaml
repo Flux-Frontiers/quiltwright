@@ -9,6 +9,12 @@ repos:
     rev: v5.0.0
     hooks:
       - id: trailing-whitespace
+        # Two trailing spaces are a Markdown hard line break, and the run
+        # reports in `renders/reports/` depend on them: the provenance header
+        # is seven consecutive lines that must stay seven lines, not collapse
+        # into one paragraph. Without this flag the hook strips them and
+        # silently reformats every report it touches.
+        args: [--markdown-linebreak-ext=md]
       - id: end-of-file-fixer
       - id: check-yaml
       - id: check-toml

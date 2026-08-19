@@ -9,6 +9,66 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **`quiltwright cast`, `wallpaper` and `bridge` -- the CLI now covers the whole
+  tail of the pipeline.** Everything downstream of the assembler operates on a
+  quilt, so none of these care which backend produced the views.
+
+  `cast` shows a saved quilt on the panel, recovering the tiling and aspect
+  from the `_qs<cols>x<rows>a<aspect>` filename suffix so it usually needs no
+  flags. `cast --check` lists what Bridge can actually see, and marks which
+  heads are Looking Glass panels rather than ordinary monitors -- Bridge
+  enumerates both, and a cast landing on a laptop screen is silent. `--head`
+  pins the target; `cast_quilt()` gained a `head_index` parameter to carry it,
+  defaulting to the previous `-1`.
+
+  `wallpaper` completes the no-Bridge path: a woven frame is already
+  interleaved for one panel, so setting it as that panel's desktop picture
+  makes the desktop a hologram with nothing running. It matches frame to
+  display by the panel serial both carry -- macOS reports each desktop's
+  `display name`, which for a Looking Glass is its serial -- and refuses to
+  guess when no desktop matches, because a woven frame on the wrong panel is a
+  screenful of noise. Frames are copied into `~/Pictures/LKG-wallpapers/`
+  first: macOS stores wallpaper as a *path*, so pointing the desktop into
+  `renders/` blanks the panel the next time that directory is cleaned. Where
+  the destination is already the current picture -- the re-weave case -- it
+  bounces off another image first, because macOS caches by path and would
+  otherwise keep showing the old pixels, which looks exactly like a weave that
+  failed.
+
+  `bridge status` and `bridge reset` exist because Bridge is the one component
+  here that fails *dishonestly*. It keeps its HTTP port open and keeps issuing
+  valid orchestration tokens after crashing internally, so a cast reports
+  success at every step against a daemon that will never draw a pixel -- an
+  hour of this session went into a black panel that was exactly that. `status`
+  therefore distrusts a bare 200: it walks port, session, device enumeration
+  and whether any device is a panel at all, then gives a verdict and a matching
+  exit code, so it can gate a cast in a script. `reset` kills every Bridge
+  process and relaunches, which is the only fix -- Bridge's own menu restart
+  spawns a replacement that inherits the wedge.
+
+- **Run reports -- `quiltwright.runreport`, and `--report` on both render
+  scripts.** A quilt is a 25-40 MB PNG carrying nothing that says where it came
+  from, and it is gitignored, so six months on the questions that matter are
+  unanswerable from the file. Every full quilt from `make` now writes a
+  Markdown provenance record to `renders/reports/`, which *is* committed.
+
+  The header follows the fleet's convention (`_waverider/benchmarks/`):
+  generated-at, machine, repository and commit, interpreter and tool versions,
+  host, OS, and the exact command line. Two additions are specific to
+  rendering. The scene file is hashed, not just named, because composing a
+  scene means rendering against an edited working copy -- the commit alone can
+  describe a tree the render never saw, and the header says `+ uncommitted
+  changes` when that is the case. And the output's own SHA-256 is recorded,
+  because a report is only evidence if it can be tied to one particular file.
+
+  The body carries the run configuration, the camera and its *measured* near
+  and far depths, the depth budget embedded verbatim as printed rather than
+  recomputed, the parallelism actually used, and timings. That parallelism
+  section resolves what the command line does not show: `--jobs` is POV-Ray
+  *processes*, while threads per process come either from the `+WT` the
+  renderer derives above one job, or from the `Work_Threads` in whatever INI
+  `POVINI` names, or from POV-Ray's own all-cores default.
+
 - **`bell_jar/bj_holo.pov` and `bell_jar/bj_portrait.pov` -- the DNA still life
   recomposed for a light-field panel, 16:9 and 9:16.** `bj.pov` puts its title
   and signature 70-74 units from the eye, in front of its own 72-unit near
@@ -113,6 +173,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- **The CLI is a package of `cmd_*` modules, matching the fleet.**
+  `quiltwright/cli.py` becomes `quiltwright/cli/`, with a root group in
+  `main.py`, shared option handling in `options.py`, and one module per
+  command -- the layout `doc_kg`, `pycode_kg` and `gutenberg_kg` already use.
+  The console-script entry point moves from `quiltwright.cli:main` to
+  `quiltwright.cli.main:cli` accordingly.
+
+  This is not only tidiness. Adding three commands touched no existing command
+  code, and each module now carries its own hard-won knowledge in its docstring
+  -- the three ways Bridge fails on real hardware, the macOS wallpaper path
+  cache -- which in a single module either bloats one docstring or is dropped.
+  Splitting also surfaced that `cast` needs the tile *aspect* from the
+  filename, not just the grid, so `aspect_from_filename()` is shared rather
+  than duplicated.
+
+- **The README no longer describes Quiltwright as the tail of two specific
+  pipelines.** The opening said it "takes scenes that already exist -- geometric
+  ML manifolds from WaveRider, molecular structures from pdb2pov", which reads
+  as a list of what it accepts rather than of who uses it. It accepts any
+  PyVista/VTK scene in memory and any POV-Ray scene on disk, including files
+  written decades ago by tools that no longer exist; WaveRider and pdb2pov are
+  users, not prerequisites. Two further passages carried the same exclusivity
+  and now say the same broader thing, matching the diagram above them, which
+  was already labelled by backend.
+
+  The README also gains a section on driving the whole thing from a shell --
+  `make` for the bundled POV-Ray archive, the CLI for the stage after the
+  assembler -- and `Latest news` is trimmed to the current release, since the
+  older entries duplicated the changelog linked directly beneath them.
+
 - **The 1993-96 copyright notice in `pov-scenes/bell_jar/` reads as written.**
   `it's resulting derivative images` and `all neccessary data files` are fixed
   to `its` and `necessary` across the 12 files carrying the notice. Comments
@@ -160,6 +250,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   3.13.
 
 ### Fixed
+
+- **A render started outside `make` took every core on the machine.** POV-Ray
+  threads one render across all of them, and neither existing guard applied at
+  the documented `jobs=1`: the `+WT` split only happens above one process, and
+  the `Work_Threads` cap lives in an INI that only the Makefile writes. So
+  `make quilt-museum` held two cores back and
+  `python scripts/render_museum_hologram.py` did not -- same render, same
+  machine, silently different manners.
+
+  `resolve_work_threads()` now applies a courtesy cap of `cpu_count - 2` when
+  nothing else has spoken, and both render scripts take `--threads` (with `0`
+  meaning "take everything", POV-Ray's own default). The condition matters more
+  than the cap: a command-line `+WT` overrides `POVINI` outright, so capping
+  unconditionally would have silently defeated
+  `make quilts RENDER_THREADS=$(nproc)` -- the documented way to *use* the whole
+  box. The cap therefore yields to a `Work_Threads` line, and to any `+WT` the
+  caller passes itself. Run reports read the same resolver, so the recorded
+  parallelism cannot disagree with what was run.
 
 - **The DOI badge, which was blown on the GitHub front page.** GitHub proxies
   README images through `camo.githubusercontent.com`, Zenodo rate-limits camo,

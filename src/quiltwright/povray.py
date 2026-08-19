@@ -534,6 +534,56 @@ def _render_view(
         )
 
 
+#: Cores held back from a render by default, so a multi-minute quilt does not
+#: make the rest of the machine unusable.  POV-Ray's own default is every
+#: core it can see.
+COURTESY_CORES_HELD_BACK = 2
+
+
+def resolve_work_threads(requested: int | None = None) -> int | None:
+    """Decide the ``+WT`` thread count for a render, or ``None`` for none.
+
+    POV-Ray threads a single render across every core it can see, which on a
+    workstation means a quilt makes the desktop unusable for the length of
+    the render.  Two mechanisms already existed to stop that and neither
+    covered the common case:
+
+    * A ``Work_Threads`` line in the INI named by ``POVINI``.  This repo's
+      Makefile writes one, so ``make`` renders were capped -- but calling a
+      render script directly set no ``POVINI`` and took the whole machine.
+    * ``jobs > 1``, which splits cores between processes.  At the documented
+      ``jobs=1`` it does nothing.
+
+    So the default here is a courtesy cap of ``cpu_count -
+    COURTESY_CORES_HELD_BACK``, applied only when nothing else has spoken.
+    An INI *does* speak: a command-line ``+WT`` overrides ``POVINI``
+    entirely, so capping on top of a ``Work_Threads`` line would silently
+    defeat ``make quilts RENDER_THREADS=$(nproc)``.
+
+    :param requested: Explicit thread count.  ``None`` asks for the courtesy
+        default; ``0`` or negative means uncapped -- let POV-Ray take
+        everything.
+    :return: Thread count for ``+WT``, or ``None`` to pass no ``+WT`` at all.
+    """
+    if requested is not None:
+        return requested if requested > 0 else None
+
+    ini = os.environ.get("POVINI", "")
+    if ini:
+        try:
+            for line in Path(ini).read_text(errors="replace").splitlines():
+                key, sep, value = line.partition("=")
+                if sep and key.strip().lower() == "work_threads" and value.strip().isdigit():
+                    return None  # POVINI governs; do not override it
+        except OSError:
+            pass
+
+    cores = os.cpu_count()
+    if not cores:
+        return None
+    return max(1, cores - COURTESY_CORES_HELD_BACK)
+
+
 def render_pov_quilt(
     scene: str | Path,
     spec: QuiltSpec,
@@ -544,6 +594,7 @@ def render_pov_quilt(
     antialias: float | None = 0.3,
     quality: int = 9,
     jobs: int = 1,
+    threads: int | None = None,
     binary: str | None = None,
     extra_args: Sequence[str] = (),
     keep_views: str | Path | None = None,
@@ -578,6 +629,9 @@ def render_pov_quilt(
         quilt: raising this splits the machine's cores between the jobs via
         ``+WT`` rather than letting each process claim all of them.  Pass
         your own ``+WT`` in *extra_args* to override that split.
+    :param threads: POV-Ray worker threads per process.  ``None`` applies the
+        courtesy cap described in :func:`resolve_work_threads`; ``0`` lets
+        POV-Ray take every core, which is its own default.
     :param binary: POV-Ray executable; defaults to ``POVRAY_BINARY`` or
         ``povray`` on ``PATH``.
     :param extra_args: Additional POV-Ray command-line arguments, e.g.
@@ -603,8 +657,13 @@ def render_pov_quilt(
     # is 336 render threads competing for 18, which buys context switching
     # and cache thrash rather than throughput.  Divide the cores between the
     # jobs instead; an explicit +WT from the caller wins.
-    if jobs > 1 and not any(str(a).startswith("+WT") for a in extra_args):
-        extra_args = [*extra_args, f"+WT{max(1, (os.cpu_count() or jobs) // jobs)}"]
+    if not any(str(a).startswith("+WT") for a in extra_args):
+        if jobs > 1:
+            extra_args = [*extra_args, f"+WT{max(1, (os.cpu_count() or jobs) // jobs)}"]
+        else:
+            capped = resolve_work_threads(threads)
+            if capped is not None:
+                extra_args = [*extra_args, f"+WT{capped}"]
 
     # Match render_quilt: capture at the declared view aspect so the frustum
     # is undistorted, then let assemble_quilt resample into the tile.  These
@@ -750,6 +809,7 @@ def render_pov_views(
     antialias: float | None = 0.3,
     quality: int = 9,
     jobs: int = 1,
+    threads: int | None = None,
     binary: str | None = None,
     extra_args: Sequence[str] = (),
     keep_wrappers: bool = False,
@@ -786,6 +846,9 @@ def render_pov_views(
     :param antialias: POV-Ray ``+A`` threshold; ``None`` disables it.
     :param quality: POV-Ray ``+Q`` quality level, 0-11.
     :param jobs: Number of POV-Ray processes to run concurrently.
+    :param threads: POV-Ray worker threads per process.  ``None`` applies the
+        courtesy cap described in :func:`resolve_work_threads`; ``0`` lets
+        POV-Ray take every core.
     :param binary: POV-Ray executable; defaults to ``POVRAY_BINARY`` or
         ``povray`` on ``PATH``.
     :param extra_args: Additional POV-Ray command-line arguments.
@@ -802,8 +865,13 @@ def render_pov_views(
     if view_cone is not None:
         spec = replace(spec, view_cone=view_cone)
 
-    if jobs > 1 and not any(str(a).startswith("+WT") for a in extra_args):
-        extra_args = [*extra_args, f"+WT{max(1, (os.cpu_count() or jobs) // jobs)}"]
+    if not any(str(a).startswith("+WT") for a in extra_args):
+        if jobs > 1:
+            extra_args = [*extra_args, f"+WT{max(1, (os.cpu_count() or jobs) // jobs)}"]
+        else:
+            capped = resolve_work_threads(threads)
+            if capped is not None:
+                extra_args = [*extra_args, f"+WT{capped}"]
 
     render_h = spec.tile_height
     render_w = round(render_h * spec.aspect)

@@ -523,3 +523,151 @@ class TestRenderPovViews:
                 tmp_path / "out",
                 progress=False,
             )
+
+
+# ---------------------------------------------------------------------------
+# Work-thread resolution
+#
+# POV-Ray takes every core it can see, which makes a multi-minute quilt lock
+# up the workstation it is rendering on.  Two mechanisms guarded against that
+# and neither covered the common case: POVINI's Work_Threads only exists when
+# the Makefile writes it, and the jobs>1 split does nothing at the documented
+# jobs=1.  The courtesy cap fills that gap -- but it must stay *out of the
+# way* of POVINI, because a command-line +WT overrides an INI outright and
+# would silently defeat `make quilts RENDER_THREADS=$(nproc)`.
+# ---------------------------------------------------------------------------
+
+
+class TestResolveWorkThreads:
+    def test_bare_call_holds_two_cores_back(self, monkeypatch):
+        """The gap this closes: a script run directly took the whole machine."""
+        from quiltwright import povray
+
+        monkeypatch.delenv("POVINI", raising=False)
+        monkeypatch.setattr(povray.os, "cpu_count", lambda: 18)
+        assert povray.resolve_work_threads() == 16
+
+    def test_povini_work_threads_suppresses_the_cap(self, monkeypatch, tmp_path):
+        """A command-line +WT beats POVINI, so capping would override the
+        Makefile's own RENDER_THREADS escape hatch."""
+        from quiltwright import povray
+
+        ini = tmp_path / "threads.ini"
+        ini.write_text("Display=Off\nWork_Threads=18\n")
+        monkeypatch.setenv("POVINI", str(ini))
+        monkeypatch.setattr(povray.os, "cpu_count", lambda: 18)
+        assert povray.resolve_work_threads() is None
+
+    def test_povini_without_work_threads_still_caps(self, monkeypatch, tmp_path):
+        """POVINI is set for its library paths far more often than for threads."""
+        from quiltwright import povray
+
+        ini = tmp_path / "plain.ini"
+        ini.write_text("Display=Off\n")
+        monkeypatch.setenv("POVINI", str(ini))
+        monkeypatch.setattr(povray.os, "cpu_count", lambda: 18)
+        assert povray.resolve_work_threads() == 16
+
+    def test_unreadable_povini_falls_back_to_the_cap(self, monkeypatch, tmp_path):
+        from quiltwright import povray
+
+        monkeypatch.setenv("POVINI", str(tmp_path / "absent.ini"))
+        monkeypatch.setattr(povray.os, "cpu_count", lambda: 18)
+        assert povray.resolve_work_threads() == 16
+
+    def test_explicit_request_wins_over_everything(self, monkeypatch, tmp_path):
+        from quiltwright import povray
+
+        ini = tmp_path / "threads.ini"
+        ini.write_text("Work_Threads=18\n")
+        monkeypatch.setenv("POVINI", str(ini))
+        assert povray.resolve_work_threads(4) == 4
+
+    @pytest.mark.parametrize("uncapped", [0, -1])
+    def test_zero_or_negative_means_take_everything(self, monkeypatch, uncapped):
+        """The opt-out: render farms and CI want every core."""
+        from quiltwright import povray
+
+        monkeypatch.delenv("POVINI", raising=False)
+        assert povray.resolve_work_threads(uncapped) is None
+
+    def test_single_core_machine_still_gets_one_thread(self, monkeypatch):
+        from quiltwright import povray
+
+        monkeypatch.delenv("POVINI", raising=False)
+        monkeypatch.setattr(povray.os, "cpu_count", lambda: 1)
+        assert povray.resolve_work_threads() == 1
+
+    def test_cap_reaches_the_povray_command_line(self, monkeypatch, tmp_path):
+        """End to end: the resolved value is actually passed as +WT."""
+        from quiltwright import povray
+
+        monkeypatch.delenv("POVINI", raising=False)
+        monkeypatch.setattr(povray.os, "cpu_count", lambda: 18)
+        seen: list[list[str]] = []
+
+        def fake_render(
+            povray_bin,
+            wrapper,
+            out_png,
+            width,
+            height,
+            library_paths,
+            antialias,
+            quality,
+            extra_args,
+            workdir,
+        ):
+            seen.append(list(extra_args))
+            from PIL import Image
+
+            Image.new("RGB", (width, height)).save(out_png)
+
+        monkeypatch.setattr(povray, "_render_view", fake_render)
+        monkeypatch.setattr(povray, "_find_povray", lambda binary=None: "/bin/true")
+
+        scene = tmp_path / "s.pov"
+        scene.write_text("camera { location <0,0,-1> look_at 0 }\n")
+        spec = QuiltSpec(columns=2, rows=1, quilt_width=64, quilt_height=32, aspect=1.0)
+        camera = PovCamera(location=(0.0, 0.0, -10.0), look_at=(0.0, 0.0, 0.0), fov=30.0)
+
+        povray.render_pov_quilt(scene, spec, camera, progress=False)
+        assert seen, "no views rendered"
+        assert all("+WT16" in args for args in seen)
+
+    def test_caller_supplied_wt_is_not_overridden(self, monkeypatch, tmp_path):
+        """An explicit +WT in extra_args stays the only one."""
+        from quiltwright import povray
+
+        monkeypatch.delenv("POVINI", raising=False)
+        monkeypatch.setattr(povray.os, "cpu_count", lambda: 18)
+        seen: list[list[str]] = []
+
+        def fake_render(
+            povray_bin,
+            wrapper,
+            out_png,
+            width,
+            height,
+            library_paths,
+            antialias,
+            quality,
+            extra_args,
+            workdir,
+        ):
+            seen.append(list(extra_args))
+            from PIL import Image
+
+            Image.new("RGB", (width, height)).save(out_png)
+
+        monkeypatch.setattr(povray, "_render_view", fake_render)
+        monkeypatch.setattr(povray, "_find_povray", lambda binary=None: "/bin/true")
+
+        scene = tmp_path / "s.pov"
+        scene.write_text("camera { location <0,0,-1> look_at 0 }\n")
+        spec = QuiltSpec(columns=2, rows=1, quilt_width=64, quilt_height=32, aspect=1.0)
+        camera = PovCamera(location=(0.0, 0.0, -10.0), look_at=(0.0, 0.0, 0.0), fov=30.0)
+
+        povray.render_pov_quilt(scene, spec, camera, progress=False, extra_args=("+WT3",))
+        assert all(len([a for a in args if a.startswith("+WT")]) == 1 for args in seen)
+        assert all("+WT3" in args for args in seen)
