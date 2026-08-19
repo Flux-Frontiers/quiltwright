@@ -4,7 +4,7 @@ The archive's molecules stand against an infinite sky. This puts one in a
 gallery: a stone plinth in a shallow alcove, under a bell jar, lit like an
 exhibit, with a brass plaque.
 
-![Hemoglobin in the standard vitrine](../../renders/stills/vitrine_hemoglobin.png)
+![Hemoglobin in the standard vitrine](../../renders/gallery/vitrine_hemoglobin.png)
 
 It exists because a room is a better holographic subject than a sky. An object
 on an empty backdrop gives the display two depths -- the object, and nothing.
@@ -27,6 +27,10 @@ same for every structure, whatever its size:
 | `hemoglobin` | 2HHB | 4,779 | 40.3 A | identical | identical | identical |
 | `ompf` | 2OMF | 8,481 | 51.0 A | identical | identical | identical |
 | `f1atpase` | 1BMF | 23,481 | 79.0 A | identical | identical | identical |
+
+Rendered side by side in [`renders/gallery/`](../../renders/gallery/):
+`vitrine_gfp.png`, `vitrine_hemoglobin.png`, `vitrine_ompf.png`,
+`vitrine_f1atpase.png`.
 
 A 2.5x range of molecular radius, one setup, no per-structure tuning. That is
 the whole claim, and it is the reason `scripts/render_vitrine.py` contains no

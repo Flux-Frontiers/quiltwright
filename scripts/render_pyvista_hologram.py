@@ -323,14 +323,14 @@ def main() -> int:
         "--still",
         action="store_true",
         help="single centre-view screenshot instead of a quilt, saved to "
-        "renders/stills/ -- the diffable reference for what the scene looks "
+        "renders/gallery/ -- the diffable reference for what the scene looks "
         "like, same convention as the POV-Ray scenes",
     )
     parser.add_argument(
         "--out",
         default=None,
         help="output stem; defaults to renders/quilts/<subject> "
-        "(renders/stills/<subject> with --still)",
+        "(renders/gallery/<subject> with --still)",
     )
     parser.add_argument("--cast", action="store_true", help="send to Looking Glass Bridge")
     args = parser.parse_args()
@@ -364,7 +364,7 @@ def main() -> int:
     if args.still:
         # A fixed-resolution single frame at the device's aspect, independent
         # of quilt tiling -- long edge 1920 landscape / 1600 portrait, in the
-        # same size class as the POV-Ray stills (renders/stills/).
+        # same size class as the POV-Ray stills (renders/gallery/).
         if spec.aspect >= 1:
             still_h, still_w = 1080, round(1080 * spec.aspect)
         else:
@@ -390,7 +390,7 @@ def main() -> int:
 
     if args.still:
         p.render()
-        stem = args.out or f"renders/stills/{args.subject.replace('-', '_')}"
+        stem = args.out or f"renders/gallery/{args.subject.replace('-', '_')}"
         out = Path(f"{stem}.png")
         out.parent.mkdir(parents=True, exist_ok=True)
         p.screenshot(str(out))

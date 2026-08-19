@@ -1,7 +1,7 @@
 # Quiltwright render targets.
 #
 #   make help            list targets
-#   make stills          all reference stills -> renders/stills/
+#   make gallery         all reference stills -> renders/gallery/
 #   make still-museum    one still (see STILL TARGETS below)
 #   make quilts          all Looking Glass quilts -> renders/quilts/
 #   make quilt-porin     one quilt
@@ -54,7 +54,7 @@ JOBS    ?= 1
 # their own).  +FN: PNG.  -D: no preview window.
 POVFLAGS ?= +FN -D +Q11 +A0.1
 
-STILLS  := $(abspath renders/stills)
+GALLERY := $(abspath renders/gallery)
 INC      = ../myinclude
 
 # Regenerated every run so a changed RENDER_THREADS always takes effect.
@@ -70,7 +70,7 @@ $(THREAD_INI):
 
 # --- STILL TARGETS ---------------------------------------------------------
 # still-<name> renders pov-scenes/$(DIR)/$(SCENE) at $(SIZE) to
-# renders/stills/<name>.png.  disc1.pov is absent: it does not render on
+# renders/gallery/<name>.png.  disc1.pov is absent: it does not render on
 # Linux (asks for the standard includes in upper case).
 
 still-bell_jar_bj:           DIR=bell_jar
@@ -131,12 +131,15 @@ STILL_TARGETS := still-bell_jar_bj still-bell_jar_bj_holo \
                  still-museum_pg still-lambda_main
 
 still-%: $(THREAD_INI)
-	@mkdir -p $(STILLS)
+	@mkdir -p $(GALLERY)
 	cd pov-scenes/$(DIR) && $(POVRAY) +I$(SCENE) $(addprefix +L,$(INC)) \
-		+O$(STILLS)/$*.png $(SIZE) $(POVFLAGS) +WT$(RENDER_THREADS)
+		+O$(GALLERY)/$*.png $(SIZE) $(POVFLAGS) +WT$(RENDER_THREADS)
 
-.PHONY: stills
-stills: $(STILL_TARGETS)  ## render every reference still
+.PHONY: gallery stills
+gallery: $(STILL_TARGETS)  ## render every reference still -> renders/gallery/
+# Kept so anything that already types `make stills` still works.  renders/
+# stills/ is now local scratch; the committed set is renders/gallery/.
+stills: gallery
 
 # --- QUILTS ----------------------------------------------------------------
 # The scripts place the focal plane from measured depths and sweep the view

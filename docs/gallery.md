@@ -1,7 +1,7 @@
 # Gallery
 
 The reference stills every quilt is swept from -- one full-quality render per
-scene, checked into [`renders/stills/`](../renders/stills/) as the diffable
+scene, checked into [`renders/gallery/`](../renders/gallery/) as the diffable
 record of what each scene looks like (`renders/quilts/` is the same scenes as
 Looking Glass quilts, but those are 25-40 MB release assets, not repo
 content -- see [renders/README.md](../renders/README.md)).
@@ -17,16 +17,16 @@ or all at once with `make stills`.
 hologram is rendered from; what's on the walls is catalogued in
 [about-the-image.md](about-the-image.md).
 
-![Museum, canonical cut](../renders/stills/museum.png)
+![Museum, canonical cut](../renders/gallery/museum.png)
 
 *`museum.pov` -- the canonical cut, and the one
 [`render_museum_hologram.py`](../scripts/render_museum_hologram.py) drives.*
 
-![Museum, 1997 cut](../renders/stills/museum_970211.png)
+![Museum, 1997 cut](../renders/gallery/museum_970211.png)
 
 *`museum_970211.pov` -- the 1997 cut, kept for provenance.*
 
-![Museum, 1999 cut](../renders/stills/museum_pg.png)
+![Museum, 1999 cut](../renders/gallery/museum_pg.png)
 
 *`museum_pg.pov` -- the 1999 cut, the last one. Adds the DNA cartoon mobile,
 the Risedronate exhibit and a tree outside the window.*
@@ -40,11 +40,11 @@ the Risedronate exhibit and a tree outside the window.*
 `pov-scenes/bell_jar/` -- the still lifes the museum's own pedestals were
 built from: B-DNA and Z-DNA under glass, on a marble stand, over sea and sky.
 
-![DNA under glass](../renders/stills/bell_jar_bj.png)
+![DNA under glass](../renders/gallery/bell_jar_bj.png)
 
 *`bj.pov` -- "DNA Under Glass": B-DNA under the jar, sea and sky behind.*
 
-![DNA Under Glass, 16:9 light-field cut](../renders/stills/bell_jar_bj_holo.png)
+![DNA Under Glass, 16:9 light-field cut](../renders/gallery/bell_jar_bj_holo.png)
 
 *`bj_holo.pov` -- the same still life recomposed for a Looking Glass panel:
 16:9, title lifted into the sky above the dome, signature moved out over open
@@ -54,31 +54,31 @@ camera-pinned overlays 70-74 units from the eye, in front of the scene itself.
 The lens opens 53.13 -> 55.32 degrees to make room for the title, which
 `bj.pov`'s framing has none of.*
 
-![DNA Under Glass, 9:16 portrait cut](../renders/stills/bell_jar_bj_portrait.png)
+![DNA Under Glass, 9:16 portrait cut](../renders/gallery/bell_jar_bj_portrait.png)
 
 *`bj_portrait.pov` -- the 9:16 companion, for the tall panels. Same eye and the
 same treatment of the lettering; the lens is set by the pedestal's width, which
 is what overruns a narrow frame.*
 
-![DNA under glass, on black](../renders/stills/bell_jar_bj_black.png)
+![DNA under glass, on black](../renders/gallery/bell_jar_bj_black.png)
 
 *`bj_black.pov` -- the same still life on black, for print.*
 
-![B-DNA alone](../renders/stills/bell_jar_bdna.png)
+![B-DNA alone](../renders/gallery/bell_jar_bdna.png)
 
 *`bdna.pov` -- B-DNA alone on a checkerboard, no jar.*
 
-![B-DNA and Z-DNA side by side](../renders/stills/bell_jar_yinyang.png)
+![B-DNA and Z-DNA side by side](../renders/gallery/bell_jar_yinyang.png)
 
 *`yinyang.pov` -- B-DNA and Z-DNA side by side under two jars.*
 
-![B-DNA, bdna/ variant](../renders/stills/bell_jar_bdna_variant.png)
+![B-DNA, bdna/ variant](../renders/gallery/bell_jar_bdna_variant.png)
 
 *`bdna/bdna.pov` -- a second-generation variant of the still life, alongside
 the turntable animation `bdna_anim.pov`.*
 
-![Bell jar wall thickness 0.06](../renders/stills/bell_jar_wall_0.06.png)
-![Bell jar wall thickness 0.09](../renders/stills/bell_jar_wall_0.09.png)
+![Bell jar wall thickness 0.06](../renders/gallery/bell_jar_wall_0.06.png)
+![Bell jar wall thickness 0.09](../renders/gallery/bell_jar_wall_0.09.png)
 
 *The comparison `BJ_WALL` was chosen from, in `bell_jar/bell_jar.inc`: 0.06
 (default) against 0.09 -- visible but chunky, and it distorts the duplex
@@ -91,7 +91,7 @@ behind it.*
 `pov-scenes/porin/` -- the beta-barrel membrane protein, as a ribbon cartoon over
 water under a rainbow.
 
-![Porin, self-contained scene](../renders/stills/porin_3porin.png)
+![Porin, self-contained scene](../renders/gallery/porin_3porin.png)
 
 *`3porin.pov` -- self-contained apart from `rainbow.inc`; the scene the
 release `.ini` is written for.*
@@ -108,7 +108,7 @@ renders sky and ground and no barrel.*
 `pov-scenes/lambda/` -- the 1998 "Lambda Repressor" poster scene: the 1LMB PDB
 file, converted to a mesh, clamped onto its operator DNA over open water.
 
-![Lambda repressor, main scene](../renders/stills/lambda_main.png)
+![Lambda repressor, main scene](../renders/gallery/lambda_main.png)
 
 *`lambda_main.pov` -- the repressor over sea and sky, with the poster's chrome
 titling.*
@@ -122,22 +122,22 @@ Rendered by
 rather than POV-Ray -- candidates surveyed in
 [pyvista-datasets.md](pyvista-datasets.md).
 
-![Mt. St. Helens DEM](../renders/stills/st_helens.png)
+![Mt. St. Helens DEM](../renders/gallery/st_helens.png)
 
 *`st-helens` -- Mt. St. Helens post-eruption DEM (`examples.download_st_helens`),
 terrain relief with no texture.*
 
-![Mt. Damavand volcano](../renders/stills/damavand.png)
+![Mt. Damavand volcano](../renders/gallery/damavand.png)
 
 *`damavand` -- Mt. Damavand volumetric data (`examples.download_damavand_volcano`),
 a single conical peak.*
 
-![Human head MRI](../renders/stills/brain.png)
+![Human head MRI](../renders/gallery/brain.png)
 
 *`brain` -- classic VTK `brain.vtk` volume, a human head MRI
 (`examples.download_brain`).*
 
-![Allen mouse brain CCFv3](../renders/stills/mouse_brain.png)
+![Allen mouse brain CCFv3](../renders/gallery/mouse_brain.png)
 
 *`mouse-brain` -- Allen Institute mouse brain CCFv3 average template, 50 µm
 (see [pyvista-datasets.md](pyvista-datasets.md#brain-volumes) for the other
