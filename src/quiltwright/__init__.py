@@ -148,7 +148,7 @@ def __dir__() -> list[str]:
     return sorted(set(globals()) | set(_LAZY))
 
 
-__version__ = "0.6.0"
+__version__ = "0.7.0"
 __all__ = [
     # Quilt geometry
     "QuiltSpec",

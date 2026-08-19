@@ -17,8 +17,8 @@ authors:
     orcid: "https://orcid.org/0009-0009-0891-1507"
     email: suchanek@flux-frontiers.com
     affiliation: "Flux-Frontiers"
-version: "0.6.0"
-date-released: "2026-08-16"
+version: "0.7.0"
+date-released: "2026-08-18"
 doi: "10.5281/zenodo.21798503"
 license: BSD-3-Clause
 repository-code: "https://github.com/suchanek/quiltwright"

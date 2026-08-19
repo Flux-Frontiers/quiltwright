@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/suchanek/quiltwright/v0.6.0/assets/logo_pack/quiltwright_logo_512.png" alt="Quiltwright" width="512"/>
+  <img src="https://raw.githubusercontent.com/suchanek/quiltwright/v0.7.0/assets/logo_pack/quiltwright_logo_512.png" alt="Quiltwright" width="512"/>
 </p>
 
 [![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](LICENSE)
 [![PyPI](https://img.shields.io/pypi/v/quiltwright.svg)](https://pypi.org/project/quiltwright/)
-[![Version](https://img.shields.io/badge/version-0.6.0-blue.svg)](https://github.com/suchanek/quiltwright/releases)
+[![Version](https://img.shields.io/badge/version-0.7.0-blue.svg)](https://github.com/suchanek/quiltwright/releases)
 [![Tests](https://github.com/suchanek/quiltwright/actions/workflows/tests.yml/badge.svg)](https://github.com/suchanek/quiltwright/actions/workflows/tests.yml)
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.21798503-blue.svg)](https://doi.org/10.5281/zenodo.21798503)
 
@@ -26,7 +26,7 @@ for geometric ML manifolds and by
 [pdb2pov](https://github.com/suchanek/pdb2pov) for molecular structures, but
 neither is a prerequisite. If you can render it, you can hang it in the air.
 
-![Eric's Science Museum, the canonical POV-Ray render](https://raw.githubusercontent.com/suchanek/quiltwright/v0.6.0/renders/stills/museum.png)
+![Eric's Science Museum, the canonical POV-Ray render](https://raw.githubusercontent.com/suchanek/quiltwright/v0.7.0/renders/stills/museum.png)
 
 *A career in structural biophysics, arranged as exhibits: B-DNA and Z-DNA
 under bell jars, Ras and my original **DNA Under Glass** on the walls. The molecular
@@ -40,12 +40,17 @@ panels, or into 2-D video for Hololuminescent displays. A third output -- a
 
 ## Latest news
 
-**v0.6.0 (2026-08-16).** `save_and_cast_quilt()` composes save + cast in one
-call -- `save_quilt` takes the array and `cast_quilt` takes a path, and mixing
-them up only surfaces minutes into a ray-traced render. A failed cast is
-returned, not raised, so a Bridge that isn't running never costs the render.
-`QuiltSpec.scaled()` shrinks a quilt for faster Bridge loads while keeping the
-dimensions a multiple of the tile grid, so views stay pixel-aligned.
+**v0.7.0 (2026-08-18).** The CLI now covers the whole tail of the pipeline.
+`quiltwright cast` puts a saved quilt on the panel, recovering its tiling from
+the filename; `quiltwright wallpaper` completes the no-Bridge path, hanging a
+woven frame on the desktop of the panel it was woven for, matched by serial;
+and `quiltwright bridge status` / `reset` exist because Bridge keeps answering
+HTTP after it has crashed, so a cast can report success against a daemon that
+will never draw. Every full quilt now writes a provenance record to
+`renders/reports/` -- scene hash, commit, camera, measured depths, the depth
+budget verbatim and the output's digest -- because a quilt is a gitignored
+25-40 MB PNG that says nothing about where it came from. A render started
+outside `make` no longer takes every core on the machine.
 
 _Full history: [CHANGELOG.md](CHANGELOG.md) and
 [releases](https://github.com/suchanek/quiltwright/releases)._
@@ -463,7 +468,7 @@ on Zenodo.
   title   = {Quiltwright: Holographic Output for Looking Glass Displays},
   url     = {https://github.com/suchanek/quiltwright},
   doi     = {10.5281/zenodo.21798503},
-  version = {0.6.0},
+  version = {0.7.0},
   year    = {2026}
 }
 ```
