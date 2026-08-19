@@ -77,6 +77,7 @@
 #ifndef (VIT_LABEL)      #declare VIT_LABEL      = "";    #end  // "" = no plaque
 #ifndef (VIT_SIGN)       #declare VIT_SIGN       = 1;     #end  // 0 = unsigned
 #ifndef (VIT_SIGN_TEXT)  #declare VIT_SIGN_TEXT  = "EGS 2026"; #end
+#ifndef (VIT_SIGN_INSET) #declare VIT_SIGN_INSET = 2.2;   #end  // deg from the edge
 #ifndef (VIT_SOFT)       #declare VIT_SOFT       = 0;     #end  // area light: slow, better
 #ifndef (VIT_WALL_HUE)   #declare VIT_WALL_HUE   = <0.30, 0.33, 0.34>; #end
 #ifndef (VIT_KEY)        #declare VIT_KEY        = 1.00;  #end  // key light scale
@@ -198,6 +199,27 @@
 // :param Dp: how far the lettering stands proud, in units.
 // ---------------------------------------------------------------------------
 
+// Width of a run, in units, before it is bent round anything.  A value macro
+// so a caller can anchor a run by an edge rather than by its centre -- the
+// signature needs its *right* edge a fixed inset from the plaque's, and only
+// the width tells you where that is.
+#macro Vitrine_Text_Width(Str, Sc)
+   #local T_N = strlen(Str);
+   #local T_W = 0;
+   #local T_I = 1;
+   #while (T_I <= T_N)
+      #local T_Ch = substr(Str, T_I, 1);
+      #if (strcmp(T_Ch, " ") = 0)
+         #local T_W = T_W + Sc * 0.42;
+      #else
+         #local T_G = text { ttf "timrom.ttf" T_Ch 0.1, 0 scale Sc };
+         #local T_W = T_W + (max_extent(T_G).x - min_extent(T_G).x) + Sc * 0.16;
+      #end
+      #local T_I = T_I + 1;
+   #end
+   (T_W)
+#end
+
 #macro Vitrine_Wrapped_Text(Str, Sc, Rad, Yd, ACtr, Dp)
    #local W_N = strlen(Str);
    #local W_Gap = Sc * 0.16;
@@ -205,20 +227,7 @@
    // survives it: without this the lettering is a hundredth of a unit deep and
    // sits buried in the brass, showing only the tips of the capitals.
    #local W_Dp = Dp / Sc;
-
-   // Pass one: total width, so the string can be centred on ACtr.
-   #local W_W = 0;
-   #local W_I = 1;
-   #while (W_I <= W_N)
-      #local W_Ch = substr(Str, W_I, 1);
-      #if (strcmp(W_Ch, " ") = 0)
-         #local W_W = W_W + Sc * 0.42;
-      #else
-         #local W_G = text { ttf "timrom.ttf" W_Ch W_Dp, 0 scale Sc };
-         #local W_W = W_W + (max_extent(W_G).x - min_extent(W_G).x) + W_Gap;
-      #end
-      #local W_I = W_I + 1;
-   #end
+   #local W_W = Vitrine_Text_Width(Str, Sc);
 
    // Pass two: place them.  POV-Ray is left-handed and its default camera
    // looks along +z, so text{} already reads correctly to a viewer on the -z
@@ -392,9 +401,14 @@ union {
       // small, shallower, and set in from the edge rather than centred.
       #if (VIT_SIGN & strlen(VIT_SIGN_TEXT) > 0)
       #local S_Sc = L_Sc * 0.40;
+      // Anchored by its right edge, not by a fudge factor on the half-arc, so
+      // a longer or shorter mark still sits the same inset from the brass.
+      #local S_A = P_HalfA
+                   - degrees(Vitrine_Text_Width(VIT_SIGN_TEXT, S_Sc) / 2 / (P_Rm + P_T))
+                   - VIT_SIGN_INSET;
       union {
          Vitrine_Wrapped_Text(VIT_SIGN_TEXT, S_Sc, P_Rm + P_T,
-                              -P_H * 0.60, P_HalfA * 0.58, 0.020)
+                              -P_H * 0.60, S_A, 0.020)
          texture {
             pigment { color rgb <0.20, 0.16, 0.09> }
             finish { ambient 0.04 diffuse 0.38 specular 0.14 roughness 0.04 }
