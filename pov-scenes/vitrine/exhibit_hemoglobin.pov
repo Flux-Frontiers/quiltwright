@@ -1,4 +1,4 @@
-// HAEMOGLOBIN in the standard vitrine.
+// HEMOGLOBIN in the standard vitrine.
 //
 // Render the still at the vitrine's own aspect (16:9 by default):
 //   povray +Iexhibit_hemoglobin.pov +W1920 +H1080 +Q11 +A0.3 \
@@ -15,7 +15,7 @@ global_settings { assumed_gamma 1.0 }
 #include "atoms_vdw.inc"     // radii set; -c would want atoms_covalent.inc
 #include "atoms2.inc"        // element textures
 
-#declare VIT_LABEL = "HAEMOGLOBIN";
+#declare VIT_LABEL = "HEMOGLOBIN";
 #include "vitrine.inc"
 #include "hemoglobin.inc"
 
