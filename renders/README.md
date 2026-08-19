@@ -6,18 +6,19 @@ kept where follows weight:
 
 | Directory | Contents | Kept |
 |---|---|---|
-| `stills/` | Full-quality single-frame references, one per scene | committed (~14 MB) -- the diffable record of what each scene looks like |
+| `gallery/` | Full-quality single-frame references, one per scene | committed (~14 MB) -- the diffable record of what each scene looks like |
+| `stills/` | Working renders you are currently looking at | local scratch, never committed -- promote to `gallery/` what earns a place |
 | `quilts/` | Looking Glass quilts, written here by the render scripts | release assets (25-40 MB each) -- rendered on CI by `release.yml`, or locally via `make release-assets` |
 | `reports/` | Run reports -- one Markdown provenance record per full quilt | committed (~2 kB each) -- the only record of how a gitignored quilt was made |
 | `views/` | Per-view captures, test frames and experiments | local scratch, never committed |
 
-`make stills`, `make quilts`, or per-scene targets (`make help`) drive all of
+`make gallery`, `make quilts`, or per-scene targets (`make help`) drive all of
 it.
 
 Produced with POV-Ray 3.7 on Linux. See
 [docs/pov-workflow.md](../docs/pov-workflow.md) for the procedure and the traps.
 
-## stills/
+## gallery/
 
 Render each at **its own declared aspect** -- POV-Ray maps `right` to image
 width and `up` to image height whatever pixel dimensions you ask for, so a
@@ -38,6 +39,16 @@ scene is tabulated in the workflow doc.
 | `museum_970211.png` | `museum/museum_970211.pov` | 1.333 | 1600×1200 |
 | `museum_pg.png` | `museum/museum_pg.pov` | 1.25 | 1500×1200 |
 | `lambda_main.png` | `lambda/lambda_main.pov` | 1.778 | 1920×1080 |
+| `vitrine_hemoglobin.png` | `vitrine/exhibit_hemoglobin.pov` | 1.778 | 1920×1080 |
+| `vitrine_gfp.png` | `vitrine/exhibit_gfp.pov` | 1.778 | 1920×1080 |
+| `vitrine_ompf.png` | `vitrine/exhibit_ompf.pov` | 1.778 | 1920×1080 |
+| `vitrine_f1atpase.png` | `vitrine/exhibit_f1atpase.pov` | 1.778 | 1920×1080 |
+
+The four `vitrine_*.png` are one set, not four scenes: the same exhibit case
+holding structures from 31 A to 79 A enclosing radius, on one camera and one
+depth budget. They are kept together because the point is the comparison --
+any one of them alone says nothing about whether the standard holds. See
+[`pov-scenes/vitrine/`](../pov-scenes/vitrine/).
 
 `bell_jar_wall_0.06.png` and `bell_jar_wall_0.09.png` are the comparison the
 glass thickness was chosen from -- `BJ_WALL` in `bell_jar/bell_jar.inc`. 0.06 is
@@ -55,7 +66,7 @@ POV-Ray scene template with `#include "3porin.inc"` appended, and that include
 only `#declare`s `porin`. Until something instantiates it the frame is sky and
 ground plane, so there is no reference still to keep.
 
-The remaining stills here -- `st_helens.png`, `damavand.png`, `brain.png` and
+The remaining images here -- `st_helens.png`, `damavand.png`, `brain.png` and
 `mouse_brain.png` -- come from the PyVista pipeline rather than POV-Ray, and so
 have no `right` vector to match; they are rendered at the shape their scene is
 composed for. See [docs/pyvista-datasets.md](../docs/pyvista-datasets.md).

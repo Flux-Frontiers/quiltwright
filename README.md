@@ -266,7 +266,7 @@ make help                 # every target, and the still names
 
 #### Stills
 
-One full-quality frame per scene, into `renders/stills/`. These are committed:
+One full-quality frame per scene, into `renders/gallery/`. These are committed:
 they are the diffable record of what each scene looks like.
 
 ```bash
