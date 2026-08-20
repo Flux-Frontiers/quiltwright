@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-## [0.7.0] -- 2026-08-18
+## [0.7.0] - 2026-08-18
 
 ### Added
 
@@ -310,7 +310,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   No commit was orphaned -- all are reachable from `main` -- and no GitHub
   Release was attached. The fork itself is still marked by commit `70e703f`.
 
-## [0.6.0] -- 2026-08-16
+## [0.6.0] - 2026-08-16
 
 ### Added
 
@@ -337,7 +337,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   pixel-aligned, and raises rather than returning a spec too small to hold
   one pixel per tile.
 
-## [0.5.0] -- 2026-08-16
+## [0.5.0] - 2026-08-16
 
 ### Added
 
@@ -528,7 +528,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   hatches are now written down, and a test demonstrates the narrow bounds and
   then the untextured `Box` that widens them.
 
-## [0.4.0] -- 2026-08-14
+## [0.4.0] - 2026-08-14
 
 ### Added
 
@@ -564,7 +564,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   dropped. CI runs the suite on both 3.12 and 3.13, so the classifier is a
   tested claim rather than an assertion.
 
-## [0.3.1] -- 2026-08-10
+## [0.3.1] - 2026-08-10
 
 ### Changed
 
@@ -607,7 +607,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   hold that question open. The docstring now hedges the way the documentation
   does.
 
-## [0.3.0] -- 2026-08-10
+## [0.3.0] - 2026-08-10
 
 ### Added
 
@@ -674,7 +674,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   re-fetched -- the 10 µm template is well over a gigabyte, and this script
   has not been in a release, so anyone holding one has it from a local run.
 
-## [0.2.0] -- 2026-08-08
+## [0.2.0] - 2026-08-08
 
 ### Added
 
@@ -892,7 +892,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   displays, plus LitiHolo holographic printers (in development), rather than
   just "a 48-view light-field quilt".
 
-## [0.1.0] -- 2026-08-04
+## [0.1.0] - 2026-08-04
 
 Initial release. Extracted from
 [WaveRider](https://github.com/Flux-Frontiers/waverider) 0.12.0, where this
