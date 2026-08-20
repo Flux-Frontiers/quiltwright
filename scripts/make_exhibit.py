@@ -135,7 +135,8 @@ def convert(
         except ImportError:
             raise SystemExit(
                 "pypdb2pov is not installed, so atoms cannot be converted.\n"
-                "  pip install git+https://github.com/Flux-Frontiers/pypdb2pov"
+                '  pip install "quiltwright[molecules]"\n'
+                "  pip install pypdb2pov"
             ) from None
         out = VITRINE / f"{stem}.inc"
         say("2/5 convert", f"pypdb2pov -o -v  ->  {out.name}")
