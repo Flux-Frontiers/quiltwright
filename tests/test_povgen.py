@@ -15,12 +15,14 @@ from quiltwright.povgen import (
     Finish,
     Instance,
     LightSource,
+    Mesh2,
     PovScene,
     Sphere,
     SphereSweep,
     Texture,
     Union,
     _frame_from_direction,
+    coalesce_mesh2,
     fov_horizontal_to_vertical,
     ground_slab,
     instances_by_color,
@@ -862,3 +864,224 @@ def test_swept_scene_lights_can_be_left_out():
     sweeps, pts, dirs = _subject()
     assert "light_source" not in swept_scene(sweeps, instances=(pts, dirs), lights=False).sdl()
     assert "light_source" in swept_scene(sweeps, instances=(pts, dirs)).sdl()
+
+
+# ---------------------------------------------------------------------------
+# Mesh2
+# ---------------------------------------------------------------------------
+
+TRI = Mesh2(vertices=[(0, 0, 0), (1, 0, 0), (0, 1, 0)], faces=[(0, 1, 2)])
+
+
+def test_flipping_z_reverses_face_winding():
+    """Negating z is a reflection, and a reflection reverses orientation.  A
+    mesh2 that keeps its index order under the flip faces inward, and POV-Ray
+    lights it from behind -- the trap this module's docstring warns about.
+    """
+    assert "<0, 2, 1>" in TRI.sdl("flip-z")
+    assert "<0, 1, 2>" in TRI.sdl("none")
+
+
+def test_normal_indices_are_reversed_in_step_with_faces():
+    """They are parallel to faces, so reversing one and not the other pairs
+    each corner with a neighbour's normal.
+    """
+    mesh = Mesh2(
+        vertices=[(0, 0, 0), (1, 0, 0), (0, 1, 0)],
+        faces=[(0, 1, 2)],
+        normals=[(0, 0, 1), (0, 1, 0), (1, 0, 0)],
+        normal_indices=[(0, 1, 2)],
+    )
+    normals = mesh.sdl("flip-z").split("normal_indices")[1]
+    assert "<0, 2, 1>" in normals
+
+
+def test_normals_are_reflected_like_points():
+    """A normal is a direction, but a mirrored world has mirrored normals."""
+    mesh = Mesh2(vertices=[(0, 0, 0)] * 3, faces=[(0, 1, 2)], normals=[(0, 0, 1)])
+    assert "<0, 0, -1>" in mesh.sdl("flip-z")
+    assert "<0, 0, 1>" in mesh.sdl("none")
+
+
+def test_optional_blocks_are_omitted_when_not_supplied():
+    text = TRI.sdl()
+    assert "normal_vectors" not in text
+    assert "texture_list" not in text
+    assert "vertex_vectors { 3," in text
+    assert "face_indices { 1," in text
+
+
+def test_per_face_textures_follow_the_reversed_winding():
+    """The texture indices are per corner, so they reverse with the corners
+    or each vertex is painted with its neighbour's colour.
+    """
+    mesh = Mesh2(
+        vertices=[(0, 0, 0), (1, 0, 0), (0, 1, 0)],
+        faces=[(0, 1, 2)],
+        textures=["T_A", "T_B", "T_C"],
+        face_textures=[(0, 1, 2)],
+    )
+    assert "<0, 2, 1>, 0, 2, 1" in mesh.sdl("flip-z")
+
+
+@pytest.mark.parametrize(
+    "kwargs, message",
+    [
+        ({"normal_indices": [(0, 1, 2)]}, "without normals"),
+        ({"textures": (), "face_textures": [(0, 1, 2)]}, "without textures"),
+        (
+            {"normals": [(0, 0, 1)], "normal_indices": [(0, 1, 2), (0, 1, 2)]},
+            "faces has 1",
+        ),
+    ],
+)
+def test_inconsistent_mesh_is_refused_at_construction(kwargs, message):
+    with pytest.raises(ValueError, match=message):
+        Mesh2(vertices=[(0, 0, 0)] * 3, faces=[(0, 1, 2)], **kwargs)
+
+
+# ---------------------------------------------------------------------------
+# coalesce_mesh2
+# ---------------------------------------------------------------------------
+
+
+def _single_face_mesh(v, colour):
+    """One triangle as its own mesh2 -- the shape PyMOL's exporter emits."""
+    verts = ",\n".join(f"<{x}, {y}, {z}>" for x, y, z in v)
+    tex = f"texture {{ pigment{{color rgb{colour} }}}}"
+    return (
+        f"mesh2 {{ vertex_vectors {{ 3, {verts}}}\n"
+        f" normal_vectors {{ 3,\n<0,0,1>,<0,0,1>,<0,0,1>}}\n"
+        f" texture_list {{ 3, {tex}\n,{tex}\n,{tex} }}\n"
+        f" face_indices {{ 1, <0,1,2>, 0, 1, 2 }} }}\n"
+    )
+
+
+def test_one_mesh_per_triangle_collapses_to_a_single_mesh():
+    text = _single_face_mesh([(0, 0, 0), (1, 0, 0), (0, 1, 0)], "<1,0,0>") + _single_face_mesh(
+        [(1, 0, 0), (1, 1, 0), (0, 1, 0)], "<1,0,0>"
+    )
+    merged = coalesce_mesh2(text)
+    assert merged.count("mesh2 {") == 1
+    assert "face_indices { 2," in merged
+    # Four distinct corners across two triangles that share an edge, and one
+    # colour, not six vertices and six textures.
+    assert "vertex_vectors { 4," in merged
+    assert "texture_list { 1," in merged
+
+
+def test_coalescing_preserves_which_texture_each_corner_uses():
+    text = _single_face_mesh([(0, 0, 0), (1, 0, 0), (0, 1, 0)], "<1,0,0>") + _single_face_mesh(
+        [(2, 0, 0), (3, 0, 0), (2, 1, 0)], "<0,1,0>"
+    )
+    merged = coalesce_mesh2(text)
+    faces = merged.split("face_indices")[1]
+    assert "<0, 1, 2>, 0, 0, 0" in faces
+    assert "<3, 4, 5>, 1, 1, 1" in faces
+
+
+def test_text_around_the_meshes_survives():
+    text = (
+        "#version 3.7;\n"
+        + _single_face_mesh([(0, 0, 0), (1, 0, 0), (0, 1, 0)], "<1,0,0>")
+        + _single_face_mesh([(2, 0, 0), (3, 0, 0), (2, 1, 0)], "<1,0,0>")
+        + "\nlight_source { <0,0,0> rgb 1 }\n"
+    )
+    merged = coalesce_mesh2(text)
+    assert merged.startswith("#version 3.7;")
+    assert merged.rstrip().endswith("light_source { <0,0,0> rgb 1 }")
+
+
+def test_a_lone_mesh_is_returned_untouched():
+    """Nothing to merge, so nothing should be rewritten."""
+    text = _single_face_mesh([(0, 0, 0), (1, 0, 0), (0, 1, 0)], "<1,0,0>")
+    assert coalesce_mesh2(text) == text
+    assert coalesce_mesh2("sphere { <0,0,0>, 1 }") == "sphere { <0,0,0>, 1 }"
+
+
+def test_a_mesh_that_does_not_parse_is_kept_rather_than_dropped():
+    """Losing geometry silently is far worse than failing to optimise it."""
+    good = _single_face_mesh([(0, 0, 0), (1, 0, 0), (0, 1, 0)], "<1,0,0>")
+    odd = "mesh2 { some_future_syntax { 1, <0,0,0> } }\n"
+    merged = coalesce_mesh2(good + good + odd)
+    assert "some_future_syntax" in merged
+
+
+def test_nested_texture_braces_do_not_truncate_the_block():
+    """A regex that stops at the first '}' eats the mesh; brace counting is
+    the reason this survives a texture nested two deep.
+    """
+    text = _single_face_mesh([(0, 0, 0), (1, 0, 0), (0, 1, 0)], "<1,0,0>") + _single_face_mesh(
+        [(2, 0, 0), (3, 0, 0), (2, 1, 0)], "<1,0,0>"
+    )
+    merged = coalesce_mesh2(text)
+    assert "face_indices { 2," in merged
+    assert merged.count("pigment") == 1
+
+
+def test_a_mesh2_written_by_this_module_round_trips_through_the_coalescer():
+    """Mesh2 and coalesce_mesh2 have to agree on the emitted syntax, or the
+    fallback path cannot clean up after the primitive path.
+    """
+    one = Mesh2(
+        vertices=[(0, 0, 0), (1, 0, 0), (0, 1, 0)],
+        faces=[(0, 1, 2)],
+        normals=[(0, 0, 1)] * 3,
+    ).sdl("none")
+    merged = coalesce_mesh2(one + "\n" + one + "\n")
+    assert merged.count("mesh2 {") == 1
+    assert "face_indices { 2," in merged
+    assert "normal_indices { 2," in merged
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(__import__("shutil").which("povray") is None, reason="no povray binary on PATH")
+def test_coalescing_does_not_change_what_the_ray_tracer_draws(tmp_path):
+    """The claim that makes the merge worth doing: 5x smaller and the same
+    picture.  Compared through POV-Ray rather than by diffing text, because
+    the text is *meant* to differ -- what must not differ is the render.
+
+    A handful of pixels are allowed to move: deduplicating vertices lets
+    POV-Ray sample shared triangle edges slightly differently, which shows up
+    as anti-aliasing jitter along silhouettes and nowhere else.
+    """
+    Image = pytest.importorskip("PIL.Image", reason="needs Pillow to compare")
+
+    # A fan of triangles with two colours, emitted one mesh per face.
+    n = 24
+    body = []
+    for i in range(n):
+        a = 2 * math.pi * i / n
+        b = 2 * math.pi * (i + 1) / n
+        tri = [(0.0, 0.0, 0.0), (math.cos(a), math.sin(a), 0.0), (math.cos(b), math.sin(b), 0.0)]
+        colour = "<1,0.2,0.2>" if i % 2 else "<0.2,0.4,1>"
+        body.append(_single_face_mesh(tri, colour))
+    geometry = "".join(body)
+
+    header = (
+        "#version 3.7;\n"
+        "global_settings { assumed_gamma 1.0 }\n"
+        "camera { location <0, 0, -4> look_at <0, 0, 0> right <1,0,0> up <1,0,0> }\n"
+        "light_source { <3, 4, -6> rgb 1 }\n"
+    )
+    merged = coalesce_mesh2(geometry)
+    assert merged.count("mesh2 {") == 1
+    assert len(merged) < len(geometry) / 2
+
+    shots = []
+    for name, text in (("plain", geometry), ("merged", merged)):
+        scene = tmp_path / f"{name}.pov"
+        scene.write_text(header + text)
+        out = tmp_path / f"{name}.png"
+        subprocess.run(
+            ["povray", f"+I{scene}", f"+O{out}", "+W240", "+H240", "+Q9", "+A0.3", "-D", "+FN"],
+            check=True,
+            capture_output=True,
+            cwd=tmp_path,
+        )
+        shots.append(np.asarray(Image.open(out).convert("RGB"), dtype=int))
+
+    differing = int((np.abs(shots[0] - shots[1]).sum(axis=2) > 0).sum())
+    assert differing < 0.005 * shots[0].shape[0] * shots[0].shape[1], (
+        f"{differing} pixels changed; the merge is meant to be invisible"
+    )
