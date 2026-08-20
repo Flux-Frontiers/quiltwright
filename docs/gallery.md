@@ -175,6 +175,28 @@ heir to `porin/3porin.pov` above.*
 *`exhibit_f1atpase.pov` -- 1BMF, 23,481 atoms, 79.0 A. The largest, on the
 same plinth at the same camera.*
 
+![OmpF porin, as a cartoon](../gallery/vitrine_ompf_cartoon.png)
+
+*`exhibit_ompf_cartoon.pov` -- the same porin trimer as a Richardson cartoon
+rather than as atoms, via [`quiltwright.pymol`](../src/quiltwright/pymol.py).
+`porin/3porin.png` above is the same subject drawn the same way in 1994, by an
+exporter whose output survives in no repository; this one comes from a PDB ID
+and a command line. Its geometry is generated rather than committed -- 8.9 MB
+for one trimer -- so the wrapper carries the command that makes it.*
+
+![Porin, 1994 beside 2026](../gallery/porin_1994_vs_2026.png)
+
+*The same subject, the same room, the same camera, thirty-two years apart.
+Left: `3porin.inc`, 7,835 triangles from the lost 1994 exporter, brought onto
+the `pdb2pov -o` contract by `pov-scenes/vitrine/porin_1994.inc`, which
+measures and centres the original geometry without altering it. Right: 2OMF
+from the RCSB, 75,792 triangles through `quiltwright.pymol`.*
+
+*They are not quite the same molecule, which is the honest reading of the
+picture: the 1994 mesh is a **monomer** -- one 16-strand barrel -- while the
+modern one is assembly 1, the biological trimer. The archive image was of a
+single subunit, and nothing recorded that until the two stood side by side.*
+
 ---
 
 ## PyVista datasets

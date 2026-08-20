@@ -25,6 +25,7 @@ def cli() -> None:
 # Import subcommands to register them
 from quiltwright.cli import (  # noqa: E402, F401
     cmd_bridge,
+    cmd_cartoon,
     cmd_cast,
     cmd_wallpaper,
     cmd_weave,
