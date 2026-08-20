@@ -130,12 +130,17 @@ still-lambda_main:           SIZE=+W1920 +H1080
 # directory, whose path is per-machine (`pypdb2pov --include-dir` prints it),
 # so they render through scripts/render_vitrine.py rather than through a make
 # target that would have to guess.  See pov-scenes/vitrine/README.md.
+# still-bell_jar_bj_black, still-bell_jar_bdna_variant and still-museum_970211
+# are absent by choice rather than by oversight.  Their scenes are in the tree
+# and their targets below still work on demand; they are simply not part of
+# the presented set any more, and listing them here would put their images
+# back in gallery/ on the next `make gallery`.
 STILL_TARGETS := still-bell_jar_bj still-bell_jar_bj_holo \
-                 still-bell_jar_bj_portrait still-bell_jar_bj_black \
+                 still-bell_jar_bj_portrait \
                  still-bell_jar_bdna \
-                 still-bell_jar_yinyang still-bell_jar_bdna_variant \
+                 still-bell_jar_yinyang \
                  still-porin_3porin \
-                 still-museum still-museum_970211 \
+                 still-museum \
                  still-museum_pg still-museum_2026 still-lambda_main
 
 still-%: $(THREAD_INI)

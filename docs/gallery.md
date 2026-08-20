@@ -16,16 +16,13 @@ mismatched frame stretches the picture with no warning:
 | File | Scene | Aspect | Size |
 |---|---|---|---|
 | `museum.png` | `museum/museum.pov` | 1.778 | 1920x1080 |
-| `museum_970211.png` | `museum/museum_970211.pov` | 1.333 | 1600x1200 |
 | `museum_pg.png` | `museum/museum_pg.pov` | 1.25 | 1500x1200 |
 | `museum_2026.png` | `museum/museum_2026.pov` | 1.778 | 1920x1080 |
 | `bell_jar_bj.png` | `bell_jar/bj.pov` | 0.75 | 900x1200 |
 | `bell_jar_bj_holo.png` | `bell_jar/bj_holo.pov` | 1.778 | 1920x1080 |
 | `bell_jar_bj_portrait.png` | `bell_jar/bj_portrait.pov` | 0.5625 | 1080x1920 |
-| `bell_jar_bj_black.png` | `bell_jar/bj_black.pov` | 0.75 | 900x1200 |
 | `bell_jar_bdna.png` | `bell_jar/bdna.pov` | 0.75 | 900x1200 |
 | `bell_jar_yinyang.png` | `bell_jar/yinyang.pov` | 1.25 | 1500x1200 |
-| `bell_jar_bdna_variant.png` | `bell_jar/bdna/bdna.pov` | 0.5 | 600x1200 |
 | `porin_3porin.png` | `porin/3porin.pov` | 1.778 | 1920x1080 |
 | `lambda_main.png` | `lambda/lambda_main.pov` | 1.778 | 1920x1080 |
 | `vitrine_*.png` | `vitrine/exhibit_*.pov` | 1.778 | 1920x1080 |
@@ -46,10 +43,6 @@ hologram is rendered from; what's on the walls is catalogued in
 *`museum.pov` -- the canonical cut, and the one
 [`render_museum_hologram.py`](../scripts/render_museum_hologram.py) drives.*
 
-![Museum, 1997 cut](../gallery/museum_970211.png)
-
-*`museum_970211.pov` -- the 1997 cut, kept for provenance.*
-
 ![Museum, 1999 cut](../gallery/museum_pg.png)
 
 *`museum_pg.pov` -- the 1999 cut, the last one. Adds the DNA cartoon mobile,
@@ -63,7 +56,8 @@ where the Risedronate picture did (the scene's own object, on a branch that
 was already there), and both pedestals move inward to flank the alcove, the
 left one centred under Lambda Repressor. `museum_pg.pov` is untouched.*
 
-*`museum_dark.pov` and `worldmap.pov` are in the tree but are not carried here.*
+*`museum_970211.pov` (the 1997 cut), `museum_dark.pov` and `worldmap.pov` are
+in the tree and render; none is carried here.*
 
 ---
 
@@ -92,10 +86,6 @@ The lens opens 53.13 -> 55.32 degrees to make room for the title, which
 same treatment of the lettering; the lens is set by the pedestal's width, which
 is what overruns a narrow frame.*
 
-![DNA under glass, on black](../gallery/bell_jar_bj_black.png)
-
-*`bj_black.pov` -- the same still life on black, for print.*
-
 ![B-DNA alone](../gallery/bell_jar_bdna.png)
 
 *`bdna.pov` -- B-DNA alone on a checkerboard, no jar.*
@@ -104,17 +94,13 @@ is what overruns a narrow frame.*
 
 *`yinyang.pov` -- B-DNA and Z-DNA side by side under two jars.*
 
-![B-DNA, bdna/ variant](../gallery/bell_jar_bdna_variant.png)
-
-*`bdna/bdna.pov` -- a second-generation variant of the still life, alongside
-the turntable animation `bdna_anim.pov`.*
-
 ![Bell jar wall thickness 0.06](../gallery/bell_jar_wall_0.06.png)
-![Bell jar wall thickness 0.09](../gallery/bell_jar_wall_0.09.png)
 
-*The comparison `BJ_WALL` was chosen from, in `bell_jar/bell_jar.inc`: 0.06
-(default) against 0.09 -- visible but chunky, and it distorts the duplex
-behind it.*
+*`BJ_WALL = 0.06` in `bell_jar/bell_jar.inc`, the value chosen and the
+default. It was picked against 0.09, which is visible but chunky and distorts
+the duplex behind it; that comparison frame is no longer kept, and re-rendering
+`bj.pov` with `BJ_WALL` overridden reproduces it. Setting it to 0 restores the
+original zero-thickness surface, which refracts once and reads as a soap film.*
 
 ---
 
