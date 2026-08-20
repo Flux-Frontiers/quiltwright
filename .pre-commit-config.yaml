@@ -21,11 +21,12 @@ repos:
       - id: check-merge-conflict
       - id: check-added-large-files
         args: [--maxkb=1000]
-        # `renders/` holds the reference stills `make stills` regenerates;
+        # `gallery/` holds the reference stills `make gallery` regenerates;
         # `museum.png` is 2.4 MB. Committing them is intended, so the limit must
-        # not block them. Outside `renders/` the largest file is `poetry.lock`
-        # at 134 kB, so the 1 MB limit still catches accidental blobs.
-        exclude: '^renders/|^(src|docs)/.*\.(png|jpg|jpeg|gif|pdf)$'
+        # not block them. `renders/` stays excluded for the run reports and
+        # anything else output-shaped. Outside those the largest file is
+        # `poetry.lock` at 134 kB, so the 1 MB limit still catches stray blobs.
+        exclude: '^gallery/|^renders/|^(src|docs)/.*\.(png|jpg|jpeg|gif|pdf)$'
       - id: debug-statements
 
   - repo: https://github.com/astral-sh/ruff-pre-commit

@@ -2,12 +2,16 @@
 
 Output, not source. Everything regenerates from `pov-scenes/` plus the
 scripts, but regeneration needs a POV-Ray install and patience, so what is
-kept where follows weight:
+kept where follows weight.
+
+The presented set is **not** here: it lives at the top level in
+[`gallery/`](../gallery/), catalogued in [docs/gallery.md](../docs/gallery.md).
+It is the work, not a build artefact, and keeping it under `renders/` made it
+look like one. Everything in *this* directory is output.
 
 | Directory | Contents | Kept |
 |---|---|---|
-| `gallery/` | Full-quality single-frame references, one per scene | committed (~14 MB) -- the diffable record of what each scene looks like |
-| `stills/` | Working renders you are currently looking at | local scratch, never committed -- promote to `gallery/` what earns a place |
+| `stills/` | Working renders you are currently looking at | local scratch, never committed -- promote to [`../gallery/`](../gallery/) what earns a place |
 | `quilts/` | Looking Glass quilts, written here by the render scripts | release assets (25-40 MB each) -- rendered on CI by `release.yml`, or locally via `make release-assets` |
 | `reports/` | Run reports -- one Markdown provenance record per full quilt | committed (~2 kB each) -- the only record of how a gitignored quilt was made |
 | `views/` | Per-view captures, test frames and experiments | local scratch, never committed |
@@ -17,59 +21,6 @@ it.
 
 Produced with POV-Ray 3.7 on Linux. See
 [docs/pov-workflow.md](../docs/pov-workflow.md) for the procedure and the traps.
-
-## gallery/
-
-Render each at **its own declared aspect** -- POV-Ray maps `right` to image
-width and `up` to image height whatever pixel dimensions you ask for, so a
-mismatched frame stretches the picture with no warning. The declared value per
-scene is tabulated in the workflow doc.
-
-| File | Scene | Aspect | Size |
-|---|---|---|---|
-| `bell_jar_bj.png` | `bell_jar/bj.pov` | 0.75 | 900×1200 |
-| `bell_jar_bj_holo.png` | `bell_jar/bj_holo.pov` | 1.778 | 1920×1080 |
-| `bell_jar_bj_portrait.png` | `bell_jar/bj_portrait.pov` | 0.5625 | 1080×1920 |
-| `bell_jar_bj_black.png` | `bell_jar/bj_black.pov` | 0.75 | 900×1200 |
-| `bell_jar_bdna.png` | `bell_jar/bdna.pov` | 0.75 | 900×1200 |
-| `bell_jar_yinyang.png` | `bell_jar/yinyang.pov` | 1.25 | 1500×1200 |
-| `bell_jar_bdna_variant.png` | `bell_jar/bdna/bdna.pov` | 0.5 | 600×1200 |
-| `porin_3porin.png` | `porin/3porin.pov` | 1.778 | 1920×1080 |
-| `museum.png` | `museum/museum.pov` | 1.778 | 1920×1080 |
-| `museum_970211.png` | `museum/museum_970211.pov` | 1.333 | 1600×1200 |
-| `museum_pg.png` | `museum/museum_pg.pov` | 1.25 | 1500×1200 |
-| `lambda_main.png` | `lambda/lambda_main.pov` | 1.778 | 1920×1080 |
-| `vitrine_hemoglobin.png` | `vitrine/exhibit_hemoglobin.pov` | 1.778 | 1920×1080 |
-| `vitrine_gfp.png` | `vitrine/exhibit_gfp.pov` | 1.778 | 1920×1080 |
-| `vitrine_ompf.png` | `vitrine/exhibit_ompf.pov` | 1.778 | 1920×1080 |
-| `vitrine_f1atpase.png` | `vitrine/exhibit_f1atpase.pov` | 1.778 | 1920×1080 |
-
-The four `vitrine_*.png` are one set, not four scenes: the same exhibit case
-holding structures from 31 A to 79 A enclosing radius, on one camera and one
-depth budget. They are kept together because the point is the comparison --
-any one of them alone says nothing about whether the standard holds. See
-[`pov-scenes/vitrine/`](../pov-scenes/vitrine/).
-
-`bell_jar_wall_0.06.png` and `bell_jar_wall_0.09.png` are the comparison the
-glass thickness was chosen from -- `BJ_WALL` in `bell_jar/bell_jar.inc`. 0.06 is
-the default; 0.09 is visible but chunky and distorts the duplex behind it.
-Setting it to 0 restores the original zero-thickness surface.
-
-`museum/disc1.pov` is absent because it does not render on Linux -- it asks for
-the standard includes in upper case. See the scene README.
-
-`museum/museum_dark.pov` and `museum/worldmap.pov` are absent by choice. Both
-render, and both remain in `pov-scenes/`; neither earns a reference still.
-
-`porin/3porin2.pov` is absent because it renders nothing: it is the stock
-POV-Ray scene template with `#include "3porin.inc"` appended, and that include
-only `#declare`s `porin`. Until something instantiates it the frame is sky and
-ground plane, so there is no reference still to keep.
-
-The remaining images here -- `st_helens.png`, `damavand.png`, `brain.png` and
-`mouse_brain.png` -- come from the PyVista pipeline rather than POV-Ray, and so
-have no `right` vector to match; they are rendered at the shape their scene is
-composed for. See [docs/pyvista-datasets.md](../docs/pyvista-datasets.md).
 
 ## reports/
 

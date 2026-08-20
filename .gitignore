@@ -26,16 +26,16 @@ htmlcov/
 **/.dockg/models
 **/.dockg/embeddings.json
 
-# Rendered output.  The gallery (~14 MB) is committed: it is the diffable
-# reference for what each scene looks like, and regenerating it needs a
-# POV-Ray install and patience.  Quilts (25-40 MB each) are release assets,
-# rendered by .github/workflows/release.yml; stills/ and views/ are local
-# scratch -- stills/ is where a working render goes while you are looking at
-# it, and nothing there is expected to survive.  Promote to gallery/ only
-# what earns a place in the documented set.
+# Rendered output.  The committed set lives at the top level in gallery/ --
+# it is the presented work, not a build artefact, and burying it under
+# renders/ made it look like one.  Everything under renders/ is output:
+# quilts (25-40 MB each) are release assets rendered by
+# .github/workflows/release.yml, and stills/ and views/ are local scratch --
+# stills/ is where a working render goes while you are looking at it, and
+# nothing there is expected to survive.  Promote to gallery/ only what earns
+# a place in the documented set.
 renders/*
 !renders/README.md
-!renders/gallery/
 # Run reports are the provenance record for renders whose output is *not*
 # committed -- a quilt is a 25-40 MB release asset, its report is 2 kB of
 # text saying which scene, commit, camera and POV-Ray made it. Ignoring
