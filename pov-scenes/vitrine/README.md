@@ -67,6 +67,20 @@ museum's 7.3: no view collapses to the back of a wall.
 
 ## Using it
 
+One command does all of it:
+
+```sh
+python ../../scripts/make_exhibit.py 7AHL --label "ALPHA-HEMOLYSIN"
+```
+
+It fetches the biological assembly into `$PDB` (default `~/pdb`, the same
+convention proteusPy uses, and nothing already there is re-downloaded),
+converts it, writes the scene if one does not exist, and renders the still --
+narrating each step and the trap it avoids. Add `--quilt` to sweep 48 views,
+`--rep atoms` to go through pypdb2pov instead of PyMOL.
+
+The steps by hand, if you want them separately:
+
 ```sh
 # 0. pypdb2pov ships the atom textures inside the package, so installing it
 #    is the whole setup.
