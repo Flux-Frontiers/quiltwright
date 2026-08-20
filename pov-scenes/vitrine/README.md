@@ -68,6 +68,10 @@ museum's 7.3: no view collapses to the back of a wall.
 ## Using it
 
 ```sh
+# 0. pypdb2pov ships the atom textures inside the package, so installing it
+#    is the whole setup.  Not on PyPI yet.
+pip install git+https://github.com/Flux-Frontiers/pypdb2pov
+
 # 1. Get the structure and convert it, naming the output for the molecule
 #    rather than the PDB ID.
 curl -O https://files.rcsb.org/download/2hhb-assembly1.cif.gz

@@ -38,10 +38,31 @@ from quiltwright.runreport import RunReport, povray_parallelism
 ROOT = Path(__file__).resolve().parents[1]
 VITRINE = ROOT / "pov-scenes" / "vitrine"
 
-#: Where pdb2pov's radius sets and element textures live.  ``pypdb2pov
-#: --include-dir`` prints this; it is passed rather than guessed so a scene
-#: renders the same from any working directory.
-PDB2POV_INCLUDE = Path.home() / "repos/pdb2pov/python/src/pypdb2pov/include"
+
+def pdb2pov_include() -> Path:
+    """Where pdb2pov's radius sets and element textures live.
+
+    Asked of the installed package rather than guessed from a checkout path:
+    the includes ship *inside* ``pypdb2pov``, so wherever it is installed is
+    where they are, and a scene then renders the same from any working
+    directory and on any machine.  ``pypdb2pov --include-dir`` prints the
+    same answer at a shell.
+
+    :return: The include directory.
+    :raises SystemExit: With an install hint if the package is absent, which
+        is a better failure than POV-Ray reporting a missing ``atoms2.inc``
+        forty lines into a scene it half-parsed.
+    """
+    try:
+        import pypdb2pov
+    except ImportError:  # pragma: no cover - depends on the environment
+        raise SystemExit(
+            "pypdb2pov is not installed, so the atom textures cannot be found.\n"
+            "  pip install pypdb2pov      # once it is on PyPI\n"
+            "  pip install git+https://github.com/Flux-Frontiers/pypdb2pov"
+        ) from None
+    return Path(pypdb2pov.include_dir())
+
 
 # --- The vitrine's own geometry --------------------------------------------
 #
@@ -121,7 +142,7 @@ def main(argv: list[str] | None = None) -> int:
         scene,
         spec,
         camera,
-        include_paths=[VITRINE, PDB2POV_INCLUDE],
+        include_paths=[VITRINE, pdb2pov_include()],
         quality=args.quality,
         jobs=args.jobs,
         threads=args.threads,
