@@ -1165,14 +1165,14 @@ diagrams = ["jinja2", "railroad-diagrams"]
 
 [[package]]
 name = "pypdb2pov"
-version = "0.1.0"
+version = "0.1.1"
 description = "Convert PDB and PDBx/mmCIF atomic structures into POV-Ray scenes"
 optional = false
 python-versions = "<3.14,>=3.12"
 groups = ["main", "molecules"]
 files = [
-    {file = "pypdb2pov-0.1.0-py3-none-any.whl", hash = "sha256:f6b4d0c27a6d1c0d0498a3a5803b960c1439c33c21dc1f026de163b8b1f47866"},
-    {file = "pypdb2pov-0.1.0.tar.gz", hash = "sha256:4533e2d1d0261a945811ee5a4a997c8b878116a1e7b127dbc2678d94ac515359"},
+    {file = "pypdb2pov-0.1.1-py3-none-any.whl", hash = "sha256:906b6aed9dc687ecb0d92cf43094f25a7ade8b1fb46366151fe7e72a6148ffa6"},
+    {file = "pypdb2pov-0.1.1.tar.gz", hash = "sha256:1d01ca48b44c048d328e324021148cc2abfe6d57dd2c97d80035d7d14e555625"},
 ]
 markers = {main = "extra == \"molecules\""}
 
@@ -1619,4 +1619,4 @@ viz = ["pyvista"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<3.14"
-content-hash = "4af43f36bea43d3b8b2fc75832258f2b8c3730d409f81fd00b2a9da2dce1371e"
+content-hash = "570b738d1817d939d7181b0512adebfe18213f0b81b6e8512e9f51995041f9c8"
