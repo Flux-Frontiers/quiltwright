@@ -11,7 +11,7 @@ this page goes layer by layer, and each section says who can skip it.
 | Render quilts from PyVista/VTK scenes | `[viz]` extra |
 | Ray-trace quilts from POV-Ray scenes | `povray` binary |
 | Encode quilt video or HLD masters | ffmpeg (or `[video]` extra) |
-| Render molecular structures from PDB or mmCIF files | pdb2pov |
+| Render molecular structures from PDB or mmCIF files | `[molecules]` extra |
 
 ---
 
@@ -130,12 +130,31 @@ Optional; feeds the POV-Ray backend with molecular structures. There are two
 implementations, writing byte-identical scenes.
 
 **`pypdb2pov`, the Python port** -- no compiler, no dependencies, reads mmCIF,
-and importable from the same script that renders the quilt:
+and importable from the same script that renders the quilt. It has its own
+repository and PyPI release as of 0.1.0; the `python/` tree inside the C repo
+is retired. Take it as an extra:
 
 ```bash
-git clone https://github.com/suchanek/pdb2pov
-pip install ./pdb2pov/python
+pip install "quiltwright[molecules]"
+poetry install --with molecules     # the equivalent group
 ```
+
+or on its own, which is the same package:
+
+```bash
+pip install pypdb2pov
+```
+
+**Why an extra and not a core dependency.** Only the molecular scenes need
+it, and a machine rendering anything else should not carry it -- the same
+ground the `viz` extra stands on. There is no licence obstacle: pypdb2pov is
+BSD-3-Clause like quiltwright itself.
+
+> The `0.1.0` metadata on PyPI reports `GPL-2.0-or-later`. That is a
+> packaging error, corrected in the source repository; PyPI metadata is
+> immutable per release, so the correction reaches an installed package only
+> with the next version. The `LICENSE` file in the distribution is the BSD-3
+> text.
 
 **`pdb2pov`, the C program** -- the 1993 original, whose portability fixes now
 live upstream, so a fresh clone just builds:
@@ -149,7 +168,10 @@ The two commands differ only in name, so both can sit on one `PATH`.
 
 Either way the scenes reference POV-Ray include files that must be on the
 library path. `pypdb2pov --include-dir` prints where the Python package keeps
-them; with the C program they sit in the clone.
+them -- inside the package, so wherever it is installed is where they are;
+with the C program they sit in the clone.
+[`scripts/render_vitrine.py`](../scripts/render_vitrine.py) asks the package
+directly rather than being told a path.
 
 See [pdb2pov.md](pdb2pov.md) for which to choose, the build notes, and the
 render pipeline.
