@@ -58,8 +58,8 @@ def pdb2pov_include() -> Path:
     except ImportError:  # pragma: no cover - depends on the environment
         raise SystemExit(
             "pypdb2pov is not installed, so the atom textures cannot be found.\n"
-            "  pip install pypdb2pov      # once it is on PyPI\n"
-            "  pip install git+https://github.com/Flux-Frontiers/pypdb2pov"
+            '  pip install "quiltwright[molecules]"\n'
+            "  pip install pypdb2pov"
         ) from None
     return Path(pypdb2pov.include_dir())
 

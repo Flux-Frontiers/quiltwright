@@ -11,7 +11,7 @@ this page goes layer by layer, and each section says who can skip it.
 | Render quilts from PyVista/VTK scenes | `[viz]` extra |
 | Ray-trace quilts from POV-Ray scenes | `povray` binary |
 | Encode quilt video or HLD masters | ffmpeg (or `[video]` extra) |
-| Render molecular structures from PDB or mmCIF files | pdb2pov |
+| Render molecular structures from PDB or mmCIF files | `[molecules]` extra |
 
 ---
 
@@ -131,15 +131,23 @@ implementations, writing byte-identical scenes.
 
 **`pypdb2pov`, the Python port** -- no compiler, no dependencies, reads mmCIF,
 and importable from the same script that renders the quilt. It has its own
-repository as of 0.1.0; the `python/` tree inside the C repo is retired:
+repository and PyPI release as of 0.1.0; the `python/` tree inside the C repo
+is retired. Take it as an extra:
 
 ```bash
-pip install git+https://github.com/Flux-Frontiers/pypdb2pov
+pip install "quiltwright[molecules]"
+poetry install --with molecules     # the equivalent group
 ```
 
-Not on PyPI yet, and the repository is private, which is why there is no
-`quiltwright[molecules]` extra to install it for you -- `pyproject.toml`
-records what has to change first.
+or on its own, which is the same package:
+
+```bash
+pip install pypdb2pov
+```
+
+**Why an extra and not a core dependency.** pypdb2pov is GPL-2.0-or-later and
+quiltwright is BSD-3, so it goes out on request rather than by default -- the
+same ground the `video` extra stands on. Only the molecular scenes need it.
 
 **`pdb2pov`, the C program** -- the 1993 original, whose portability fixes now
 live upstream, so a fresh clone just builds:

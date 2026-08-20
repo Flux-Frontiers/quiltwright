@@ -124,8 +124,9 @@ know in advance whether a scene will fuse.
 ## Install
 
 ```bash
-pip install quiltwright              # core: quilt geometry + Bridge control
-pip install "quiltwright[viz]"       # + PyVista/VTK rendering backend
+pip install quiltwright                 # core: quilt geometry + Bridge control
+pip install "quiltwright[viz]"          # + PyVista/VTK rendering backend
+pip install "quiltwright[molecules]"    # + PDB and mmCIF, via pypdb2pov
 ```
 
 The POV-Ray backend needs a `povray` binary on `PATH` rather than a Python

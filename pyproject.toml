@@ -72,28 +72,16 @@ viz = ["pyvista>=0.44"]
 # ffmpeg makes the extra redundant.  It also stays optional on licence
 # grounds: see docs/install.md section 4.
 video = ["imageio-ffmpeg>=0.4"]
-# A `molecules` extra for pypdb2pov belongs here and is deliberately absent.
-# pypdb2pov turns PDB and PDBx/mmCIF structures into POV-Ray scenes and ships
-# the atom textures inside the package, so installing it is the whole setup
-# for pov-scenes/vitrine/.  Two things have to change before it can be
-# declared:
+# Molecular scenes.  pypdb2pov turns PDB and PDBx/mmCIF structures into
+# POV-Ray scenes and ships the atom textures inside the package, so installing
+# it is the whole setup for pov-scenes/vitrine/ -- `pypdb2pov --include-dir`
+# reports where they landed, and scripts/render_vitrine.py asks the package
+# rather than being told a path.
 #
-#   1. It is not on PyPI.  `molecules = ["pypdb2pov>=0.1.0"]` makes
-#      `poetry lock` fail outright -- "doesn't match any versions" -- so the
-#      lock file, `poetry check` and CI all break together.
-#   2. Flux-Frontiers/pypdb2pov is private, so pointing Poetry at a git
-#      source instead would resolve only for someone holding credentials,
-#      and not on CI.  A direct URL cannot go in the PEP 621 metadata anyway:
-#      PyPI rejects a Requires-Dist carrying one, which would make
-#      quiltwright itself unpublishable.
-#
-# Publishing pypdb2pov (or making the repo public) turns this into a one-line
-# change, with a `molecules` Poetry group beside it like the two above.  Until
-# then it installs alongside quiltwright and the vitrine scenes find it
-# through pypdb2pov.include_dir(); see docs/install.md.
-#
-# It would be optional regardless: it is GPL-2.0-or-later and this is a BSD-3
-# project, so like `video` it goes out on request rather than by default.
+# Optional on licence grounds, exactly as `video` is: pypdb2pov is
+# GPL-2.0-or-later and this is a BSD-3 project, so it goes out on request
+# rather than by default.
+molecules = ["pypdb2pov>=0.1.0"]
 
 [project.urls]
 Homepage = "https://github.com/suchanek/quiltwright"
@@ -117,6 +105,12 @@ optional = true
 
 [tool.poetry.group.viz.dependencies]
 pyvista = ">=0.44"
+
+[tool.poetry.group.molecules]
+optional = true
+
+[tool.poetry.group.molecules.dependencies]
+pypdb2pov = ">=0.1.0"
 
 [tool.poetry.group.video]
 optional = true
