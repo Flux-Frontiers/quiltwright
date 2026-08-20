@@ -130,12 +130,16 @@ Optional; feeds the POV-Ray backend with molecular structures. There are two
 implementations, writing byte-identical scenes.
 
 **`pypdb2pov`, the Python port** -- no compiler, no dependencies, reads mmCIF,
-and importable from the same script that renders the quilt:
+and importable from the same script that renders the quilt. It has its own
+repository as of 0.1.0; the `python/` tree inside the C repo is retired:
 
 ```bash
-git clone https://github.com/suchanek/pdb2pov
-pip install ./pdb2pov/python
+pip install git+https://github.com/Flux-Frontiers/pypdb2pov
 ```
+
+Not on PyPI yet, and the repository is private, which is why there is no
+`quiltwright[molecules]` extra to install it for you -- `pyproject.toml`
+records what has to change first.
 
 **`pdb2pov`, the C program** -- the 1993 original, whose portability fixes now
 live upstream, so a fresh clone just builds:
@@ -149,7 +153,10 @@ The two commands differ only in name, so both can sit on one `PATH`.
 
 Either way the scenes reference POV-Ray include files that must be on the
 library path. `pypdb2pov --include-dir` prints where the Python package keeps
-them; with the C program they sit in the clone.
+them -- inside the package, so wherever it is installed is where they are;
+with the C program they sit in the clone.
+[`scripts/render_vitrine.py`](../scripts/render_vitrine.py) asks the package
+directly rather than being told a path.
 
 See [pdb2pov.md](pdb2pov.md) for which to choose, the build notes, and the
 render pipeline.
