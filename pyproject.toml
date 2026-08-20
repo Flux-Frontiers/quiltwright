@@ -78,9 +78,12 @@ video = ["imageio-ffmpeg>=0.4"]
 # reports where they landed, and scripts/render_vitrine.py asks the package
 # rather than being told a path.
 #
-# Optional on licence grounds, exactly as `video` is: pypdb2pov is
-# GPL-2.0-or-later and this is a BSD-3 project, so it goes out on request
-# rather than by default.
+# Optional for the same reason `viz` is: only the molecular scenes need it,
+# and a machine that renders anything else should not carry it.  (It is
+# BSD-3-Clause, like this project -- the 0.1.0 metadata on PyPI says
+# GPL-2.0-or-later, which is a packaging error corrected in its repository
+# and fixed on PyPI by the next release, since per-release metadata is
+# immutable.)
 molecules = ["pypdb2pov>=0.1.0"]
 
 [project.urls]
