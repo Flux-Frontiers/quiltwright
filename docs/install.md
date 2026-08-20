@@ -150,12 +150,6 @@ it, and a machine rendering anything else should not carry it -- the same
 ground the `viz` extra stands on. There is no licence obstacle: pypdb2pov is
 BSD-3-Clause like quiltwright itself.
 
-> The `0.1.0` metadata on PyPI reports `GPL-2.0-or-later`. That is a
-> packaging error, corrected in the source repository; PyPI metadata is
-> immutable per release, so the correction reaches an installed package only
-> with the next version. The `LICENSE` file in the distribution is the BSD-3
-> text.
-
 **`pdb2pov`, the C program** -- the 1993 original, whose portability fixes now
 live upstream, so a fresh clone just builds:
 

@@ -84,7 +84,7 @@ video = ["imageio-ffmpeg>=0.4"]
 # GPL-2.0-or-later, which is a packaging error corrected in its repository
 # and fixed on PyPI by the next release, since per-release metadata is
 # immutable.)
-molecules = ["pypdb2pov>=0.1.0"]
+molecules = ["pypdb2pov>=0.1.1"]
 
 [project.urls]
 Homepage = "https://github.com/suchanek/quiltwright"
@@ -113,7 +113,7 @@ pyvista = ">=0.44"
 optional = true
 
 [tool.poetry.group.molecules.dependencies]
-pypdb2pov = ">=0.1.0"
+pypdb2pov = ">=0.1.1"
 
 [tool.poetry.group.video]
 optional = true
