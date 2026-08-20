@@ -103,9 +103,16 @@ PyMOL headless and emitting an include on **this same contract** -- origin
 centred, `_enclosing_radius` beside it, no camera. So a cartoon mounts exactly
 like an atom scene:
 
+```sh
+quiltwright cartoon 2omf.cif.gz ompf_cartoon.inc   # 75,792 faces, R = 46.97
+quiltwright cartoon --check                        # is PyMOL reachable, and how
+```
+
+or in-process, which is the same call:
+
 ```python
 from quiltwright.pymol import cartoon_inc
-cartoon_inc("2omf.cif.gz", "ompf_cartoon.inc")     # 75,792 faces, R = 46.97
+cartoon_inc("2omf.cif.gz", "ompf_cartoon.inc")
 ```
 
 ```pov

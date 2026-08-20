@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import json
 import urllib.request
+from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
@@ -431,3 +432,177 @@ class TestBridgeReset:
         result = runner.invoke(cli, ["bridge", "reset"])
         assert result.exit_code == 1
         assert "macOS only" in result.output
+
+
+class TestCartoon:
+    """``quiltwright cartoon`` -- the shell face of the PyMOL bridge.
+
+    PyMOL is never invoked here.  What matters at this layer is that the
+    command validates before it starts a several-second subprocess, reports
+    an absent PyMOL as advice rather than a traceback, and passes what it was
+    given through unaltered.
+    """
+
+    def test_check_reports_the_subprocess_route_without_converting(self, runner, monkeypatch):
+        """The Homebrew build is the common install and is not importable, so
+        "found but not importable" is the normal answer, not a warning.
+        """
+        import quiltwright.pymol as mod
+
+        monkeypatch.setattr(mod, "available", lambda: "subprocess")
+        result = runner.invoke(cli, ["cartoon", "--check"])
+        assert result.exit_code == 0
+        assert "subprocess" in result.output
+        assert "Homebrew" in result.output
+
+    def test_check_reports_the_importable_route(self, runner, monkeypatch):
+        import quiltwright.pymol as mod
+
+        monkeypatch.setattr(mod, "available", lambda: "module")
+        result = runner.invoke(cli, ["cartoon", "--check"])
+        assert result.exit_code == 0
+        assert "importable" in result.output
+
+    def test_check_fails_with_install_advice_when_pymol_is_absent(self, runner, monkeypatch):
+        """The failure a first-time user hits, so it carries the fix and a
+        non-zero status a script can branch on.
+        """
+        import quiltwright.pymol as mod
+
+        monkeypatch.setattr(mod, "available", lambda: None)
+        result = runner.invoke(cli, ["cartoon", "--check"])
+        assert result.exit_code != 0
+        assert "brew install pymol" in result.output
+        assert "conda" in result.output
+
+    def test_an_unknown_representation_is_refused_before_pymol_starts(self, runner, tmp_path):
+        """Starting PyMOL to discover a typo costs seconds; the check is free."""
+        source = tmp_path / "x.pdb"
+        source.write_text("ATOM\n")
+        result = runner.invoke(
+            cli, ["cartoon", str(source), str(tmp_path / "o.inc"), "--rep", "ballandstick"]
+        )
+        assert result.exit_code != 0
+        assert "is not one of" in result.output
+
+    def test_source_and_output_are_required_unless_check(self, runner):
+        result = runner.invoke(cli, ["cartoon"])
+        assert result.exit_code != 0
+        assert "required unless --check" in result.output
+
+    def test_options_reach_cartoon_inc_unaltered(self, runner, tmp_path, monkeypatch):
+        """The command is a pass-through; anything it quietly rewrites is a
+        surprise waiting to happen.
+        """
+        import quiltwright.pymol as mod
+
+        seen: dict = {}
+
+        def fake(source, out, **kwargs):
+            seen["source"] = source
+            seen["out"] = out
+            seen.update(kwargs)
+            Path(out).write_text("")
+            return mod.CartoonResult(
+                path=Path(out),
+                identifier="thing",
+                enclosing_radius=12.5,
+                centre=(0.0, 0.0, 0.0),
+                vertices=3,
+                faces=1,
+                rep=kwargs["rep"],
+                backend="subprocess",
+            )
+
+        monkeypatch.setattr(mod, "cartoon_inc", fake)
+        source = tmp_path / "x.cif.gz"
+        source.write_text("")
+        result = runner.invoke(
+            cli,
+            [
+                "cartoon",
+                str(source),
+                str(tmp_path / "o.inc"),
+                "--rep",
+                "surface",
+                "--selection",
+                "chain A",
+                "--assembly",
+                "",
+                "--transparency",
+                "0.4",
+                "--surface-quality",
+                "-1",
+                "--name",
+                "custom",
+                "--raw",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        assert seen["rep"] == "surface"
+        assert seen["selection"] == "chain A"
+        assert seen["assembly"] == ""
+        assert seen["transparency"] == pytest.approx(0.4)
+        assert seen["surface_quality"] == -1
+        assert seen["name"] == "custom"
+        # --raw is the negation of coalescing, which is on by default.
+        assert seen["coalesce"] is False
+
+    def test_colour_none_is_passed_as_none_not_the_string(self, runner, tmp_path, monkeypatch):
+        """ "none" on a command line has to become Python's None, or PyMOL is
+        asked to colour everything with a colour called "none".
+        """
+        import quiltwright.pymol as mod
+
+        seen: dict = {}
+
+        def fake(source, out, **kwargs):
+            seen.update(kwargs)
+            Path(out).write_text("")
+            return mod.CartoonResult(
+                path=Path(out),
+                identifier="t",
+                enclosing_radius=1.0,
+                centre=(0.0, 0.0, 0.0),
+                vertices=0,
+                faces=0,
+                rep="cartoon",
+                backend="module",
+            )
+
+        monkeypatch.setattr(mod, "cartoon_inc", fake)
+        source = tmp_path / "x.pdb"
+        source.write_text("")
+        result = runner.invoke(
+            cli, ["cartoon", str(source), str(tmp_path / "o.inc"), "--color", "none"]
+        )
+        assert result.exit_code == 0, result.output
+        assert seen["color"] is None
+
+    def test_the_summary_says_how_to_mount_what_was_written(self, runner, tmp_path, monkeypatch):
+        """The next thing anyone does with the file is include it, so the
+        command hands over the line that does it.
+        """
+        import quiltwright.pymol as mod
+
+        def fake(source, out, **kwargs):
+            Path(out).write_text("x" * 2048)
+            return mod.CartoonResult(
+                path=Path(out),
+                identifier="_2omf",
+                enclosing_radius=46.97,
+                centre=(0.0, 0.0, 0.0),
+                vertices=38256,
+                faces=75792,
+                rep="cartoon",
+                backend="subprocess",
+            )
+
+        monkeypatch.setattr(mod, "cartoon_inc", fake)
+        source = tmp_path / "2omf.cif.gz"
+        source.write_text("")
+        result = runner.invoke(cli, ["cartoon", str(source), str(tmp_path / "2omf.inc")])
+        assert result.exit_code == 0, result.output
+        assert "Vitrine_Mount(_2omf, _2omf_enclosing_radius)" in result.output
+        assert "75792 faces" in result.output
+        assert "46.970" in result.output

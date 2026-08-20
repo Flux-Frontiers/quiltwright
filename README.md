@@ -40,12 +40,11 @@ panels, or into 2-D video for Hololuminescent displays. A third output -- a
 
 ## Latest news
 
-**v0.7.0 (2026-08-18).** The CLI now covers the whole tail of the pipeline.
-`quiltwright cast` puts a saved quilt on the panel, recovering its tiling from
+**v0.7.0 (2026-08-18).** The CLI now includes a new command:
+`quiltwright cast`. It puts a saved quilt on the panel, recovering its tiling from
 the filename; `quiltwright wallpaper` completes the no-Bridge path, hanging a
 woven frame on the desktop of the panel it was woven for, matched by serial;
-and `quiltwright bridge status` / `reset` exist because Bridge keeps answering
-HTTP after it has crashed, so a cast can report success against a daemon that
+the `quiltwright bridge status` / `reset` commands exist because the LG Bridge keeps answering HTTP after it has crashed, so a cast can report success against a daemon that
 will never draw. Every full quilt now writes a provenance record to
 `renders/reports/` -- scene hash, commit, camera, measured depths, the depth
 budget verbatim and the output's digest -- because a quilt is a gitignored
@@ -85,9 +84,7 @@ pypdb2pov's PDB conversion are the two that drove the design, but
 as-is, `quiltwright.povgen` writes POV-Ray from analytic primitives, and a
 plain `.pov` file off your disk needs no pipeline at all.
 
-**Two display technologies**, which are easy to confuse because one company
-sells both. *Light-field displays* (LFD -- Portrait, Go, 16"/27"/32"/65") are
-lenticular panels that consume **quilts**: N views of the same scene tiled into
+**Two display technologies** *Light-field displays* (LFD -- Portrait, Go, 16"/27"/32"/65") arelenticular panels that consume **quilts**: N views of the same scene tiled into
 one image, fused optically into real depth. *Hololuminescent displays* (HLD --
 16"/27"/86") play **ordinary 2-D video** behind a fixed holographic optic, and
 need styling rather than parallax -- dark field, high contrast, generous safe
@@ -350,7 +347,16 @@ quiltwright cast --check        # which displays can Bridge see?
 
 quiltwright weave renders/quilts/bell-jar-holo_qs8x6a1.77778.png --cal visual.json
 quiltwright wallpaper bell-jar-holo_native_LKG-J00332.png
+
+quiltwright cartoon 2omf.cif.gz ompf_cartoon.inc   # a molecular ribbon, via PyMOL
+quiltwright cartoon --check     # is PyMOL reachable, and by which route?
 ```
+
+`cartoon` is the one command that reaches outside the pipeline: it drives
+PyMOL to draw the representations `pypdb2pov` cannot -- ribbons and surfaces --
+and writes them on the same object-only contract, so a cartoon mounts in a
+scene exactly where an atom model would. PyMOL is optional and never a
+dependency; `--check` says whether it is reachable before anything is loaded.
 
 `cast` recovers the tiling from the `_qs<cols>x<rows>a<aspect>` filename suffix
 that `save_quilt()` writes, so it usually needs no flags whatever produced the
