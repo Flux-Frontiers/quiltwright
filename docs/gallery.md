@@ -175,6 +175,15 @@ heir to `porin/3porin.pov` above.*
 *`exhibit_f1atpase.pov` -- 1BMF, 23,481 atoms, 79.0 A. The largest, on the
 same plinth at the same camera.*
 
+![OmpF porin, as a cartoon](../gallery/vitrine_ompf_cartoon.png)
+
+*`exhibit_ompf_cartoon.pov` -- the same porin trimer as a Richardson cartoon
+rather than as atoms, via [`quiltwright.pymol`](../src/quiltwright/pymol.py).
+`porin/3porin.png` above is the same subject drawn the same way in 1994, by an
+exporter whose output survives in no repository; this one comes from a PDB ID
+and a command line. Its geometry is generated rather than committed -- 8.9 MB
+for one trimer -- so the wrapper carries the command that makes it.*
+
 ---
 
 ## PyVista datasets

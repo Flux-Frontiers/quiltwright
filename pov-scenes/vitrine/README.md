@@ -95,6 +95,33 @@ renders as a solid dome.
 
 ---
 
+## Cartoons
+
+`pdb2pov` writes atoms and bonds; it has no ribbon and never had one.
+[`quiltwright.pymol`](../../src/quiltwright/pymol.py) supplies that, by driving
+PyMOL headless and emitting an include on **this same contract** -- origin
+centred, `_enclosing_radius` beside it, no camera. So a cartoon mounts exactly
+like an atom scene:
+
+```python
+from quiltwright.pymol import cartoon_inc
+cartoon_inc("2omf.cif.gz", "ompf_cartoon.inc")     # 75,792 faces, R = 46.97
+```
+
+```pov
+#include "ompf_cartoon.inc"
+Vitrine_Mount(ompf_cartoon, ompf_cartoon_enclosing_radius)
+```
+
+`exhibit_gfp_cartoon.pov` and `exhibit_ompf_cartoon.pov` do that. Their `.inc`
+files are gitignored -- one porin trimer is 8.9 MB -- so generate them first;
+each wrapper's header carries the command.
+
+PyMOL is optional and never a dependency: it is not OSI-licensed and this is
+a BSD-3 project. `quiltwright.pymol.available()` reports whether it can be
+imported, only found on `PATH` (the Homebrew build bundles its own
+interpreter, so this is the usual answer), or is absent.
+
 ## Parameters
 
 Set any of these before `#include "vitrine.inc"`.
