@@ -352,6 +352,16 @@ quiltwright cartoon 2omf.cif.gz ompf_cartoon.inc   # a molecular ribbon, via PyM
 quiltwright cartoon --check     # is PyMOL reachable, and by which route?
 ```
 
+For a structure you have not downloaded yet, one command covers the whole
+pipeline -- fetch, convert, compose, render -- narrating each step:
+
+```bash
+python scripts/make_exhibit.py 7AHL --label "ALPHA-HEMOLYSIN" --quilt
+```
+
+Structures land in `$PDB` (default `~/pdb`), and nothing already there is
+fetched twice.
+
 `cartoon` is the one command that reaches outside the pipeline: it drives
 PyMOL to draw the representations `pypdb2pov` cannot -- ribbons and surfaces --
 and writes them on the same object-only contract, so a cartoon mounts in a
