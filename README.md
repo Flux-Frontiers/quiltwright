@@ -23,8 +23,8 @@ camera appended per view.
 
 It is used that way by [WaveRider](https://github.com/Flux-Frontiers/waverider)
 for geometric ML manifolds and by
-[pdb2pov](https://github.com/suchanek/pdb2pov) for molecular structures, but
-neither is a prerequisite. If you can render it, you can hang it in the air.
+[pypdb2pov](https://github.com/Flux-Frontiers/pypdb2pov) for molecular
+structures, but neither is a prerequisite. If you can render it, you can hang it in the air.
 
 ![Eric's Science Museum, the canonical POV-Ray render](https://raw.githubusercontent.com/suchanek/quiltwright/v0.7.0/renders/stills/museum.png)
 
@@ -66,7 +66,7 @@ _Full history: [CHANGELOG.md](CHANGELOG.md) and
    (WaveRider, TVB)   |        |  off-axis views  |        |          multi-view quilts
                       +------->|  depth budget    |------->+-->  HLD  hololuminescent
   POV-Ray  -----------+        |  quilt assembly  |        |          2-D video
-   (pdb2pov)                   |  view sweeps     |        +-->  LitiHolo  hogel sweeps
+   (pypdb2pov, PyMOL)          |  view sweeps     |        +-->  LitiHolo  hogel sweeps
                                +------------------+                       (in development)
 ```
 
@@ -79,7 +79,7 @@ everything downstream of that point is indifferent to which one produced the
 views.
 
 What feeds the backends is open. WaveRider's voxel and manifold visualiser and
-pdb2pov's PDB conversion are the two that drove the design, but
+pypdb2pov's PDB conversion are the two that drove the design, but
 `quiltwright.tvb_data` pulls real brain geometry from
 [The Virtual Brain](docs/tvb-data.md), PyVista's own example datasets work
 as-is, `quiltwright.povgen` writes POV-Ray from analytic primitives, and a
@@ -138,7 +138,7 @@ package:
 brew install povray                  # macOS
 ```
 
-For the complete stack -- renderers, ffmpeg, Looking Glass Bridge, pdb2pov --
+For the complete stack -- renderers, ffmpeg, Looking Glass Bridge, pypdb2pov --
 see the [installation guide](docs/install.md).
 
 ---
@@ -423,14 +423,14 @@ QUILT_PRESETS["16-landscape"]      # 8x6 views, 7680x4320, aspect 1.7778
 
 | Document | Contents |
 |----------|----------|
-| [docs/install.md](docs/install.md) | Installing the full stack: package extras, POV-Ray, ffmpeg, Bridge, pdb2pov |
+| [docs/install.md](docs/install.md) | Installing the full stack: package extras, POV-Ray, ffmpeg, Bridge, pypdb2pov |
 | [docs/lfd.md](docs/lfd.md) | Light-field output, Bridge/Studio setup, device presets, the PyVista path, view sweeps for hologram printers |
 | [docs/pyvista-datasets.md](docs/pyvista-datasets.md) | PyVista dataset ideas for holograms: topography, the Allen mouse brain atlas, other strong-depth candidates |
 | [docs/tvb-data.md](docs/tvb-data.md) | Brain geometry from The Virtual Brain: cortical surfaces, connectomes, parcellations, downloaded on demand |
 | [docs/povray.md](docs/povray.md) | The POV-Ray backend: off-axis camera derivation, depth budget, sweep clearance, a worked case study |
 | [docs/povgen.md](docs/povgen.md) | Writing POV-Ray scenes from analytic primitives, so a scene composed in Python can be ray-traced rather than rasterised |
 | [docs/pov-workflow.md](docs/pov-workflow.md) | The procedure: taking an archive scene from "won't parse" to a quilt that fuses, step by step |
-| [docs/pdb2pov.md](docs/pdb2pov.md) | Rendering molecular structures from PDB and mmCIF files as holograms, from the shell or in-process |
+| [docs/pdb2pov.md](docs/pdb2pov.md) | Rendering molecular structures as holograms with pypdb2pov, from the shell or in-process |
 | [docs/hld.md](docs/hld.md) | Hololuminescent Displays, which play ordinary 2-D video rather than quilts |
 | [docs/about-the-image.md](docs/about-the-image.md) | The museum scene: what is on display, and the thirty-year pipeline behind it |
 | [docs/gallery.md](docs/gallery.md) | Every image in `gallery/`, which scene made it, and the aspect each must be rendered at |
@@ -455,11 +455,14 @@ tests skip when no `povray` binary is present. Under a headless CI runner, use
 - [WaveRider](https://github.com/Flux-Frontiers/waverider) -- manifold-aware
   geometric ML. Its voxel and manifold visualiser builds the PyVista scenes
   that `render_quilt()` sweeps.
-- [pdb2pov](https://github.com/suchanek/pdb2pov) -- PDB and mmCIF to POV-Ray
-  converter, written in C in 1993 and still building from a fresh clone. It
-  produced the molecular models in the image above, and still feeds the
-  POV-Ray backend. `pypdb2pov`, its Python port, writes byte-identical scenes
-  and imports, so a conversion and a quilt render fit in one script.
+- [pypdb2pov](https://github.com/Flux-Frontiers/pypdb2pov) -- PDB and mmCIF to
+  POV-Ray, and the converter this pipeline actually calls. It reads mmCIF and
+  compressed input, ships the atom textures inside the package, and imports,
+  so a conversion and a quilt render fit in one script. Its scenes are
+  byte-identical to those of
+  [pdb2pov](https://github.com/suchanek/pdb2pov), the 1993 C original that
+  produced the molecular models in the image above and still builds from a
+  fresh clone.
 - [proteusPy](https://github.com/suchanek/proteusPy) -- protein disulfide bond
   analysis and rendering.
 
