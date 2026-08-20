@@ -73,9 +73,8 @@ _Full history: [CHANGELOG.md](CHANGELOG.md) and
 scene held in memory. `render_pov_quilt()` ray-traces any POV-Ray scene on
 disk, appending a camera per view and modifying nothing -- which is what lets
 it render files written decades ago, by tools that no longer exist, without
-touching them. The two meet at a shared, renderer-agnostic assembler, so
-everything downstream of that point is indifferent to which one produced the
-views.
+altering them. The two converge at a shared, renderer-agnostic assembler, so
+everything downstream remains indifferent to which backend produced the views.
 
 What feeds the backends is open. WaveRider's voxel and manifold visualiser and
 pypdb2pov's PDB conversion are the two that drove the design, but
@@ -84,40 +83,43 @@ pypdb2pov's PDB conversion are the two that drove the design, but
 as-is, `quiltwright.povgen` writes POV-Ray from analytic primitives, and a
 plain `.pov` file off your disk needs no pipeline at all.
 
-**Two display technologies** *Light-field displays* (LFD -- Portrait, Go, 16"/27"/32"/65") arelenticular panels that consume **quilts**: N views of the same scene tiled into
-one image, fused optically into real depth. *Hololuminescent displays* (HLD --
-16"/27"/86") play **ordinary 2-D video** behind a fixed holographic optic, and
-need styling rather than parallax -- dark field, high contrast, generous safe
-margins. `quiltwright.lfd` targets the first; `quiltwright.hld` the second.
+**Two display technologies.** *Light-field displays* (LFD -- Portrait, Go,
+16"/27"/32"/65") are lenticular panels that consume **quilts**: N views of the
+same scene tiled into one image, fused optically into real depth.
+*Hololuminescent displays* (HLD -- 16"/27"/86") play **ordinary 2-D video**
+behind a fixed holographic optic and require styling rather than parallax:
+dark field, high contrast, generous safe margins. `quiltwright.lfd` targets the
+first; `quiltwright.hld` the second.
 
 The shared middle is what makes this a package rather than two scripts: quilt
-geometry and device presets, the depth-budget arithmetic that decides whether a
-scene will fuse before you spend an hour rendering it, filename conventions
+geometry and device presets, depth-budget arithmetic that decides whether a
+scene will fuse before you spend an hour rendering it, filename conventions the
 Looking Glass software parses, video encoding, and direct Bridge control.
 
-**A third output, under development.** That middle also serves consumers that
-are not panels at all: `render_pov_views()` writes the sweep as separate frames,
-and `sweep_spec()` / `LITIHOLO_SWEEP` give the single-row layout a hologram
-printer's prime view count needs and a quilt grid cannot express -- so one scene
-feeds a light-field panel and a hologram printer without being rebuilt. Nothing
-has been through a printer's software yet, so the claim is a sweep matching
-LitiHolo's published specification rather than verified compatibility;
-[docs/lfd.md](docs/lfd.md#view-sweeps--when-the-consumer-is-not-a-panel) records
-what is still open.
+**A third output, under development.** That middle layer also serves consumers
+that are not panels at all: `render_pov_views()` writes the sweep as separate
+frames, and `sweep_spec()` / `LITIHOLO_SWEEP` provide the single-row layout a
+hologram printer's view count requires -- a structure a quilt grid cannot
+express -- so one scene feeds a light-field panel and a hologram printer without
+being rebuilt. Nothing has yet passed through a printer's software, so the
+claim is a sweep matching LitiHolo's published specification rather than
+verified compatibility;
+[docs/lfd.md](docs/lfd.md#view-sweeps--when-the-consumer-is-not-a-panel)
+records what remains open.
 
 ### The part that is easy to get wrong
 
-Each view must use an **off-axis (asymmetric-frustum) projection** -- the camera
+Each view must use an **off-axis (asymmetric-frustum) projection**: the camera
 slides sideways while continuing to face the same direction, with the image
 plane sheared back onto the original view axis.
 
 The intuitive alternative is to swivel each camera to keep the subject centred.
-That is "toe-in", and it introduces vertical parallax and keystone distortion,
-so the display cannot fuse the views: you get ghosting instead of depth. It is
-the single most common way light-field renders go wrong, and it produces output
-that looks perfectly plausible in any individual frame. Quiltwright does the
-off-axis projection correctly in both backends, and gives you the arithmetic to
-know in advance whether a scene will fuse.
+This "toe-in" approach introduces vertical parallax and keystone distortion, so
+the display cannot fuse the views: you get ghosting instead of depth. It is the
+single most common way light-field renders go wrong, and it produces output
+that looks perfectly plausible in any individual frame. Quiltwright implements
+the off-axis projection correctly in both backends and provides the arithmetic
+to predict whether a scene will fuse.
 
 ---
 
