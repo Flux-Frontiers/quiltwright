@@ -7,6 +7,66 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-08-24
+
+### Added
+
+- **A standard museum vitrine -- a stone plinth under a bell jar, lit like an
+  exhibit -- for any molecule at all.** `scripts/render_vitrine.py` normalises
+  the molecule to a unit sphere using the enclosing radius `pdb2pov` already
+  writes into every file, so one camera and one depth budget serve GFP (31.2 A),
+  hemoglobin (40.3 A), OmpF (51.0 A) and F1-ATPase (79.0 A) with no per-structure
+  tuning. The bell jar and the plinth taper are both derived from that same
+  radius, so neither can clip a structure the enclosing sphere describes
+  correctly. Alongside it: a 2026 museum cut composed for a 16:9 panel rather
+  than 10x8 paper, a metallic plaque wrapped round the plinth shaft, and
+  `gallery/` moving to the repository top level -- it is presented work, not a
+  build artefact, and living under `renders/` (which otherwise holds only
+  output) made it look like one.
+
+- **`quiltwright cartoon` -- Richardson cartoons through the same pipeline as
+  every other exhibit.** `pdb2pov` has emitted atoms and bonds since 1993 and
+  nothing else; the archive's one ribbon-cartoon image survived from a 1993-94
+  mesh exporter whose output exists nowhere in any repository. `cartoon_inc()`
+  now writes an object-only include on the same contract `pypdb2pov` writes --
+  origin-centred, `<name>_enclosing_radius` alongside it, no camera, no lights
+  -- so `render_pov_quilt`, `PovCamera` and the vitrine need no changes at all
+  to mount one. Getting there needed a `mesh2` emitter povgen never had (Mesh2
+  honours the flip-z winding contract explicitly, since a wrong triangle
+  orientation lights a mesh from behind in a way that reads as a lighting bug)
+  and a coalescer for PyMOL's `cmd.get_povray()`, which emits one `mesh2` per
+  triangle -- OmpF arrives as 75,792 separate meshes and 41 MB and leaves as
+  one mesh and single-digit MB, re-parsed 48 times per quilt otherwise.
+
+- **`scripts/make_exhibit.py` -- fetch, convert, compose, render, sweep, in one
+  command.** `python scripts/make_exhibit.py 7AHL --label "ALPHA-HEMOLYSIN"
+  --quilt` replaces what used to be a `curl -O` into whatever directory you
+  happened to be standing in. Structures land in `$PDB` (default `~/pdb`), the
+  convention proteusPy already follows, so a file fetched for one tool is
+  there for the next. Assembly 1 (the biological unit, not the deposited
+  asymmetric unit) is the default, since nothing in a PDB file says the
+  asymmetric unit is a fraction of the molecule -- ferritin's is a 24th of a
+  ferritin. `--rep atoms` goes through `pypdb2pov`; every other representation
+  through PyMOL, and the composed scene does not care which, because both
+  write the same object-only contract.
+
+- **The `molecules` extra.** `pip install "quiltwright[molecules]"` now
+  resolves from PyPI now that `pypdb2pov` is published there, and
+  `render_vitrine.py` asks the installed package for its include directory
+  (`pypdb2pov.include_dir()`) instead of a machine-local path that was only
+  ever true on the machine it was written on.
+
+### Fixed
+
+- **The `molecules` extra now floors at `pypdb2pov>=0.1.1`.** `0.1.0`'s
+  published PyPI metadata reports `GPL-2.0-or-later`; the project is actually
+  BSD-3-Clause, and PyPI metadata is immutable per release, so the only way
+  not to hand someone the mislabelled release is to refuse to resolve to it.
+- Release headings in this changelog used an inconsistent dash separator, so
+  `fleet_audit.py`'s parser -- which expects `## [x.y.z] - YYYY-MM-DD` --
+  silently matched fewer releases than actually shipped. Normalised to one
+  hyphen throughout.
+
 ## [0.7.0] - 2026-08-18
 
 ### Added

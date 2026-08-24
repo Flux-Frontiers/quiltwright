@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/suchanek/quiltwright/v0.7.0/assets/logo_pack/quiltwright_logo_512.png" alt="Quiltwright" width="512"/>
+  <img src="https://raw.githubusercontent.com/suchanek/quiltwright/v0.8.0/assets/logo_pack/quiltwright_logo_512.png" alt="Quiltwright" width="512"/>
 </p>
 
 [![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](LICENSE)
 [![PyPI](https://img.shields.io/pypi/v/quiltwright.svg)](https://pypi.org/project/quiltwright/)
-[![Version](https://img.shields.io/badge/version-0.7.0-blue.svg)](https://github.com/suchanek/quiltwright/releases)
+[![Version](https://img.shields.io/badge/version-0.8.0-blue.svg)](https://github.com/suchanek/quiltwright/releases)
 [![Tests](https://github.com/suchanek/quiltwright/actions/workflows/tests.yml/badge.svg)](https://github.com/suchanek/quiltwright/actions/workflows/tests.yml)
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.21798503-blue.svg)](https://doi.org/10.5281/zenodo.21798503)
 
@@ -26,7 +26,7 @@ for geometric ML manifolds and by
 [pypdb2pov](https://github.com/Flux-Frontiers/pypdb2pov) for molecular
 structures, but neither is a prerequisite. If you can render it, you can hang it in the air.
 
-![Eric's Science Museum, the canonical POV-Ray render](https://raw.githubusercontent.com/suchanek/quiltwright/v0.7.0/renders/stills/museum.png)
+![Eric's Science Museum, the canonical POV-Ray render](https://raw.githubusercontent.com/suchanek/quiltwright/v0.8.0/gallery/museum.png)
 
 *A career in structural biophysics, arranged as exhibits: B-DNA and Z-DNA
 under bell jars, Ras and my original **DNA Under Glass** on the walls. The molecular
@@ -40,16 +40,16 @@ panels, or into 2-D video for Hololuminescent displays. A third output -- a
 
 ## Latest news
 
-**v0.7.0 (2026-08-18).** The CLI now includes a new command:
-`quiltwright cast`. It puts a saved quilt on the panel, recovering its tiling from
-the filename; `quiltwright wallpaper` completes the no-Bridge path, hanging a
-woven frame on the desktop of the panel it was woven for, matched by serial;
-the `quiltwright bridge status` / `reset` commands exist because the LG Bridge keeps answering HTTP after it has crashed, so a cast can report success against a daemon that
-will never draw. Every full quilt now writes a provenance record to
-`renders/reports/` -- scene hash, commit, camera, measured depths, the depth
-budget verbatim and the output's digest -- because a quilt is a gitignored
-25-40 MB PNG that says nothing about where it came from. A render started
-outside `make` no longer takes every core on the machine.
+**v0.8.0 (2026-08-24).** A standard museum vitrine -- a stone plinth under a
+bell jar, lit like an exhibit -- now hosts any molecule at all on one camera
+and one depth budget, normalised to the enclosing radius `pdb2pov` already
+writes into every file. `quiltwright cartoon` closes a gap open since 1993:
+Richardson cartoons through the same object-only contract as atoms and bonds,
+built on a new `mesh2` primitive in povgen and a coalescer that turns PyMOL's
+one-mesh-per-triangle output (75,792 meshes on OmpF) into one mesh POV-Ray can
+parse quickly. `scripts/make_exhibit.py` runs the whole pipeline -- fetch,
+convert, compose, render, sweep -- in one command, and the `molecules` extra
+(`pip install "quiltwright[molecules]"`) now resolves straight from PyPI.
 
 _Full history: [CHANGELOG.md](CHANGELOG.md) and
 [releases](https://github.com/suchanek/quiltwright/releases)._
@@ -392,7 +392,7 @@ on Zenodo.
   title   = {Quiltwright: Holographic Output for Looking Glass Displays},
   url     = {https://github.com/suchanek/quiltwright},
   doi     = {10.5281/zenodo.21798503},
-  version = {0.7.0},
+  version = {0.8.0},
   year    = {2026}
 }
 ```
