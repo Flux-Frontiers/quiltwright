@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/suchanek/quiltwright/v0.8.0/assets/logo_pack/quiltwright_logo_512.png" alt="Quiltwright" width="512"/>
+  <img src="https://raw.githubusercontent.com/suchanek/quiltwright/v0.9.0/assets/logo_pack/quiltwright_logo_512.png" alt="Quiltwright" width="512"/>
 </p>
 
 [![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](LICENSE)
 [![PyPI](https://img.shields.io/pypi/v/quiltwright.svg)](https://pypi.org/project/quiltwright/)
-[![Version](https://img.shields.io/badge/version-0.8.0-blue.svg)](https://github.com/suchanek/quiltwright/releases)
+[![Version](https://img.shields.io/badge/version-0.9.0-blue.svg)](https://github.com/suchanek/quiltwright/releases)
 [![Tests](https://github.com/suchanek/quiltwright/actions/workflows/tests.yml/badge.svg)](https://github.com/suchanek/quiltwright/actions/workflows/tests.yml)
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.21798503-blue.svg)](https://doi.org/10.5281/zenodo.21798503)
 
@@ -26,7 +26,7 @@ for geometric ML manifolds and by
 [pypdb2pov](https://github.com/Flux-Frontiers/pypdb2pov) for molecular
 structures, but neither is a prerequisite. If you can render it, you can hang it in the air.
 
-![Eric's Science Museum, the canonical POV-Ray render](https://raw.githubusercontent.com/suchanek/quiltwright/v0.8.0/gallery/museum.png)
+![Eric's Science Museum, the canonical POV-Ray render](https://raw.githubusercontent.com/suchanek/quiltwright/v0.9.0/gallery/museum.png)
 
 *A career in structural biophysics, arranged as exhibits: B-DNA and Z-DNA
 under bell jars, Ras and my original **DNA Under Glass** on the walls. The molecular
@@ -40,16 +40,20 @@ panels, or into 2-D video for Hololuminescent displays. A third output -- a
 
 ## Latest news
 
-**v0.8.0 (2026-08-24).** A standard museum vitrine -- a stone plinth under a
-bell jar, lit like an exhibit -- now hosts any molecule at all on one camera
-and one depth budget, normalised to the enclosing radius `pdb2pov` already
-writes into every file. `quiltwright cartoon` closes a gap open since 1993:
-Richardson cartoons through the same object-only contract as atoms and bonds,
-built on a new `mesh2` primitive in povgen and a coalescer that turns PyMOL's
-one-mesh-per-triangle output (75,792 meshes on OmpF) into one mesh POV-Ray can
-parse quickly. `scripts/make_exhibit.py` runs the whole pipeline -- fetch,
-convert, compose, render, sweep -- in one command, and the `molecules` extra
-(`pip install "quiltwright[molecules]"`) now resolves straight from PyPI.
+**v0.9.0 (2026-08-26).** A third rendering backend: Blender Cycles, with
+hardware ray tracing where the GPU offers it -- Metal on Apple Silicon,
+OptiX/HIP/oneAPI elsewhere. `render_cycles_quilt_from_plotter()` bridges it
+straight from a PyVista plotter, mirroring `render_quilt()`'s own API;
+`render_cycles_quilt()` takes `.blend` files and mesh formats directly, with
+`lighting=` rigs (`"soft"`/`"studio"`/`"sky"`/an HDRI path) for scenes that
+arrive with no lights of their own. Two worked examples put the backends head
+to head on identical geometry -- a DNA helix (POV-Ray's analytic primitives
+win outright) and a real PyMOL Richardson cartoon (Cycles' turn, on real
+triangle counts) -- and running the second against a real PyMOL install
+caught three real bugs: every POV-Ray colour in the package was rendering
+2-3x too bright, `cartoon_obj()`'s OBJ import came in rotated 90 degrees
+against its own camera, and a failed PyMOL export used to surface as a bare
+`FileNotFoundError` far from its actual cause.
 
 _Full history: [CHANGELOG.md](CHANGELOG.md) and
 [releases](https://github.com/suchanek/quiltwright/releases)._
@@ -457,7 +461,7 @@ on Zenodo.
   title   = {Quiltwright: Holographic Output for Looking Glass Displays},
   url     = {https://github.com/suchanek/quiltwright},
   doi     = {10.5281/zenodo.21798503},
-  version = {0.8.0},
+  version = {0.9.0},
   year    = {2026}
 }
 ```

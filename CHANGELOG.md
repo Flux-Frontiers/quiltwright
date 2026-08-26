@@ -7,7 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-08-26
+
 ### Added
+
+- **A "From a Cycles scene" quick-start section in the README.** The Cycles
+  backend was already documented in Install prerequisites, the
+  architecture overview, the Documentation table and Testing -- but Quick
+  start itself only walked through PyVista and POV-Ray, so a reader going
+  top-to-bottom would never learn how to call `render_cycles_quilt` or
+  `render_cycles_quilt_from_plotter()`. Both entry points are now shown
+  alongside their POV-Ray/PyVista siblings, with pointers to both worked
+  examples and `docs/cycles.md`.
 
 - **`quiltwright.pymol.cartoon_obj()` and `scripts/render_cartoon_hologram.py`**
   -- the mesh-heavy comparison the DNA helix example deliberately isn't.
