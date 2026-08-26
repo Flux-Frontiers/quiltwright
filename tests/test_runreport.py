@@ -48,6 +48,28 @@ def test_povray_version_of_a_missing_binary_is_unknown():
     assert povray_version("definitely-not-a-real-povray-binary") == "unknown"
 
 
+def test_povray_version_skips_startup_warnings(tmp_path, monkeypatch):
+    """A warning ahead of the banner does not become the recorded version.
+
+    A box with no ``~/.povray/3.7/povray.conf`` leads ``--version`` with
+    "povray: cannot open the user configuration file ...", which is
+    harmless -- but reading the first line lands that string in the
+    provenance header where the build should be.
+    """
+    fake = tmp_path / "povray"
+    fake.write_text(
+        "#!/bin/sh\n"
+        "echo 'povray: cannot open the user configuration file"
+        " /root/.povray/3.7/povray.conf: No such file or directory' >&2\n"
+        "echo 'POV-Ray 3.7.0.10.unofficial' >&2\n"
+        "exit 1\n"
+    )
+    fake.chmod(0o755)
+    monkeypatch.setenv("PATH", str(tmp_path), prepend=False)
+
+    assert povray_version("povray") == "POV-Ray 3.7.0.10.unofficial"
+
+
 def test_git_info_has_every_key_populated():
     """All five fields are present and non-empty, even outside a repo."""
     info = git_info()

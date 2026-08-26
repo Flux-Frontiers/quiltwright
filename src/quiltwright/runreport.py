@@ -121,8 +121,16 @@ def povray_version(binary: str | None = None) -> str:
     """The POV-Ray build actually on ``PATH``.
 
     POV-Ray writes its banner to stderr and exits non-zero for
-    ``--version``, so this reads the first line of the combined output
-    rather than trusting the exit status.
+    ``--version``, so this reads the combined output rather than trusting
+    the exit status.
+
+    The banner is not reliably the *first* line of that output.  POV-Ray
+    emits startup warnings ahead of it -- a box with no ``~/.povray/3.7/
+    povray.conf`` leads with "cannot open the user configuration file",
+    which is harmless (POV-Ray falls back to built-in defaults and renders
+    normally) but is what a first-line read returns.  A provenance field
+    reading like an error is worse than one reading ``unknown``, so the
+    banner is identified by its own prefix and the warnings are skipped.
 
     :param binary: Explicit executable; defaults to ``povray`` on ``PATH``.
     :return: e.g. ``"POV-Ray 3.7.0.10.unofficial"``, or ``"unknown"``.
@@ -135,10 +143,13 @@ def povray_version(binary: str | None = None) -> str:
     except (subprocess.SubprocessError, OSError):
         return _UNKNOWN
     text = (proc.stdout + proc.stderr).decode("utf-8", "replace")
-    for line in text.splitlines():
-        if line.strip():
-            return line.strip()
-    return _UNKNOWN
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    for line in lines:
+        if line.lower().startswith("povray ") or line.lower().startswith("pov-ray"):
+            return line
+    # No recognisable banner: fall back to the first line rather than losing
+    # the output entirely, since an unknown build is still worth recording.
+    return lines[0] if lines else _UNKNOWN
 
 
 def povray_parallelism(jobs: int, threads: int | None = None) -> list[tuple[str, object]]:

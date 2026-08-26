@@ -166,6 +166,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   `_run_export()` now checks that PyMOL actually wrote its expected output
   and raises with PyMOL's own traceback attached when it didn't.
 
+- **Run reports recorded a warning where the POV-Ray build should be.**
+  `povray_version()` read the first line of `--version`, but POV-Ray emits
+  startup warnings ahead of its banner: on a box with no
+  `~/.povray/3.7/povray.conf` the field came out as "povray: cannot open the
+  user configuration file ...". The warning is harmless -- POV-Ray falls back
+  to built-in defaults and renders normally -- but a provenance header that
+  reads like an error is worse than one reading `unknown`. The banner is now
+  matched by its own prefix rather than by position.
+
 ## [0.8.0] - 2026-08-24
 
 ### Added

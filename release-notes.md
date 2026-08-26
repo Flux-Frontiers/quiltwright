@@ -99,6 +99,12 @@ having written nothing. Export now checks that PyMOL actually wrote its
 expected output and raises with PyMOL's own traceback attached when it
 didn't.
 
+**Run reports recorded a startup warning where the POV-Ray build should
+be.** The version probe read the first line of `povray --version`, which on
+a machine with no user config file is a harmless "cannot open the user
+configuration file" warning rather than the banner behind it. The banner is
+now matched by its prefix instead of its position.
+
 ## Upgrading
 
 Nothing to migrate. `pip install -U quiltwright` gets the new backend; it
