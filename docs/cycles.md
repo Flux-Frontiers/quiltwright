@@ -1,6 +1,7 @@
 # Blender Cycles Holographic Output
 
 **Module**: `quiltwright.cycles`
+**Script**: `scripts/render_dna_helix_hologram.py`
 **Source**: `src/quiltwright/cycles.py`
 
 > *POV-Ray will never see a ray-tracing core. Meshes don't have to care.*
@@ -77,9 +78,56 @@ variant for hologram printers and lenticular interlacers, matching
 | `.gltf` / `.glb`, `.obj`, `.stl`, `.ply`, `.usd*`, `.fbx`, `.abc` | Imported into an empty scene |
 
 Imported meshes usually arrive without lights, and an unlit scene renders
-*black* in a path tracer, so by default an import with no lights of its own
-gets a neutral world plus a sun (`ensure_light=False` to opt out). A
-`.blend` is never touched.
+*black* in a path tracer, so an import with no lights of its own gets a
+lighting rig chosen by the `lighting` parameter. A `.blend` is never
+touched, and a rig always defers to any light the import carries.
+
+| `lighting=` | Rig |
+|---|---|
+| `"soft"` *(default)* | Neutral grey world plus a sun -- the studio-clay look |
+| `"studio"` | Camera-relative three-point rig (key/fill/rim area lights) over a near-black world -- the product-shot look |
+| `"sky"` | Blender's physical (Nishita) sky with the sun over the camera's left shoulder -- outdoor daylight |
+| a `.hdr`/`.exr` path | Equirectangular HDRI environment world |
+| `None` | Nothing is added |
+
+Every rig is expressed relative to the camera and scaled by the focal
+distance -- area-light wattage grows with distance squared -- so the same
+preset lights an angstrom-radius molecule and a room. The presets were
+tuned against rendered output; treat them as good starting points, and
+reach for an HDRI (or author lights in a `.blend`) when a shot needs a
+specific look.
+
+### PyVista, directly
+
+A composed `pv.Plotter` needs no manual export step:
+
+```python
+quilt = render_cycles_quilt_from_plotter(plotter, spec)  # render_quilt, ray-traced
+```
+
+is the hardware-ray-traced sibling of `render_quilt()` -- same plotter in,
+same quilt out, same FOV/dolly convention. Behind it,
+`export_plotter_gltf()` writes the scene to glTF and
+`cycles_camera_from_plotter()` translates the plotter's camera; both are
+public for when you want the intermediate pieces (pass `gltf=` to keep the
+exported scene for reuse).
+
+The hop between VTK's world and Blender's is one deliberate contract: the
+scene is exported **un-rotated** (`rotate_scene=False`, since the rotation
+VTK otherwise bakes for glTF's Y-up convention has varied across versions),
+and Blender's importer then applies its fixed Y-up-to-Z-up rotation, landing
+a VTK point `(x, y, z)` at `(x, -z, y)`. The camera goes through the same
+rotation, so scene and camera agree and the render matches what the plotter
+framed -- an invariant the end-to-end tests pin with depth markers, because
+a wrong hop renders perfectly plausible frames whose *sweep* is tilted.
+
+Scalar-mapped colours survive: VTK bakes them into a glTF base-colour
+texture that Blender wires into the material on import. Lights do not
+exist in the export, which is what the `lighting` rigs are for -- pass
+`lighting="studio"` through the bridge for the product-shot look. Notably, the
+export works with no OpenGL stack at all -- the plotter is read and
+exported, never rendered -- so this path runs on headless machines where
+`render_quilt()` itself cannot.
 
 ## Cameras
 
@@ -115,18 +163,24 @@ from quiltwright.cycles import CyclesCamera, render_cycles_quilt
 camera = CyclesCamera(location=(0, -35, 8), look_at=(0, 0, 5), fov=14)
 spec = QUILT_PRESETS["portrait"]
 quilt = render_cycles_quilt("protein.glb", spec, camera, samples=128)
-save_quilt(quilt, "protein", spec)      # -> protein_qs8x6a0.75.png
+save_quilt(quilt, "protein", spec)  # -> protein_qs8x6a0.75.png
 ```
 
 A `.blend` on its own camera:
 
 ```python
-quilt = render_cycles_quilt("scene.blend", spec, None)   # DoF focus = focal plane
+quilt = render_cycles_quilt("scene.blend", spec, None)  # DoF focus = focal plane
 ```
 
 Knobs that matter:
 
 - `samples` -- 64 previews cleanly with the denoiser on; 128-256 for finals.
+- `view_transform` -- `"Standard"` (default) is Blender's raw display-referred
+  output and reads closest to POV-Ray's; Blender's own interactive default
+  since 4.0 is `"AgX"`, whose filmic highlight compression noticeably
+  desaturates and flattens a render side by side with POV-Ray or a reference
+  photo -- deliberately not the default here. Any OCIO transform name
+  Blender recognises works (`"Filmic"`, `"False Color"`, ...).
 - `device` -- `"auto"` (GPU first, Metal first), `"gpu"` (error if none),
   `"cpu"`.
 - `threads` -- CPU renders get the same courtesy cap as the POV-Ray backend
@@ -136,6 +190,55 @@ Knobs that matter:
 **Requirements**: a `blender` binary -- `brew install --cask blender` on
 macOS (the standard `/Applications` install is found automatically), or
 `BLENDER_BINARY` pointing anywhere else. Blender 4.x or later.
+
+## Worked example: one scene, both backends
+
+`scripts/render_dna_helix_hologram.py` composes a B-DNA double helix -- sphere
+glyphs for the backbones, base-pair rungs coloured A/T/G/C -- and renders it
+with either backend from the same generating code:
+
+```bash
+python scripts/render_dna_helix_hologram.py --still                                # Cycles, studio lighting
+python scripts/render_dna_helix_hologram.py --backend povray --still               # POV-Ray, same camera
+python scripts/render_dna_helix_hologram.py --lighting sky --device portrait --cast
+```
+
+One `pv.Plotter` builds the geometry and camera; the Cycles path renders it
+directly (via `export_plotter_gltf`), the POV-Ray path rebuilds the same
+points as analytic `Sphere`/`Cylinder` primitives and borrows the plotter's
+camera through `pov_camera_from_plotter()`, so both frame the subject
+identically. On a scene this size (161 primitives, no mesh data) POV-Ray's
+analytic intersectors are hard to beat -- seconds, not minutes, on a single
+core; this backend earns its keep on mesh-heavy scenes (Richardson cartoons,
+scanned surfaces) and on Apple Silicon, where the same call runs on the GPU's
+ray-tracing cores instead. See [povray.md](povray.md) for that backend's own
+case study.
+
+### The mesh-heavy case: a real PyMOL cartoon
+
+The helix above is deliberately the case POV-Ray wins -- a handful of
+analytic primitives. `scripts/render_cartoon_hologram.py` is the other end:
+a real Richardson cartoon (tens of thousands of triangles, the same shape
+`quiltwright cartoon` produces) rendered by both backends from **the same
+PyMOL triangulation**:
+
+```bash
+python scripts/render_cartoon_hologram.py 2omf.cif.gz --still                  # Cycles
+python scripts/render_cartoon_hologram.py 2omf.cif.gz --backend povray --still # POV-Ray, same mesh
+```
+
+`quiltwright.pymol.cartoon_obj()` is the mesh twin of `cartoon_inc()`: the
+identical PyMOL export and coalescing, written as a plain OBJ instead of a
+POV-Ray include -- geometry only, no per-vertex colour, since OBJ carries
+none reliably -- so a "which backend wins on a mesh this size" comparison
+starts from one triangulation, not two independently modelled scenes. It
+carries the same coordinate flip as everywhere else meshes cross from
+PyMOL's POV-Ray-native output into this package's right-handed convention:
+negate *z*, reverse each face's winding to compensate -- worth rereading its
+docstring before trusting a first render, since this path has not yet been
+exercised against a real PyMOL export in this codebase's own development
+environment (no PyMOL here) and the fix for a mesh that renders "inside out"
+is almost always exactly that flip.
 
 ## What stays with POV-Ray
 

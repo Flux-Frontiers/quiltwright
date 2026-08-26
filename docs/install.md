@@ -1,17 +1,20 @@
 # Installing the full stack
 
 Quiltwright is a Python package plus, depending on what you want to do, up to
-three external pieces: a renderer (PyVista/VTK or POV-Ray), an encoder
-(ffmpeg), and the Looking Glass Bridge driver. Nothing needs all of them --
-this page goes layer by layer, and each section says who can skip it.
+five external pieces: a renderer (PyVista/VTK, POV-Ray, or Blender's Cycles),
+PyMOL (for molecular cartoons), an encoder (ffmpeg), and the Looking Glass
+Bridge driver. Nothing needs all of them -- this page goes layer by layer,
+and each section says who can skip it.
 
 | You want to... | You need |
 |---|---|
 | Compute quilt geometry, tile views, cast pre-rendered quilts | core package + Bridge |
 | Render quilts from PyVista/VTK scenes | `[viz]` extra |
 | Ray-trace quilts from POV-Ray scenes | `povray` binary |
-| Encode quilt video or HLD masters | ffmpeg (or `[video]` extra) |
+| Path-trace quilts from `.blend`/glTF/OBJ/etc. scenes, with GPU ray tracing | `blender` binary (4.x+) |
 | Render molecular structures from PDB or mmCIF files | `[molecules]` extra |
+| Render secondary-structure cartoons (`quiltwright cartoon`) | `pymol` binary |
+| Encode quilt video or HLD masters | ffmpeg (or `[video]` extra) |
 
 ---
 
@@ -70,7 +73,56 @@ so you can exercise this layer with no scene files of your own:
 python scripts/render_museum_hologram.py --preview
 ```
 
-## 3. Looking Glass Bridge (driving the display)
+## 3. Blender / Cycles (hardware-ray-traced backend)
+
+Skip this if you only render from PyVista or POV-Ray. The Cycles backend
+shells out to a `blender` binary (4.x or later) rather than using a Python
+package -- installing the full application also gets you its bundled Python
+and `bpy`, so nothing further needs to be pip-installed:
+
+```bash
+brew install --cask blender          # macOS
+```
+
+Elsewhere, download from [blender.org](https://www.blender.org/download/).
+The standard `/Applications` install (macOS) is found automatically; point
+Quiltwright anywhere else with `BLENDER_BINARY=/path/to/blender`.
+
+```bash
+blender --version
+```
+
+The end-to-end Cycles tests instead look for `QW_BPY_PYTHON`, naming a Python
+interpreter with the [`bpy` wheel](https://pypi.org/project/bpy/) installed --
+the CI/container case, where a full Blender install isn't practical. With
+neither a `blender` binary nor `QW_BPY_PYTHON`, those tests skip cleanly. See
+[cycles.md](cycles.md) for the backend itself.
+
+## 4. PyMOL (molecular cartoons)
+
+Skip this if you only render atoms and bonds via pdb2pov/pypdb2pov. PyMOL
+draws the secondary-structure ribbons (`quiltwright cartoon`,
+`cartoon_inc()`/`cartoon_obj()`) that pdb2pov has never been able to write.
+It is not OSI-licensed, so it can never be a hard dependency of a BSD-3
+package, and stays a binary you install yourself:
+
+```bash
+brew install pymol                          # macOS, stable
+conda install -c conda-forge pymol-open-source
+pip install --pre pymol-open-source         # alphas only -- PyPI has no stable release
+```
+
+Quiltwright drives PyMOL **in-process when it can import it, by subprocess
+when it can't** -- Homebrew's build bundles its own interpreter that no
+project virtualenv can import from, so the subprocess path is the common
+case on macOS. Either way, no code changes: `quiltwright.pymol.available()`
+picks automatically and reports which. Verify with:
+
+```bash
+pymol -cq -d "print('ok')"
+```
+
+## 5. Looking Glass Bridge (driving the display)
 
 Skip this if you only produce quilt files for Studio or another player.
 Displays, specs, and software all live at the
@@ -93,7 +145,7 @@ Displays, specs, and software all live at the
 `cast_quilt()` and the scripts' `--cast` flag then send renders straight to
 the glass.
 
-## 4. ffmpeg (video encoding)
+## 6. ffmpeg (video encoding)
 
 Only needed for `render_quilt_video()` (quilt MP4s) and the HLD masters in
 `quiltwright.hld`. Quiltwright looks for `ffmpeg` on `PATH` first, then
@@ -124,7 +176,7 @@ Encoding uses `libx264` and `libx265` (HEVC above 6000 px); a minimal or
 LGPL-only ffmpeg build may lack them, and fails at encode time rather than at
 install time. Check with `ffmpeg -h encoder=libx265`.
 
-## 5. pdb2pov (molecular scenes)
+## 7. pdb2pov (molecular scenes)
 
 Optional; feeds the POV-Ray backend with molecular structures. There are two
 implementations, writing byte-identical scenes.
@@ -178,7 +230,9 @@ Each layer can be verified independently:
 
 ```bash
 python -c "import quiltwright; print(quiltwright.__version__)"   # package
-povray --version                                                 # renderer
+povray --version                                                 # POV-Ray
+blender --version                                                # Cycles
+pymol -cq -d "print('ok')"                                       # PyMOL
 curl -s -X PUT -H 'Content-Type: application/json' \
      -d '{"name":"probe"}' http://localhost:33334/enter_orchestration  # Bridge
 ```

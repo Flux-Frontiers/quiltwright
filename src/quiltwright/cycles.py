@@ -40,7 +40,11 @@ and world; everything Blender can import -- glTF/GLB, OBJ, STL, PLY, USD,
 FBX, Alembic -- is loaded into an empty scene.  Imported meshes usually
 arrive without lights, which in a path tracer means a black frame, so by
 default a neutral world and a sun are added when the scene has no light of
-its own (``ensure_light=False`` to opt out).
+its own.  The ``lighting`` parameter picks the rig: a neutral
+world-plus-sun (``"soft"``, the default), a camera-relative three-point
+studio rig (``"studio"``), Blender's physical sky (``"sky"``), an
+equirectangular ``.hdr``/``.exr`` environment map, or ``None`` to add
+nothing.
 
 A ``.blend`` may also supply its *own* camera: pass ``camera=None`` and the
 file's active camera becomes the centre view.  The focal plane then comes
@@ -81,7 +85,7 @@ from pathlib import Path
 
 import numpy as np
 
-from quiltwright.lfd import QuiltSpec, assemble_quilt
+from quiltwright.lfd import QuiltSpec, _camera_frame, assemble_quilt
 from quiltwright.povray import COURTESY_CORES_HELD_BACK
 
 #: Environment variable overriding which Blender binary is used.
@@ -347,7 +351,14 @@ def load_scene(job):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     importers = {
         "gltf": lambda p: bpy.ops.import_scene.gltf(filepath=p),
-        "obj": lambda p: bpy.ops.wm.obj_import(filepath=p),
+        # forward_axis='Y', up_axis='Z' makes this an identity import: the
+        # Wavefront convention is Y-up, so Blender's own default remaps that
+        # onto its Z-up world (a 90-degree turn about X) on every .obj import.
+        # Every OBJ this package writes (quiltwright.pymol.cartoon_obj()) is
+        # already in the package's right-handed, +z-up convention -- the same
+        # one the camera math in this module assumes -- so the remap is
+        # exactly the rotation that must NOT happen here.
+        "obj": lambda p: bpy.ops.wm.obj_import(filepath=p, forward_axis="Y", up_axis="Z"),
         "stl": lambda p: bpy.ops.wm.stl_import(filepath=p),
         "ply": lambda p: bpy.ops.wm.ply_import(filepath=p),
         "usd": lambda p: bpy.ops.wm.usd_import(filepath=p),
@@ -377,6 +388,7 @@ def setup_render(scene, job):
     # The BVH survives between views; rebuilding it per view would be the
     # POV-Ray failure mode this backend exists to avoid.
     scene.render.use_persistent_data = True
+    scene.view_settings.view_transform = job["view_transform"]
     scene.cycles.samples = job["samples"]
     scene.cycles.use_denoising = job["denoise"]
 
@@ -516,26 +528,106 @@ def scene_camera(scene, aspect):
     return obj, float(focal), tan_half_x, shift_scale
 
 
-def ensure_light(scene, forward):
-    """Give an imported, light-less scene something to see by: a neutral
-    world plus a sun shining roughly along the view, tilted down."""
-    if any(o.type == "LIGHT" for o in scene.objects):
-        return
+def get_world(scene):
     world = scene.world
     if world is None:
         world = bpy.data.worlds.new("quiltwright")
         scene.world = world
     world.use_nodes = True
-    background = world.node_tree.nodes.get("Background")
+    return world
+
+
+def grey_world(scene, value, strength):
+    background = get_world(scene).node_tree.nodes.get("Background")
     if background is not None:
-        background.inputs["Color"].default_value = (0.85, 0.85, 0.85, 1.0)
-        background.inputs["Strength"].default_value = 0.5
-    sun = bpy.data.lights.new("quiltwright_sun", "SUN")
-    sun.energy = 3.0
-    obj = bpy.data.objects.new("quiltwright_sun", sun)
+        background.inputs["Color"].default_value = (value, value, value, 1.0)
+        background.inputs["Strength"].default_value = strength
+
+
+def add_light(scene, name, kind, position, target, energy, size=None):
+    data = bpy.data.lights.new(name, kind)
+    data.energy = energy
+    if size is not None:
+        data.size = size
+    obj = bpy.data.objects.new(name, data)
     scene.collection.objects.link(obj)
-    aim = (Vector(forward) + Vector((0.0, 0.0, -1.0))).normalized()
+    obj.location = position
+    aim = (Vector(target) - Vector(position)).normalized()
     obj.rotation_euler = aim.to_track_quat("-Z", "Y").to_euler()
+    return obj
+
+
+def apply_lighting(scene, spec, base, focal):
+    """Light an imported scene that has none of its own.
+
+    Every rig is expressed relative to the camera and scaled by the focal
+    distance -- area-light wattage grows with distance squared, so apparent
+    brightness is invariant under scene scale and the same preset lights an
+    angstrom-radius molecule and a room.
+    """
+    if spec is None:
+        return
+    if any(o.type == "LIGHT" for o in scene.objects):
+        return
+    forward = (-base.col[2].to_3d()).normalized()
+    right = base.col[0].to_3d().normalized()
+    up = base.col[1].to_3d().normalized()
+    target = base.translation + forward * focal
+    kind = spec["kind"]
+
+    if kind == "soft":
+        grey_world(scene, 0.85, 0.5)
+        sun = bpy.data.lights.new("quiltwright_sun", "SUN")
+        sun.energy = 3.0
+        obj = bpy.data.objects.new("quiltwright_sun", sun)
+        scene.collection.objects.link(obj)
+        aim = (forward + Vector((0.0, 0.0, -1.0))).normalized()
+        obj.rotation_euler = aim.to_track_quat("-Z", "Y").to_euler()
+    elif kind == "studio":
+        # Three-point rig: key over the camera's left shoulder, a broad low
+        # fill from the right, a rim behind the subject.  Near-black world
+        # so the rig, not ambience, draws the form.
+        grey_world(scene, 0.03, 1.0)
+        d = focal
+        watts = 30.0 * d * d
+        key = target + (-right * 0.9 + up * 0.7 - forward * 0.7) * d
+        fill = target + (right * 1.0 + up * 0.1 - forward * 0.8) * d
+        rim = target + (forward * 0.9 + up * 0.6 + right * 0.3) * d
+        add_light(scene, "quiltwright_key", "AREA", key, target, watts, size=0.45 * d)
+        add_light(scene, "quiltwright_fill", "AREA", fill, target, watts * 0.22, size=1.2 * d)
+        add_light(scene, "quiltwright_rim", "AREA", rim, target, watts * 0.7, size=0.25 * d)
+    elif kind == "sky":
+        world = get_world(scene)
+        tree = world.node_tree
+        background = tree.nodes.get("Background")
+        sky = tree.nodes.new("ShaderNodeTexSky")
+        try:
+            sky.sky_type = "NISHITA"
+        except TypeError:
+            pass  # newer Blender: the physical sky is the only type
+        sky.sun_elevation = math.radians(33.0)
+        sky.sun_intensity = 1.2
+        # Sun over the camera's left shoulder: sun_rotation is measured
+        # about +Z with the sun at -Y when zero.
+        azimuth = math.atan2(forward.x, -forward.y)
+        sky.sun_rotation = azimuth + math.radians(225.0)
+        if background is not None:
+            tree.links.new(sky.outputs["Color"], background.inputs["Color"])
+            background.inputs["Strength"].default_value = 0.3
+    elif kind == "hdri":
+        world = get_world(scene)
+        tree = world.node_tree
+        background = tree.nodes.get("Background")
+        env = tree.nodes.new("ShaderNodeTexEnvironment")
+        try:
+            env.image = bpy.data.images.load(spec["path"])
+        except Exception as exc:
+            fail("could not load HDRI %s: %s" % (spec["path"], exc))
+        if background is not None:
+            tree.links.new(env.outputs["Color"], background.inputs["Color"])
+            background.inputs["Strength"].default_value = 1.0
+    else:
+        fail("unknown lighting rig: %s" % kind)
 
 
 def main():
@@ -558,8 +650,8 @@ def main():
     right = base.col[0].to_3d().normalized()
     base_shift = cam.data.shift_x
 
-    if job["ensure_light"] and job["format"] != "blend":
-        ensure_light(scene, (-base.col[2].to_3d()).normalized())
+    if job["format"] != "blend":
+        apply_lighting(scene, job["lighting"], base, focal)
 
     n = len(job["angles"])
     for i, angle in enumerate(job["angles"]):
@@ -597,6 +689,34 @@ def _camera_job(camera: CyclesCamera | None) -> dict | None:
         "fov": float(camera.fov),
         "focal_distance": camera.focal_distance,
     }
+
+
+#: Named lighting rigs the driver can build; see :func:`_lighting_job`.
+LIGHTING_RIGS = ("soft", "studio", "sky")
+
+
+def _lighting_job(lighting: str | Path | None) -> dict | None:
+    """Serialise the *lighting* argument for the driver.
+
+    :param lighting: A rig name from :data:`LIGHTING_RIGS`, a path to an
+        equirectangular ``.hdr``/``.exr`` environment map, or ``None`` to
+        never add light.
+    :return: The driver's lighting spec, or ``None``.
+    :raises ValueError: If *lighting* is neither a known rig nor an HDRI.
+    :raises FileNotFoundError: If an HDRI path does not exist.
+    """
+    if lighting is None:
+        return None
+    if isinstance(lighting, str) and lighting in LIGHTING_RIGS:
+        return {"kind": lighting}
+    path = Path(lighting).expanduser()
+    if path.suffix.lower() in (".hdr", ".exr"):
+        if not path.is_file():
+            raise FileNotFoundError(f"HDRI environment map not found: {path}")
+        return {"kind": "hdri", "path": str(path.resolve())}
+    raise ValueError(
+        f"lighting must be one of {LIGHTING_RIGS}, a .hdr/.exr path, or None; got {lighting!r}"
+    )
 
 
 def _view_angles(spec: QuiltSpec) -> list[float]:
@@ -740,8 +860,9 @@ def render_cycles_quilt(
     view_cone: float | None = None,
     samples: int = 64,
     denoise: bool = True,
+    view_transform: str = "Standard",
     device: str = "auto",
-    ensure_light: bool = True,
+    lighting: str | Path | None = "soft",
     threads: int | None = None,
     binary: str | None = None,
     extra_args: Sequence[str] = (),
@@ -769,12 +890,24 @@ def render_cycles_quilt(
     :param samples: Cycles samples per pixel.  64 previews cleanly with
         denoising; 128-256 for finals.
     :param denoise: Run Cycles' denoiser on each view.
+    :param view_transform: Color management applied to the render -- an OCIO
+        view transform name Blender recognises (``"Standard"``,
+        ``"AgX"``, ``"Filmic"``, ...).  ``"Standard"`` is Blender's raw
+        display-referred output and reads closest to POV-Ray's; Blender's
+        own interactive default since 4.0 is ``"AgX"``, whose filmic
+        highlight compression desaturates and flattens a render next to
+        POV-Ray's or a reference photo -- deliberately not the default here.
     :param device: ``"auto"`` prefers a GPU (Metal first) and falls back to
         CPU; ``"gpu"`` errors if no GPU compute device exists; ``"cpu"``
         forces CPU rendering.
-    :param ensure_light: Add a neutral world and a sun when an *imported*
-        scene has no lights of its own -- without this a path tracer renders
-        an unlit import black.  Never touches a ``.blend``.
+    :param lighting: How to light an *imported* scene that has no lights of
+        its own -- without this a path tracer renders an unlit import black.
+        ``"soft"`` (default) is a neutral world plus a sun; ``"studio"`` a
+        camera-relative three-point rig over a dark world; ``"sky"``
+        Blender's physical sky; a ``.hdr``/``.exr`` path an HDRI
+        environment world.  ``None`` adds nothing.  Rigs scale with the
+        focal distance, never touch a ``.blend``, and defer to any light
+        the import carries.
     :param threads: Blender ``-t`` thread count.  ``None`` applies the same
         courtesy cap as the POV-Ray backend (``cpu_count - 2``); ``0`` lets
         Blender take every core.  GPU rendering is unaffected.
@@ -806,8 +939,9 @@ def render_cycles_quilt(
         "camera": _camera_job(camera),
         "samples": int(samples),
         "denoise": bool(denoise),
+        "view_transform": view_transform,
         "device": device,
-        "ensure_light": bool(ensure_light),
+        "lighting": _lighting_job(lighting),
     }
 
     with tempfile.TemporaryDirectory(prefix="cycles_quilt_") as tmp:
@@ -832,8 +966,9 @@ def render_cycles_views(
     view_cone: float | None = None,
     samples: int = 64,
     denoise: bool = True,
+    view_transform: str = "Standard",
     device: str = "auto",
-    ensure_light: bool = True,
+    lighting: str | Path | None = "soft",
     threads: int | None = None,
     binary: str | None = None,
     extra_args: Sequence[str] = (),
@@ -857,9 +992,11 @@ def render_cycles_views(
     :param view_cone: Override the spec's view cone in degrees.
     :param samples: Cycles samples per pixel.
     :param denoise: Run Cycles' denoiser on each view.
+    :param view_transform: Color management; see :func:`render_cycles_quilt`.
     :param device: ``"auto"``, ``"gpu"`` or ``"cpu"``, as for
         :func:`render_cycles_quilt`.
-    :param ensure_light: Light an unlit *imported* scene; see
+    :param lighting: Rig for an unlit *imported* scene -- ``"soft"``,
+        ``"studio"``, ``"sky"``, an HDRI path, or ``None``; see
         :func:`render_cycles_quilt`.
     :param threads: Blender ``-t`` thread count; see
         :func:`render_cycles_quilt`.
@@ -884,8 +1021,9 @@ def render_cycles_views(
         "camera": _camera_job(camera),
         "samples": int(samples),
         "denoise": bool(denoise),
+        "view_transform": view_transform,
         "device": device,
-        "ensure_light": bool(ensure_light),
+        "lighting": _lighting_job(lighting),
     }
 
     with tempfile.TemporaryDirectory(prefix="cycles_sweep_") as tmp:
@@ -896,3 +1034,156 @@ def render_cycles_views(
         if keep_job:
             shutil.copy2(workdir / "job.json", out / "job.json")
         return [Path(shutil.copy2(png, out / png.name)) for png in views]
+
+
+# ---------------------------------------------------------------------------
+# The PyVista bridge: a composed plotter, hardware-ray-traced
+# ---------------------------------------------------------------------------
+#
+# PyVista scenes are meshes, and meshes are what this backend exists for --
+# but a plotter lives in VTK's world and Cycles in Blender's, and the glTF
+# hop between them applies a coordinate rotation that is easy to get wrong
+# and disastrous when wrong (the scene renders fine; the *sweep* is
+# mirrored or tilted).  These helpers own that hop as one contract:
+#
+# * The scene is exported with ``rotate_scene=False``, so the glTF file
+#   carries raw VTK world coordinates.  The alternative bakes a
+#   glTF-Y-up rotation whose exact form has varied across pyvista/VTK
+#   versions; raw coordinates are the stable choice.
+# * Blender's glTF importer then applies its fixed Y-up-to-Z-up
+#   convention, landing a VTK point ``(x, y, z)`` at ``(x, -z, y)`` in
+#   Blender's world (verified against imported geometry, not inferred).
+# * The camera goes through the *same* rotation, so scene and camera agree
+#   and the rendered views are identical to what the plotter framed.
+#
+# Scalar-mapped colours survive the hop: VTK bakes the mapped colours into
+# a baseColorTexture, which Blender wires into the Principled BSDF on
+# import.  Lights do not exist in the export, which is what the backend's
+# ``lighting`` rigs are for.
+
+
+def _to_blender(v: np.ndarray) -> tuple[float, float, float]:
+    """Map a VTK/PyVista world point into Blender's world after glTF import.
+
+    Blender's importer rotates glTF's +Y-up convention onto its own +Z-up;
+    with the scene exported un-rotated (``rotate_scene=False``), that is the
+    only transform between the two worlds: ``(x, y, z) -> (x, -z, y)``.
+    """
+    x, y, z = (float(c) for c in v)
+    return (x, -z, y)
+
+
+def export_plotter_gltf(plotter, path: str | Path) -> Path:
+    """Export a composed PyVista plotter scene as glTF for this backend.
+
+    A thin wrapper over ``plotter.export_gltf`` that pins the export
+    settings the coordinate contract above depends on -- most importantly
+    ``rotate_scene=False``.  Export works headless: no OpenGL context or
+    prior render is required, so it runs where ``plotter.show()`` cannot.
+
+    :param plotter: A ``pv.Plotter`` with the scene composed.
+    :param path: Destination ``.gltf`` path.  Buffers and baked colour
+        textures are inlined, so the one file is the whole scene.
+    :return: *path*, as a :class:`~pathlib.Path`.
+    """
+    out = Path(path).expanduser()
+    plotter.export_gltf(str(out), inline_data=True, rotate_scene=False, save_normals=True)
+    return out
+
+
+def cycles_camera_from_plotter(plotter, *, fov: float | None = 14.0, zoom: float | None = None):
+    """Build the :class:`CyclesCamera` matching a plotter's current view.
+
+    The plotter's camera defines the centre view and its focal point becomes
+    the holographic focal plane, exactly as in
+    :func:`~quiltwright.lfd.render_quilt` -- including its FOV convention:
+    the lens is narrowed to *fov* and the camera dollied back so the focal
+    plane stays the same size in frame.  The result is expressed in
+    Blender's world under the glTF contract above, so it pairs with
+    :func:`export_plotter_gltf` and nothing else.
+
+    The plotter is read, never mutated: unlike ``render_quilt``, whose
+    sweep must drive the live VTK camera, this backend renders from a copy
+    of the view, so the plotter remains exactly as composed.
+
+    :param plotter: A ``pv.Plotter`` (or anything with a vtkCamera-shaped
+        ``.camera``) with the view positioned, e.g. via
+        ``plotter.camera_position`` or ``plotter.reset_camera()``.
+    :param fov: Vertical field of view in degrees for the quilt cameras;
+        the eye dollies back to compensate.  ``None`` keeps the plotter's
+        own FOV and distance.
+    :param zoom: Optional dolly factor applied after framing; values > 1
+        make the subject fill more of each tile, which is what drives
+        perceived depth.
+    :return: The centre-view :class:`CyclesCamera`.
+    """
+    pos, focal, _, true_up, distance = _camera_frame(plotter.camera)
+    forward = (focal - pos) / distance
+    if fov is None:
+        fov = float(plotter.camera.view_angle)
+    else:
+        half_height = distance * math.tan(math.radians(plotter.camera.view_angle) / 2.0)
+        distance = half_height / math.tan(math.radians(fov) / 2.0)
+    if zoom is not None and zoom != 1.0:
+        distance /= zoom
+    eye = focal - forward * distance
+    return CyclesCamera(
+        location=_to_blender(eye),
+        look_at=_to_blender(focal),
+        up=_to_blender(true_up),
+        fov=float(fov),
+    )
+
+
+def render_cycles_quilt_from_plotter(
+    plotter,
+    spec: QuiltSpec,
+    *,
+    fov: float | None = 14.0,
+    zoom: float | None = None,
+    gltf: str | Path | None = None,
+    **kwargs,
+) -> np.ndarray:
+    """Render a PyVista plotter's scene into a quilt with Cycles.
+
+    The hardware-ray-traced sibling of :func:`~quiltwright.lfd.render_quilt`:
+    same plotter in, same quilt out, but the views are path-traced by Cycles
+    -- with GPU ray tracing where the hardware offers it -- instead of
+    rasterised by VTK.  Compose the scene and position the camera exactly as
+    you would for ``render_quilt``, then swap the call.
+
+    The scene is exported to glTF once (see :func:`export_plotter_gltf`) and
+    the whole sweep renders in one Blender process.  The export carries no
+    lights, so the backend's ``lighting`` rigs supply them -- the ``"soft"``
+    default for a neutral look, ``lighting="studio"`` for a three-point
+    product shot, ``"sky"`` or an HDRI path for environments; pass
+    materials-appropriate ``samples`` for finals.
+
+    :param plotter: An *off-screen* ``pv.Plotter`` with the scene composed.
+        Read, never mutated -- and never rendered, so this works on
+        machines whose GL stack cannot even take a screenshot.
+    :param spec: Quilt specification (grid, size, aspect, cone).
+    :param fov: Vertical field of view in degrees, with the
+        ``render_quilt`` dolly-back convention; ``None`` keeps the
+        plotter's own.
+    :param zoom: Optional dolly factor applied after framing, as on
+        :func:`~quiltwright.lfd.render_quilt`.
+    :param gltf: Also write the exported scene here, for inspection or
+        reuse.  Exported to a temporary file if ``None``.
+    :param kwargs: Forwarded to :func:`render_cycles_quilt` -- ``samples``,
+        ``denoise``, ``device``, ``threads``, ``view_cone``, ``binary``,
+        ``keep_views``, ``progress`` and the rest.
+    :return: ``uint8`` RGB array of shape ``(quilt_height, quilt_width, 3)``.
+    """
+    if not plotter.camera.is_set:
+        # Mirror render_quilt's first-render behaviour, without rendering.
+        plotter.camera_position = plotter.renderer.get_default_cam_pos()
+        plotter.reset_camera()
+    camera = cycles_camera_from_plotter(plotter, fov=fov, zoom=zoom)
+
+    if gltf is not None:
+        scene = export_plotter_gltf(plotter, gltf)
+        return render_cycles_quilt(scene, spec, camera, **kwargs)
+    with tempfile.TemporaryDirectory(prefix="cycles_gltf_") as tmp:
+        scene = export_plotter_gltf(plotter, Path(tmp) / "scene.gltf")
+        return render_cycles_quilt(scene, spec, camera, **kwargs)

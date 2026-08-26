@@ -88,7 +88,10 @@ pypdb2pov's PDB conversion are the two that drove the design, but
 `quiltwright.tvb_data` pulls real brain geometry from
 [The Virtual Brain](docs/tvb-data.md), PyVista's own example datasets work
 as-is, `quiltwright.povgen` writes POV-Ray from analytic primitives, and a
-plain `.pov` file off your disk needs no pipeline at all.
+plain `.pov` file off your disk needs no pipeline at all. The backends also
+bridge: `render_cycles_quilt_from_plotter()` takes the same composed PyVista
+plotter `render_quilt()` does and path-traces it instead -- scene exported to
+glTF once, camera translated, scalar colours intact.
 
 **Two display technologies.** *Light-field displays* (LFD -- Portrait, Go,
 16"/27"/32"/65") are lenticular panels that consume **quilts**: N views of the
@@ -138,15 +141,21 @@ pip install "quiltwright[viz]"          # + PyVista/VTK rendering backend
 pip install "quiltwright[molecules]"    # + PDB and mmCIF, via pypdb2pov
 ```
 
-The POV-Ray and Cycles backends need their renderers as binaries rather than
-Python packages:
+### Prerequisites
 
-```bash
-brew install povray                  # macOS: POV-Ray backend
-brew install --cask blender          # macOS: Cycles backend (or any Blender 4.x+)
-```
+Nothing above needs all of these -- pick the row for the backend you're
+using. Each is an external binary, not a Python dependency, so `pip install
+quiltwright` never pulls any of them in on its own.
 
-For the complete stack -- renderers, ffmpeg, Looking Glass Bridge, pypdb2pov --
+| Dependency | Needed for | Install |
+|---|---|---|
+| **POV-Ray** | the ray-traced backend (`render_pov_quilt`) | `brew install povray` / `apt install povray` / `dnf install povray` |
+| **Blender** (4.x+) | the Cycles backend (`render_cycles_quilt`) | `brew install --cask blender`, or any [blender.org](https://www.blender.org/download/) install |
+| **PyMOL** | secondary-structure cartoons (`quiltwright cartoon`, `cartoon_inc`/`cartoon_obj`) | `brew install pymol` / `conda install -c conda-forge pymol-open-source` |
+| **ffmpeg** | quilt/HLD video encoding | `brew install ffmpeg`, or skip it and use `pip install "quiltwright[video]"` for a bundled copy |
+| **Looking Glass Bridge** (≥ 2.2) | casting to a physical panel (`cast_quilt`) | [lookingglassfactory.com/software/looking-glass-bridge](https://lookingglassfactory.com/software/looking-glass-bridge) |
+
+For the complete stack -- every layer above in more depth, plus pypdb2pov --
 see the [installation guide](docs/install.md).
 
 ---

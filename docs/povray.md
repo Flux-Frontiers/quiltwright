@@ -8,10 +8,14 @@
 
 Renders existing POV-Ray scenes as Looking Glass quilts, without porting the
 scene to another renderer and without modifying a single line of it. Companion
-to [lfd.md](lfd.md), which covers the PyVista path and the Bridge/Studio setup;
-everything downstream of quilt assembly -- filenames, casting, playback -- is
-shared. For rendering molecular structures this way, see
-[pdb2pov.md](pdb2pov.md).
+to [lfd.md](lfd.md), which covers the PyVista path and the Bridge/Studio setup,
+and to [cycles.md](cycles.md), which covers the Blender Cycles backend the
+same way; everything downstream of quilt assembly -- filenames, casting,
+playback -- is shared. For rendering molecular structures this way, see
+[pdb2pov.md](pdb2pov.md). For a worked side-by-side of this backend against
+Cycles on one composed scene, see
+[cycles.md's DNA helix example](cycles.md#worked-example-one-scene-both-backends)
+(`scripts/render_dna_helix_hologram.py --backend povray`).
 
 This page explains the mechanism. For the step-by-step procedure of getting a
 particular archive scene through it -- parsing, reading its camera, measuring
