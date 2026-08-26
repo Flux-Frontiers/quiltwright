@@ -81,6 +81,37 @@ Imported meshes usually arrive without lights, and an unlit scene renders
 gets a neutral world plus a sun (`ensure_light=False` to opt out). A
 `.blend` is never touched.
 
+### PyVista, directly
+
+A composed `pv.Plotter` needs no manual export step:
+
+```python
+quilt = render_cycles_quilt_from_plotter(plotter, spec)   # render_quilt, ray-traced
+```
+
+is the hardware-ray-traced sibling of `render_quilt()` -- same plotter in,
+same quilt out, same FOV/dolly convention. Behind it,
+`export_plotter_gltf()` writes the scene to glTF and
+`cycles_camera_from_plotter()` translates the plotter's camera; both are
+public for when you want the intermediate pieces (pass `gltf=` to keep the
+exported scene for reuse).
+
+The hop between VTK's world and Blender's is one deliberate contract: the
+scene is exported **un-rotated** (`rotate_scene=False`, since the rotation
+VTK otherwise bakes for glTF's Y-up convention has varied across versions),
+and Blender's importer then applies its fixed Y-up-to-Z-up rotation, landing
+a VTK point `(x, y, z)` at `(x, -z, y)`. The camera goes through the same
+rotation, so scene and camera agree and the render matches what the plotter
+framed -- an invariant the end-to-end tests pin with depth markers, because
+a wrong hop renders perfectly plausible frames whose *sweep* is tilted.
+
+Scalar-mapped colours survive: VTK bakes them into a glTF base-colour
+texture that Blender wires into the material on import. Lights do not
+exist in the export, which is what `ensure_light` is for. Notably, the
+export works with no OpenGL stack at all -- the plotter is read and
+exported, never rendered -- so this path runs on headless machines where
+`render_quilt()` itself cannot.
+
 ## Cameras
 
 Two modes:

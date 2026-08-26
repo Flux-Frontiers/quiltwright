@@ -81,7 +81,7 @@ from pathlib import Path
 
 import numpy as np
 
-from quiltwright.lfd import QuiltSpec, assemble_quilt
+from quiltwright.lfd import QuiltSpec, _camera_frame, assemble_quilt
 from quiltwright.povray import COURTESY_CORES_HELD_BACK
 
 #: Environment variable overriding which Blender binary is used.
@@ -896,3 +896,155 @@ def render_cycles_views(
         if keep_job:
             shutil.copy2(workdir / "job.json", out / "job.json")
         return [Path(shutil.copy2(png, out / png.name)) for png in views]
+
+
+# ---------------------------------------------------------------------------
+# The PyVista bridge: a composed plotter, hardware-ray-traced
+# ---------------------------------------------------------------------------
+#
+# PyVista scenes are meshes, and meshes are what this backend exists for --
+# but a plotter lives in VTK's world and Cycles in Blender's, and the glTF
+# hop between them applies a coordinate rotation that is easy to get wrong
+# and disastrous when wrong (the scene renders fine; the *sweep* is
+# mirrored or tilted).  These helpers own that hop as one contract:
+#
+# * The scene is exported with ``rotate_scene=False``, so the glTF file
+#   carries raw VTK world coordinates.  The alternative bakes a
+#   glTF-Y-up rotation whose exact form has varied across pyvista/VTK
+#   versions; raw coordinates are the stable choice.
+# * Blender's glTF importer then applies its fixed Y-up-to-Z-up
+#   convention, landing a VTK point ``(x, y, z)`` at ``(x, -z, y)`` in
+#   Blender's world (verified against imported geometry, not inferred).
+# * The camera goes through the *same* rotation, so scene and camera agree
+#   and the rendered views are identical to what the plotter framed.
+#
+# Scalar-mapped colours survive the hop: VTK bakes the mapped colours into
+# a baseColorTexture, which Blender wires into the Principled BSDF on
+# import.  Lights do not exist in the export, which is what the backend's
+# ``ensure_light`` default is for.
+
+
+def _to_blender(v: np.ndarray) -> tuple[float, float, float]:
+    """Map a VTK/PyVista world point into Blender's world after glTF import.
+
+    Blender's importer rotates glTF's +Y-up convention onto its own +Z-up;
+    with the scene exported un-rotated (``rotate_scene=False``), that is the
+    only transform between the two worlds: ``(x, y, z) -> (x, -z, y)``.
+    """
+    x, y, z = (float(c) for c in v)
+    return (x, -z, y)
+
+
+def export_plotter_gltf(plotter, path: str | Path) -> Path:
+    """Export a composed PyVista plotter scene as glTF for this backend.
+
+    A thin wrapper over ``plotter.export_gltf`` that pins the export
+    settings the coordinate contract above depends on -- most importantly
+    ``rotate_scene=False``.  Export works headless: no OpenGL context or
+    prior render is required, so it runs where ``plotter.show()`` cannot.
+
+    :param plotter: A ``pv.Plotter`` with the scene composed.
+    :param path: Destination ``.gltf`` path.  Buffers and baked colour
+        textures are inlined, so the one file is the whole scene.
+    :return: *path*, as a :class:`~pathlib.Path`.
+    """
+    out = Path(path).expanduser()
+    plotter.export_gltf(str(out), inline_data=True, rotate_scene=False, save_normals=True)
+    return out
+
+
+def cycles_camera_from_plotter(plotter, *, fov: float | None = 14.0, zoom: float | None = None):
+    """Build the :class:`CyclesCamera` matching a plotter's current view.
+
+    The plotter's camera defines the centre view and its focal point becomes
+    the holographic focal plane, exactly as in
+    :func:`~quiltwright.lfd.render_quilt` -- including its FOV convention:
+    the lens is narrowed to *fov* and the camera dollied back so the focal
+    plane stays the same size in frame.  The result is expressed in
+    Blender's world under the glTF contract above, so it pairs with
+    :func:`export_plotter_gltf` and nothing else.
+
+    The plotter is read, never mutated: unlike ``render_quilt``, whose
+    sweep must drive the live VTK camera, this backend renders from a copy
+    of the view, so the plotter remains exactly as composed.
+
+    :param plotter: A ``pv.Plotter`` (or anything with a vtkCamera-shaped
+        ``.camera``) with the view positioned, e.g. via
+        ``plotter.camera_position`` or ``plotter.reset_camera()``.
+    :param fov: Vertical field of view in degrees for the quilt cameras;
+        the eye dollies back to compensate.  ``None`` keeps the plotter's
+        own FOV and distance.
+    :param zoom: Optional dolly factor applied after framing; values > 1
+        make the subject fill more of each tile, which is what drives
+        perceived depth.
+    :return: The centre-view :class:`CyclesCamera`.
+    """
+    pos, focal, _, true_up, distance = _camera_frame(plotter.camera)
+    forward = (focal - pos) / distance
+    if fov is None:
+        fov = float(plotter.camera.view_angle)
+    else:
+        half_height = distance * math.tan(math.radians(plotter.camera.view_angle) / 2.0)
+        distance = half_height / math.tan(math.radians(fov) / 2.0)
+    if zoom is not None and zoom != 1.0:
+        distance /= zoom
+    eye = focal - forward * distance
+    return CyclesCamera(
+        location=_to_blender(eye),
+        look_at=_to_blender(focal),
+        up=_to_blender(true_up),
+        fov=float(fov),
+    )
+
+
+def render_cycles_quilt_from_plotter(
+    plotter,
+    spec: QuiltSpec,
+    *,
+    fov: float | None = 14.0,
+    zoom: float | None = None,
+    gltf: str | Path | None = None,
+    **kwargs,
+) -> np.ndarray:
+    """Render a PyVista plotter's scene into a quilt with Cycles.
+
+    The hardware-ray-traced sibling of :func:`~quiltwright.lfd.render_quilt`:
+    same plotter in, same quilt out, but the views are path-traced by Cycles
+    -- with GPU ray tracing where the hardware offers it -- instead of
+    rasterised by VTK.  Compose the scene and position the camera exactly as
+    you would for ``render_quilt``, then swap the call.
+
+    The scene is exported to glTF once (see :func:`export_plotter_gltf`) and
+    the whole sweep renders in one Blender process.  The export carries no
+    lights, so the backend's ``ensure_light`` default gives the scene a
+    neutral world and a sun; pass materials-appropriate ``samples`` for
+    finals.
+
+    :param plotter: An *off-screen* ``pv.Plotter`` with the scene composed.
+        Read, never mutated -- and never rendered, so this works on
+        machines whose GL stack cannot even take a screenshot.
+    :param spec: Quilt specification (grid, size, aspect, cone).
+    :param fov: Vertical field of view in degrees, with the
+        ``render_quilt`` dolly-back convention; ``None`` keeps the
+        plotter's own.
+    :param zoom: Optional dolly factor applied after framing, as on
+        :func:`~quiltwright.lfd.render_quilt`.
+    :param gltf: Also write the exported scene here, for inspection or
+        reuse.  Exported to a temporary file if ``None``.
+    :param kwargs: Forwarded to :func:`render_cycles_quilt` -- ``samples``,
+        ``denoise``, ``device``, ``threads``, ``view_cone``, ``binary``,
+        ``keep_views``, ``progress`` and the rest.
+    :return: ``uint8`` RGB array of shape ``(quilt_height, quilt_width, 3)``.
+    """
+    if not plotter.camera.is_set:
+        # Mirror render_quilt's first-render behaviour, without rendering.
+        plotter.camera_position = plotter.renderer.get_default_cam_pos()
+        plotter.reset_camera()
+    camera = cycles_camera_from_plotter(plotter, fov=fov, zoom=zoom)
+
+    if gltf is not None:
+        scene = export_plotter_gltf(plotter, gltf)
+        return render_cycles_quilt(scene, spec, camera, **kwargs)
+    with tempfile.TemporaryDirectory(prefix="cycles_gltf_") as tmp:
+        scene = export_plotter_gltf(plotter, Path(tmp) / "scene.gltf")
+        return render_cycles_quilt(scene, spec, camera, **kwargs)

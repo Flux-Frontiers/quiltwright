@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **A PyVista bridge for the Cycles backend.**
+  `render_cycles_quilt_from_plotter()` is the hardware-ray-traced sibling of
+  `render_quilt()`: the same composed `pv.Plotter` in, the same quilt out,
+  the same FOV/dolly convention -- but the views are path-traced by Cycles
+  instead of rasterised by VTK, and the plotter is read, never mutated or
+  rendered, so it works on headless machines with no GL stack at all.
+  Behind it, `export_plotter_gltf()` pins the export settings the
+  coordinate contract depends on (`rotate_scene=False`, because the Y-up
+  rotation VTK otherwise bakes has varied across versions; Blender's
+  importer then lands a VTK point `(x, y, z)` at `(x, -z, y)`, verified
+  against imported geometry) and `cycles_camera_from_plotter()` translates
+  the plotter's camera through that same rotation. Scalar-mapped colours
+  survive the hop as a baked base-colour texture. The end-to-end test
+  drives a real plotter through export, import and a Cycles render and
+  asserts the focal-plane marker stays pinned -- the invariant a wrong
+  coordinate hop breaks while every individual frame still looks right.
+
 - **A third rendering backend: Blender Cycles, with hardware ray tracing
   where the GPU offers it.** `quiltwright.cycles` renders `.blend` files and
   mesh formats (glTF/GLB, OBJ, STL, PLY, USD, FBX, Alembic) into quilts and

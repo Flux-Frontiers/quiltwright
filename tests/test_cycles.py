@@ -770,3 +770,190 @@ class TestRenderCyclesViews:
         assert [p.name for p in paths] == [f"view{i:03d}.png" for i in range(5)]
         assert all(p.is_file() for p in paths)
         assert not (tmp_path / "sweep" / "job.json").exists()
+
+
+# ---------------------------------------------------------------------------
+# The PyVista bridge
+#
+# The camera and orchestration tests run on fakes -- the bridge is
+# deliberately duck-typed, so no pyvista (or GL stack) is needed to pin its
+# arithmetic.  The end-to-end test at the bottom drives a real plotter
+# through a real Cycles render and re-asserts the focal-plane invariant,
+# which is what catches a wrong coordinate hop: the scene renders fine
+# either way, only the sweep geometry betrays it.
+# ---------------------------------------------------------------------------
+
+from quiltwright.cycles import (  # noqa: E402  (grouped with the tests that use them)
+    _to_blender,
+    cycles_camera_from_plotter,
+    render_cycles_quilt_from_plotter,
+)
+
+
+class _FakeCamera:
+    """The vtkCamera surface the bridge reads, and nothing else."""
+
+    def __init__(self):
+        self.position = (0.0, -10.0, 0.0)
+        self.focal_point = (0.0, 0.0, 0.0)
+        self.up = (0.0, 0.0, 1.0)
+        self.view_angle = 30.0
+        self.is_set = True
+
+
+class _FakePlotter:
+    def __init__(self, gltf_body: str = "{}"):
+        self.camera = _FakeCamera()
+        self.exports: list[tuple[str, dict]] = []
+        self._gltf_body = gltf_body
+
+    def export_gltf(self, path, **kwargs):
+        self.exports.append((path, kwargs))
+        with open(path, "w") as fh:
+            fh.write(self._gltf_body)
+
+
+class TestToBlender:
+    def test_the_yup_rotation(self):
+        """A VTK point (x, y, z) lands at (x, -z, y) after Blender's glTF
+        import -- measured against imported geometry, and the single fact
+        the whole bridge rests on."""
+        assert _to_blender(np.array([2.0, 0.0, 5.0])) == (2.0, -5.0, 0.0)
+        assert _to_blender(np.array([0.0, 0.0, 1.0])) == (0.0, -1.0, 0.0)
+
+    def test_is_a_rotation(self):
+        """Distances must survive, or the focal plane moves in the hop."""
+        a, b = np.array([1.0, 2.0, 3.0]), np.array([-4.0, 0.5, 2.0])
+        assert np.linalg.norm(np.subtract(_to_blender(a), _to_blender(b))) == pytest.approx(
+            np.linalg.norm(a - b)
+        )
+
+
+class TestCyclesCameraFromPlotter:
+    def test_narrows_fov_and_dollies_back(self):
+        """The render_quilt convention: the lens narrows to fov and the eye
+        retreats so the focal plane stays the same size in frame."""
+        cam = cycles_camera_from_plotter(_FakePlotter(), fov=14.0)
+        half_height = 10.0 * math.tan(math.radians(15.0))
+        expected = half_height / math.tan(math.radians(7.0))
+        assert cam.fov == pytest.approx(14.0)
+        assert cam.focal_distance == pytest.approx(expected)
+
+    def test_fov_none_keeps_the_plotters_view(self):
+        cam = cycles_camera_from_plotter(_FakePlotter(), fov=None)
+        assert cam.fov == pytest.approx(30.0)
+        assert cam.focal_distance == pytest.approx(10.0)
+
+    def test_zoom_dollies_in(self):
+        base = cycles_camera_from_plotter(_FakePlotter(), fov=None)
+        zoomed = cycles_camera_from_plotter(_FakePlotter(), fov=None, zoom=2.0)
+        assert zoomed.focal_distance == pytest.approx(base.focal_distance / 2.0)
+
+    def test_expressed_in_blender_world(self):
+        """Everything -- eye, aim, up -- goes through the same rotation as
+        the exported geometry, or the sweep tilts."""
+        cam = cycles_camera_from_plotter(_FakePlotter(), fov=None)
+        np.testing.assert_allclose(cam.location, [0.0, 0.0, -10.0], atol=1e-12)
+        np.testing.assert_allclose(cam.look_at, [0.0, 0.0, 0.0], atol=1e-12)
+        np.testing.assert_allclose(cam.up, [0.0, -1.0, 0.0], atol=1e-12)
+
+    def test_focal_point_is_preserved(self):
+        plotter = _FakePlotter()
+        plotter.camera.focal_point = (1.0, 2.0, 3.0)
+        cam = cycles_camera_from_plotter(plotter, fov=14.0)
+        np.testing.assert_allclose(cam.look_at, _to_blender(np.array([1.0, 2.0, 3.0])), atol=1e-12)
+
+
+class TestRenderFromPlotter:
+    def test_exports_under_the_coordinate_contract(self, stub_blender, tiny_spec):
+        """rotate_scene=False is what the camera math assumes; silently
+        losing it would tilt every quilt."""
+        plotter = _FakePlotter()
+        quilt = render_cycles_quilt_from_plotter(
+            plotter, tiny_spec, binary=str(stub_blender), progress=False
+        )
+        assert quilt.shape == (256, 256, 3)
+        ((path, kwargs),) = plotter.exports
+        assert path.endswith(".gltf")
+        assert kwargs["rotate_scene"] is False
+        assert kwargs["inline_data"] is True
+
+    def test_gltf_path_retains_the_export(self, stub_blender, tiny_spec, tmp_path):
+        plotter = _FakePlotter(gltf_body='{"scene": 0}')
+        keep = tmp_path / "scene.gltf"
+        render_cycles_quilt_from_plotter(
+            plotter, tiny_spec, gltf=keep, binary=str(stub_blender), progress=False
+        )
+        assert keep.read_text() == '{"scene": 0}'
+
+    def test_kwargs_reach_the_job(self, stub_blender, tiny_spec, tmp_path, monkeypatch):
+        seen = _argv_spy(monkeypatch)  # proves the real _run_blender ran
+        keep = tmp_path / "kept"
+        render_cycles_quilt_from_plotter(
+            _FakePlotter(),
+            tiny_spec,
+            samples=17,
+            binary=str(stub_blender),
+            keep_views=keep,
+            progress=False,
+        )
+        job = json.loads((keep / "job.json").read_text())
+        assert job["samples"] == 17
+        assert job["format"] == "gltf"
+        assert job["camera"] is not None
+        assert seen["argv"]
+
+
+class TestPlotterBridgeEndToEnd:
+    def test_focal_plane_survives_the_hop(self, blender_binary):
+        """A real plotter, through export and import, path-traced: the
+        focal-plane marker must sit pinned at tile centre in every view and
+        the near marker must sweep right-to-left.  A wrong rotation or a
+        dropped shear renders plausible frames that fail exactly this."""
+        pv = pytest.importorskip("pyvista")
+
+        plotter = pv.Plotter(off_screen=True)
+        plotter.add_mesh(pv.Sphere(radius=0.25, center=(0.0, 0.0, 0.0)), color="green")
+        plotter.add_mesh(pv.Sphere(radius=0.25, center=(0.0, -4.0, -0.9)), color="red")
+        plotter.add_mesh(pv.Sphere(radius=0.25, center=(0.0, 4.0, 0.9)), color="blue")
+        plotter.camera_position = [(0.0, -10.0, 0.0), (0.0, 0.0, 0.0), (0.0, 0.0, 1.0)]
+
+        spec = QuiltSpec(columns=2, rows=2, quilt_width=256, quilt_height=256, aspect=1.0)
+        quilt = render_cycles_quilt_from_plotter(
+            plotter,
+            spec,
+            fov=30.0,
+            samples=8,
+            denoise=False,
+            device="cpu",
+            binary=blender_binary,
+            progress=False,
+        )
+
+        # Lit diffuse spheres, not emissive markers: detect by channel
+        # dominance rather than absolute darkness of the other channels.
+        def centroid_x(tile, channel):
+            others = [c for c in range(3) if c != channel]
+            m = (
+                (tile[..., channel] > 90)
+                & (tile[..., channel] > tile[..., others[0]] + 40)
+                & (tile[..., channel] > tile[..., others[1]] + 40)
+            )
+            return m.nonzero()[1].mean() if m.any() else None
+
+        th, tw = spec.tile_height, spec.tile_width
+        green, red = [], []
+        for i in range(spec.n_views):
+            x, y = spec.tile_origin(i)
+            tile = quilt[y : y + th, x : x + tw].astype(float)
+            green.append(centroid_x(tile, 1))
+            red.append(centroid_x(tile, 0))
+
+        assert all(g is not None for g in green), "focal marker missing from a view"
+        assert max(green) - min(green) < 1.0, f"focal marker drifted: {green}"
+        for g in green:
+            assert abs(g - tw / 2) < 2.0
+
+        assert all(r is not None for r in red)
+        assert max(red) - min(red) > 5.0, f"no parallax on the near marker: {red}"
+        assert red[0] > red[-1], f"view order mirrored: near marker at {red}"

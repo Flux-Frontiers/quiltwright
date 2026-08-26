@@ -88,7 +88,10 @@ pypdb2pov's PDB conversion are the two that drove the design, but
 `quiltwright.tvb_data` pulls real brain geometry from
 [The Virtual Brain](docs/tvb-data.md), PyVista's own example datasets work
 as-is, `quiltwright.povgen` writes POV-Ray from analytic primitives, and a
-plain `.pov` file off your disk needs no pipeline at all.
+plain `.pov` file off your disk needs no pipeline at all. The backends also
+bridge: `render_cycles_quilt_from_plotter()` takes the same composed PyVista
+plotter `render_quilt()` does and path-traces it instead -- scene exported to
+glTF once, camera translated, scalar colours intact.
 
 **Two display technologies.** *Light-field displays* (LFD -- Portrait, Go,
 16"/27"/32"/65") are lenticular panels that consume **quilts**: N views of the
