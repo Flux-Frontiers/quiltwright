@@ -1048,6 +1048,21 @@ class PovScene:
         if self.includes:
             out.append("")
 
+        # Without this, POV-Ray 3.7 treats every colour value in the scene as
+        # already linear light and re-encodes it to sRGB on output -- a
+        # colour authored as a plain 0..1 number (or via parse_color()'s hex
+        # decode) comes out of the render 2-3x brighter than specified.
+        # #1a1a1e (0.10, 0.10, 0.12) renders as (90, 90, 96), not (26, 26, 30).
+        # `assumed_gamma 1.0` (POV-Ray's own fallback when nothing is
+        # declared) does not fix this -- it is the same undeclared behaviour.
+        # Nor is `2.2` exact: a pure power-law gamma overshoots the piecewise
+        # sRGB curve real displays use. `srgb` is POV-Ray's name for that
+        # exact curve, and round-trips a hex colour losslessly -- measured
+        # against this file's own colour, #1a1a1e comes back out as
+        # (26, 26, 30), pixel for pixel.
+        out.append("global_settings { assumed_gamma srgb }")
+        out.append("")
+
         if self.background is not None:
             r, g, b = parse_color(self.background)
             out.append(f"background {{ color rgb <{r:.5g}, {g:.5g}, {b:.5g}> }}")

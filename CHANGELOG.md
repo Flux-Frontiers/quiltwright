@@ -18,11 +18,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   backends rather than two independently modelled scenes. Carries the same
   POV-Ray-native-to-right-handed coordinate flip as the rest of the
   package (negate *z*, reverse face winding to compensate) -- derived
-  algebraically and checked against a synthetic mesh2 fixture, but not yet
-  exercised against a real PyMOL export in this codebase's own development
-  environment (no PyMOL here); flagged prominently in both the function's
-  docstring and the script's, since this is exactly the kind of arithmetic
-  that renders a plausible-looking but inside-out mesh when wrong.
+  algebraically and checked against a synthetic mesh2 fixture, and now
+  exercised against a real PyMOL install and real structures (`molecules/`
+  carries `2omf.cif.gz` and `1gfl.pdb` as fetchable examples). That exercise
+  found the coordinate flip itself was fine but the geometry still arrived
+  turned 90 degrees against its camera -- see Fixed, below -- exactly the
+  failure mode this entry originally flagged as unverified.
+
+- **`color="ss"` on both `cartoon_inc()` and `cartoon_obj()`.** Runs
+  `cmd.dss()` then colours helix, strand and everything else (loops, turns)
+  with the three flat colours in `SS_COLORS` -- the conventional
+  three-colour cartoon, as an alternative to a `"spectrum"` rainbow or a
+  single flat colour. For `cartoon_obj()`, whose OBJ has no way to carry a
+  rainbow ramp (`color="spectrum"` now raises there, with a pointer to
+  `cartoon_inc()`/POV-Ray instead), the three baked colours are read back
+  out of PyMOL's own `texture_list` rather than recomputed, matched to
+  `SS_COLORS` by nearest RGB, and written as a companion `.mtl` with one
+  material per colour actually used -- so a structure with no helices
+  writes no unused `helix` material. `render_cartoon_hologram.py --color`
+  defaults to `"ss"` on both backends now, in place of the old
+  Cycles-has-no-colour-at-all default.
+
+- **A `roughness` parameter on `cartoon_obj()`**, written into the `.mtl` as
+  Wavefront's `Pr` extension. Blender's own default (`0.5`) reads as flat
+  and plasticky next to POV-Ray's finish; `render_cartoon_hologram.py
+  --roughness` (default `0.3`) is the Cycles-side answer to `--finish`,
+  below.
+
+- **`finish="metallic"` on `cartoon_inc()`.** Rewrites every colour PyMOL
+  baked into the exported mesh with the vitrine's own brass recipe
+  (`pov-scenes/vitrine/vitrine.inc`) -- bump normal, `metallic` specular and
+  reflection, low diffuse -- but tinted with each baked colour instead of
+  brass yellow, so `color="ss"` comes out as three metals rather than one
+  shared material. `render_cartoon_hologram.py --finish metallic` wires it
+  up; `--finish normal` (default) is unchanged behaviour. A `"glass"`
+  option was prototyped and dropped: a cartoon is a lattice of 20+ crossing
+  ribbons along a typical view ray, and per-surface tint compounds
+  multiplicatively across every crossing, crushing to black well before any
+  amount of added transparency or ambient light could compensate.
+
+- **A Prerequisites table in the README**, and matching sections in
+  `docs/install.md` for Blender/Cycles and PyMOL -- both had grown into core
+  backends with zero install coverage in either doc.
 
 - **`scripts/render_dna_helix_hologram.py`** -- a worked side-by-side of the
   Cycles and POV-Ray backends on one composed scene: a B-DNA double helix,
@@ -88,6 +125,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   black; a `.blend` is never touched. The end-to-end tests run against a
   real `blender` binary or, for CI, any interpreter carrying the `bpy`
   wheel via `QW_BPY_PYTHON`. Documented in `docs/cycles.md`.
+
+### Fixed
+
+- **Every POV-Ray colour in the package rendered 2-3x too bright.** No
+  scene ever declared `assumed_gamma`, so POV-Ray 3.7 treated colours as
+  already-linear light and gamma-encoded them again on output: `#1a1a1e`
+  (26, 26, 30) rendered as (90, 90, 96). `assumed_gamma 1.0` -- POV-Ray's
+  own fallback when nothing is declared, and what this package's test
+  fixtures already used -- turned out to be a no-op, identical to declaring
+  nothing at all; `2.2` overshoots, since a pure power-law gamma isn't the
+  piecewise curve real displays use. `PovScene` now declares
+  `assumed_gamma srgb`, POV-Ray's name for that exact curve, verified by
+  round-tripping `#1a1a1e` back out of a render pixel for pixel.
+
+- **`quiltwright.cycles`'s OBJ import turned the mesh 90 degrees against its
+  own camera.** Blender's `wm.obj_import` defaults to remapping the
+  Wavefront convention (Y-up) onto its own Z-up world; every OBJ this
+  package writes (`cartoon_obj()`) is already Z-up, so the remap turned it
+  sideways -- a beta barrel came out viewed down its pore instead of from
+  the side. Fixed by importing with `forward_axis="Y", up_axis="Z"`, an
+  identity transform, confirmed against Blender's full 30-combination axis
+  matrix.
+
+- **A failed PyMOL export surfaced as a bare `FileNotFoundError` on
+  `body.pov`, many frames away from the actual cause.** PyMOL's `-cq` batch
+  mode logs a bad `cmd.load`/`cmd.show`/selection and keeps going rather
+  than raising, so a bad path or selection exited `0` with nothing written.
+  `_run_export()` now checks that PyMOL actually wrote its expected output
+  and raises with PyMOL's own traceback attached when it didn't.
 
 ## [0.8.0] - 2026-08-24
 

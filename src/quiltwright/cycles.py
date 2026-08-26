@@ -351,7 +351,14 @@ def load_scene(job):
     bpy.ops.wm.read_factory_settings(use_empty=True)
     importers = {
         "gltf": lambda p: bpy.ops.import_scene.gltf(filepath=p),
-        "obj": lambda p: bpy.ops.wm.obj_import(filepath=p),
+        # forward_axis='Y', up_axis='Z' makes this an identity import: the
+        # Wavefront convention is Y-up, so Blender's own default remaps that
+        # onto its Z-up world (a 90-degree turn about X) on every .obj import.
+        # Every OBJ this package writes (quiltwright.pymol.cartoon_obj()) is
+        # already in the package's right-handed, +z-up convention -- the same
+        # one the camera math in this module assumes -- so the remap is
+        # exactly the rotation that must NOT happen here.
+        "obj": lambda p: bpy.ops.wm.obj_import(filepath=p, forward_axis="Y", up_axis="Z"),
         "stl": lambda p: bpy.ops.wm.stl_import(filepath=p),
         "ply": lambda p: bpy.ops.wm.ply_import(filepath=p),
         "usd": lambda p: bpy.ops.wm.usd_import(filepath=p),

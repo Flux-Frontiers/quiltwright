@@ -31,9 +31,9 @@ unverified code, most of all the coordinate flip
 
 Usage::
 
-    python scripts/render_cartoon_hologram.py 2omf.cif.gz --still
-    python scripts/render_cartoon_hologram.py 2omf.cif.gz --backend povray --still
-    python scripts/render_cartoon_hologram.py 1gfl.pdb --rep surface --backend cycles --still
+    python scripts/render_cartoon_hologram.py molecules/2omf.cif.gz --still
+    python scripts/render_cartoon_hologram.py molecules/2omf.cif.gz --backend povray --still
+    python scripts/render_cartoon_hologram.py molecules/1gfl.pdb --rep surface --backend cycles --still
     python scripts/render_cartoon_hologram.py 2omf.cif.gz --device portrait --cast
 
 Author: Eric G. Suchanek, PhD
@@ -86,6 +86,7 @@ def render_povray(
     fov: float,
     rep: str,
     color: str,
+    finish: str,
     selection: str,
     assembly: str,
     surface_quality: int | None,
@@ -105,6 +106,7 @@ def render_povray(
         inc_path,
         rep=rep,
         color=color,
+        finish=finish,
         selection=selection,
         assembly=assembly,
         surface_quality=surface_quality,
@@ -144,6 +146,8 @@ def render_cycles(
     spec: QuiltSpec,
     fov: float,
     rep: str,
+    color: str,
+    roughness: float,
     selection: str,
     assembly: str,
     surface_quality: int | None,
@@ -162,6 +166,8 @@ def render_cycles(
         source,
         obj_path,
         rep=rep,
+        color=color,
+        roughness=roughness,
         selection=selection,
         assembly=assembly,
         surface_quality=surface_quality,
@@ -199,7 +205,23 @@ def main() -> int:
         "--rep", default="cartoon", choices=REPRESENTATIONS, help="PyMOL representation"
     )
     parser.add_argument(
-        "--color", default="spectrum", help="POV-Ray only; cartoon_obj() carries no colour"
+        "--color",
+        default="ss",
+        help='"ss" for helix/strand/loop (default), "spectrum" for a rainbow '
+        "ramp (POV-Ray only -- OBJ has no reasonable way to carry one colour "
+        "per residue), or any flat PyMOL colour name / #rrggbb",
+    )
+    parser.add_argument(
+        "--roughness",
+        type=float,
+        default=0.3,
+        help="Cycles only: material roughness for --color, lower is glossier",
+    )
+    parser.add_argument(
+        "--finish",
+        default="normal",
+        choices=("normal", "metallic"),
+        help="POV-Ray only: finish applied to each baked colour",
     )
     parser.add_argument("--selection", default="polymer", help="PyMOL selection")
     parser.add_argument(
@@ -256,6 +278,8 @@ def main() -> int:
                 spec,
                 args.fov,
                 args.rep,
+                args.color,
+                args.roughness,
                 args.selection,
                 args.assembly,
                 args.surface_quality,
@@ -270,6 +294,7 @@ def main() -> int:
                 args.fov,
                 args.rep,
                 args.color,
+                args.finish,
                 args.selection,
                 args.assembly,
                 args.surface_quality,
