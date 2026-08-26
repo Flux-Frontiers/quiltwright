@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **Lighting rigs for the Cycles backend.** The `ensure_light` flag (added
+  above, never released) grew into a `lighting` parameter on
+  `render_cycles_quilt()` / `render_cycles_views()`: `"soft"` keeps the
+  neutral world-plus-sun default, `"studio"` builds a camera-relative
+  three-point rig (key/fill/rim area lights over a near-black world),
+  `"sky"` lights with Blender's physical Nishita sky (sun over the
+  camera's left shoulder), a `.hdr`/`.exr` path becomes an HDRI
+  environment world, and `None` adds nothing. Rigs apply only to imported
+  scenes with no lights of their own, never touch a `.blend`, and are
+  scaled by the focal distance with wattage growing as distance squared,
+  so apparent brightness is invariant under scene scale. Constants were
+  tuned against rendered output (the sky preset's sun rotation semantics
+  were established empirically -- four candidate azimuths rendered and
+  compared).
+
 - **A PyVista bridge for the Cycles backend.**
   `render_cycles_quilt_from_plotter()` is the hardware-ray-traced sibling of
   `render_quilt()`: the same composed `pv.Plotter` in, the same quilt out,

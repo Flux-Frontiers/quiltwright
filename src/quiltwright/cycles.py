@@ -40,7 +40,11 @@ and world; everything Blender can import -- glTF/GLB, OBJ, STL, PLY, USD,
 FBX, Alembic -- is loaded into an empty scene.  Imported meshes usually
 arrive without lights, which in a path tracer means a black frame, so by
 default a neutral world and a sun are added when the scene has no light of
-its own (``ensure_light=False`` to opt out).
+its own.  The ``lighting`` parameter picks the rig: a neutral
+world-plus-sun (``"soft"``, the default), a camera-relative three-point
+studio rig (``"studio"``), Blender's physical sky (``"sky"``), an
+equirectangular ``.hdr``/``.exr`` environment map, or ``None`` to add
+nothing.
 
 A ``.blend`` may also supply its *own* camera: pass ``camera=None`` and the
 file's active camera becomes the centre view.  The focal plane then comes
@@ -516,26 +520,106 @@ def scene_camera(scene, aspect):
     return obj, float(focal), tan_half_x, shift_scale
 
 
-def ensure_light(scene, forward):
-    """Give an imported, light-less scene something to see by: a neutral
-    world plus a sun shining roughly along the view, tilted down."""
-    if any(o.type == "LIGHT" for o in scene.objects):
-        return
+def get_world(scene):
     world = scene.world
     if world is None:
         world = bpy.data.worlds.new("quiltwright")
         scene.world = world
     world.use_nodes = True
-    background = world.node_tree.nodes.get("Background")
+    return world
+
+
+def grey_world(scene, value, strength):
+    background = get_world(scene).node_tree.nodes.get("Background")
     if background is not None:
-        background.inputs["Color"].default_value = (0.85, 0.85, 0.85, 1.0)
-        background.inputs["Strength"].default_value = 0.5
-    sun = bpy.data.lights.new("quiltwright_sun", "SUN")
-    sun.energy = 3.0
-    obj = bpy.data.objects.new("quiltwright_sun", sun)
+        background.inputs["Color"].default_value = (value, value, value, 1.0)
+        background.inputs["Strength"].default_value = strength
+
+
+def add_light(scene, name, kind, position, target, energy, size=None):
+    data = bpy.data.lights.new(name, kind)
+    data.energy = energy
+    if size is not None:
+        data.size = size
+    obj = bpy.data.objects.new(name, data)
     scene.collection.objects.link(obj)
-    aim = (Vector(forward) + Vector((0.0, 0.0, -1.0))).normalized()
+    obj.location = position
+    aim = (Vector(target) - Vector(position)).normalized()
     obj.rotation_euler = aim.to_track_quat("-Z", "Y").to_euler()
+    return obj
+
+
+def apply_lighting(scene, spec, base, focal):
+    """Light an imported scene that has none of its own.
+
+    Every rig is expressed relative to the camera and scaled by the focal
+    distance -- area-light wattage grows with distance squared, so apparent
+    brightness is invariant under scene scale and the same preset lights an
+    angstrom-radius molecule and a room.
+    """
+    if spec is None:
+        return
+    if any(o.type == "LIGHT" for o in scene.objects):
+        return
+    forward = (-base.col[2].to_3d()).normalized()
+    right = base.col[0].to_3d().normalized()
+    up = base.col[1].to_3d().normalized()
+    target = base.translation + forward * focal
+    kind = spec["kind"]
+
+    if kind == "soft":
+        grey_world(scene, 0.85, 0.5)
+        sun = bpy.data.lights.new("quiltwright_sun", "SUN")
+        sun.energy = 3.0
+        obj = bpy.data.objects.new("quiltwright_sun", sun)
+        scene.collection.objects.link(obj)
+        aim = (forward + Vector((0.0, 0.0, -1.0))).normalized()
+        obj.rotation_euler = aim.to_track_quat("-Z", "Y").to_euler()
+    elif kind == "studio":
+        # Three-point rig: key over the camera's left shoulder, a broad low
+        # fill from the right, a rim behind the subject.  Near-black world
+        # so the rig, not ambience, draws the form.
+        grey_world(scene, 0.03, 1.0)
+        d = focal
+        watts = 30.0 * d * d
+        key = target + (-right * 0.9 + up * 0.7 - forward * 0.7) * d
+        fill = target + (right * 1.0 + up * 0.1 - forward * 0.8) * d
+        rim = target + (forward * 0.9 + up * 0.6 + right * 0.3) * d
+        add_light(scene, "quiltwright_key", "AREA", key, target, watts, size=0.45 * d)
+        add_light(scene, "quiltwright_fill", "AREA", fill, target, watts * 0.22, size=1.2 * d)
+        add_light(scene, "quiltwright_rim", "AREA", rim, target, watts * 0.7, size=0.25 * d)
+    elif kind == "sky":
+        world = get_world(scene)
+        tree = world.node_tree
+        background = tree.nodes.get("Background")
+        sky = tree.nodes.new("ShaderNodeTexSky")
+        try:
+            sky.sky_type = "NISHITA"
+        except TypeError:
+            pass  # newer Blender: the physical sky is the only type
+        sky.sun_elevation = math.radians(33.0)
+        sky.sun_intensity = 1.2
+        # Sun over the camera's left shoulder: sun_rotation is measured
+        # about +Z with the sun at -Y when zero.
+        azimuth = math.atan2(forward.x, -forward.y)
+        sky.sun_rotation = azimuth + math.radians(225.0)
+        if background is not None:
+            tree.links.new(sky.outputs["Color"], background.inputs["Color"])
+            background.inputs["Strength"].default_value = 0.3
+    elif kind == "hdri":
+        world = get_world(scene)
+        tree = world.node_tree
+        background = tree.nodes.get("Background")
+        env = tree.nodes.new("ShaderNodeTexEnvironment")
+        try:
+            env.image = bpy.data.images.load(spec["path"])
+        except Exception as exc:
+            fail("could not load HDRI %s: %s" % (spec["path"], exc))
+        if background is not None:
+            tree.links.new(env.outputs["Color"], background.inputs["Color"])
+            background.inputs["Strength"].default_value = 1.0
+    else:
+        fail("unknown lighting rig: %s" % kind)
 
 
 def main():
@@ -558,8 +642,8 @@ def main():
     right = base.col[0].to_3d().normalized()
     base_shift = cam.data.shift_x
 
-    if job["ensure_light"] and job["format"] != "blend":
-        ensure_light(scene, (-base.col[2].to_3d()).normalized())
+    if job["format"] != "blend":
+        apply_lighting(scene, job["lighting"], base, focal)
 
     n = len(job["angles"])
     for i, angle in enumerate(job["angles"]):
@@ -597,6 +681,34 @@ def _camera_job(camera: CyclesCamera | None) -> dict | None:
         "fov": float(camera.fov),
         "focal_distance": camera.focal_distance,
     }
+
+
+#: Named lighting rigs the driver can build; see :func:`_lighting_job`.
+LIGHTING_RIGS = ("soft", "studio", "sky")
+
+
+def _lighting_job(lighting: str | Path | None) -> dict | None:
+    """Serialise the *lighting* argument for the driver.
+
+    :param lighting: A rig name from :data:`LIGHTING_RIGS`, a path to an
+        equirectangular ``.hdr``/``.exr`` environment map, or ``None`` to
+        never add light.
+    :return: The driver's lighting spec, or ``None``.
+    :raises ValueError: If *lighting* is neither a known rig nor an HDRI.
+    :raises FileNotFoundError: If an HDRI path does not exist.
+    """
+    if lighting is None:
+        return None
+    if isinstance(lighting, str) and lighting in LIGHTING_RIGS:
+        return {"kind": lighting}
+    path = Path(lighting).expanduser()
+    if path.suffix.lower() in (".hdr", ".exr"):
+        if not path.is_file():
+            raise FileNotFoundError(f"HDRI environment map not found: {path}")
+        return {"kind": "hdri", "path": str(path.resolve())}
+    raise ValueError(
+        f"lighting must be one of {LIGHTING_RIGS}, a .hdr/.exr path, or None; got {lighting!r}"
+    )
 
 
 def _view_angles(spec: QuiltSpec) -> list[float]:
@@ -741,7 +853,7 @@ def render_cycles_quilt(
     samples: int = 64,
     denoise: bool = True,
     device: str = "auto",
-    ensure_light: bool = True,
+    lighting: str | Path | None = "soft",
     threads: int | None = None,
     binary: str | None = None,
     extra_args: Sequence[str] = (),
@@ -772,9 +884,14 @@ def render_cycles_quilt(
     :param device: ``"auto"`` prefers a GPU (Metal first) and falls back to
         CPU; ``"gpu"`` errors if no GPU compute device exists; ``"cpu"``
         forces CPU rendering.
-    :param ensure_light: Add a neutral world and a sun when an *imported*
-        scene has no lights of its own -- without this a path tracer renders
-        an unlit import black.  Never touches a ``.blend``.
+    :param lighting: How to light an *imported* scene that has no lights of
+        its own -- without this a path tracer renders an unlit import black.
+        ``"soft"`` (default) is a neutral world plus a sun; ``"studio"`` a
+        camera-relative three-point rig over a dark world; ``"sky"``
+        Blender's physical sky; a ``.hdr``/``.exr`` path an HDRI
+        environment world.  ``None`` adds nothing.  Rigs scale with the
+        focal distance, never touch a ``.blend``, and defer to any light
+        the import carries.
     :param threads: Blender ``-t`` thread count.  ``None`` applies the same
         courtesy cap as the POV-Ray backend (``cpu_count - 2``); ``0`` lets
         Blender take every core.  GPU rendering is unaffected.
@@ -807,7 +924,7 @@ def render_cycles_quilt(
         "samples": int(samples),
         "denoise": bool(denoise),
         "device": device,
-        "ensure_light": bool(ensure_light),
+        "lighting": _lighting_job(lighting),
     }
 
     with tempfile.TemporaryDirectory(prefix="cycles_quilt_") as tmp:
@@ -833,7 +950,7 @@ def render_cycles_views(
     samples: int = 64,
     denoise: bool = True,
     device: str = "auto",
-    ensure_light: bool = True,
+    lighting: str | Path | None = "soft",
     threads: int | None = None,
     binary: str | None = None,
     extra_args: Sequence[str] = (),
@@ -859,7 +976,8 @@ def render_cycles_views(
     :param denoise: Run Cycles' denoiser on each view.
     :param device: ``"auto"``, ``"gpu"`` or ``"cpu"``, as for
         :func:`render_cycles_quilt`.
-    :param ensure_light: Light an unlit *imported* scene; see
+    :param lighting: Rig for an unlit *imported* scene -- ``"soft"``,
+        ``"studio"``, ``"sky"``, an HDRI path, or ``None``; see
         :func:`render_cycles_quilt`.
     :param threads: Blender ``-t`` thread count; see
         :func:`render_cycles_quilt`.
@@ -885,7 +1003,7 @@ def render_cycles_views(
         "samples": int(samples),
         "denoise": bool(denoise),
         "device": device,
-        "ensure_light": bool(ensure_light),
+        "lighting": _lighting_job(lighting),
     }
 
     with tempfile.TemporaryDirectory(prefix="cycles_sweep_") as tmp:
@@ -921,7 +1039,7 @@ def render_cycles_views(
 # Scalar-mapped colours survive the hop: VTK bakes the mapped colours into
 # a baseColorTexture, which Blender wires into the Principled BSDF on
 # import.  Lights do not exist in the export, which is what the backend's
-# ``ensure_light`` default is for.
+# ``lighting`` rigs are for.
 
 
 def _to_blender(v: np.ndarray) -> tuple[float, float, float]:
@@ -1016,9 +1134,10 @@ def render_cycles_quilt_from_plotter(
 
     The scene is exported to glTF once (see :func:`export_plotter_gltf`) and
     the whole sweep renders in one Blender process.  The export carries no
-    lights, so the backend's ``ensure_light`` default gives the scene a
-    neutral world and a sun; pass materials-appropriate ``samples`` for
-    finals.
+    lights, so the backend's ``lighting`` rigs supply them -- the ``"soft"``
+    default for a neutral look, ``lighting="studio"`` for a three-point
+    product shot, ``"sky"`` or an HDRI path for environments; pass
+    materials-appropriate ``samples`` for finals.
 
     :param plotter: An *off-screen* ``pv.Plotter`` with the scene composed.
         Read, never mutated -- and never rendered, so this works on

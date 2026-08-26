@@ -77,9 +77,24 @@ variant for hologram printers and lenticular interlacers, matching
 | `.gltf` / `.glb`, `.obj`, `.stl`, `.ply`, `.usd*`, `.fbx`, `.abc` | Imported into an empty scene |
 
 Imported meshes usually arrive without lights, and an unlit scene renders
-*black* in a path tracer, so by default an import with no lights of its own
-gets a neutral world plus a sun (`ensure_light=False` to opt out). A
-`.blend` is never touched.
+*black* in a path tracer, so an import with no lights of its own gets a
+lighting rig chosen by the `lighting` parameter. A `.blend` is never
+touched, and a rig always defers to any light the import carries.
+
+| `lighting=` | Rig |
+|---|---|
+| `"soft"` *(default)* | Neutral grey world plus a sun -- the studio-clay look |
+| `"studio"` | Camera-relative three-point rig (key/fill/rim area lights) over a near-black world -- the product-shot look |
+| `"sky"` | Blender's physical (Nishita) sky with the sun over the camera's left shoulder -- outdoor daylight |
+| a `.hdr`/`.exr` path | Equirectangular HDRI environment world |
+| `None` | Nothing is added |
+
+Every rig is expressed relative to the camera and scaled by the focal
+distance -- area-light wattage grows with distance squared -- so the same
+preset lights an angstrom-radius molecule and a room. The presets were
+tuned against rendered output; treat them as good starting points, and
+reach for an HDRI (or author lights in a `.blend`) when a shot needs a
+specific look.
 
 ### PyVista, directly
 
@@ -107,7 +122,8 @@ a wrong hop renders perfectly plausible frames whose *sweep* is tilted.
 
 Scalar-mapped colours survive: VTK bakes them into a glTF base-colour
 texture that Blender wires into the material on import. Lights do not
-exist in the export, which is what `ensure_light` is for. Notably, the
+exist in the export, which is what the `lighting` rigs are for -- pass
+`lighting="studio"` through the bridge for the product-shot look. Notably, the
 export works with no OpenGL stack at all -- the plotter is read and
 exported, never rendered -- so this path runs on headless machines where
 `render_quilt()` itself cannot.

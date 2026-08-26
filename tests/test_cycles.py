@@ -28,6 +28,7 @@ from quiltwright.cycles import (
     _DRIVER,
     CyclesCamera,
     _find_blender,
+    _lighting_job,
     _scene_format,
     _view_angles,
     render_cycles_quilt,
@@ -722,9 +723,10 @@ class TestRenderCyclesQuilt:
         assert max(green) - min(green) < 1.0, f"focal marker drifted: {green}"
         assert red[0] > red[-1]
 
-    def test_unlit_import_is_not_black(self, tiny_spec, camera, blender_binary, tmp_path):
-        """An OBJ arrives with no lights; ensure_light must give the path
-        tracer something to see by, or every import renders black."""
+    @pytest.mark.parametrize("rig", ["soft", "studio", "sky"])
+    def test_unlit_import_is_not_black(self, tiny_spec, camera, blender_binary, tmp_path, rig):
+        """An OBJ arrives with no lights; every lighting rig must give the
+        path tracer something to see by, or the import renders black."""
         cube = tmp_path / "cube.obj"
         cube.write_text(
             "v -1 -1 -1\nv 1 -1 -1\nv 1 1 -1\nv -1 1 -1\n"
@@ -736,13 +738,14 @@ class TestRenderCyclesQuilt:
             cube,
             spec,
             camera,
+            lighting=rig,
             samples=8,
             denoise=False,
             device="cpu",
             binary=blender_binary,
             progress=False,
         )
-        assert quilt.mean() > 5.0, "imported scene rendered black"
+        assert quilt.mean() > 5.0, f"imported scene rendered black under {rig!r}"
 
     def test_bad_blend_surfaces_the_driver_error(self, tiny_spec, camera, blender_binary, tmp_path):
         bad = tmp_path / "bad.blend"
@@ -957,3 +960,65 @@ class TestPlotterBridgeEndToEnd:
         assert all(r is not None for r in red)
         assert max(red) - min(red) > 5.0, f"no parallax on the near marker: {red}"
         assert red[0] > red[-1], f"view order mirrored: near marker at {red}"
+
+
+# ---------------------------------------------------------------------------
+# Lighting rigs
+# ---------------------------------------------------------------------------
+
+
+class TestLightingJob:
+    @pytest.mark.parametrize("rig", ["soft", "studio", "sky"])
+    def test_named_rigs(self, rig):
+        assert _lighting_job(rig) == {"kind": rig}
+
+    def test_none_means_no_light(self):
+        assert _lighting_job(None) is None
+
+    @pytest.mark.parametrize("suffix", [".hdr", ".exr"])
+    def test_hdri_path(self, tmp_path, suffix):
+        env = tmp_path / f"env{suffix}"
+        env.write_bytes(b"#?RADIANCE\n")
+        job = _lighting_job(env)
+        assert job["kind"] == "hdri"
+        assert job["path"] == str(env.resolve())
+
+    def test_missing_hdri_raises(self, tmp_path):
+        with pytest.raises(FileNotFoundError, match="environment map"):
+            _lighting_job(tmp_path / "absent.hdr")
+
+    def test_unknown_rig_rejected(self):
+        """A typo'd rig must fail before Blender is even found -- the driver
+        would otherwise render the fallback silently."""
+        with pytest.raises(ValueError, match="soft.*studio.*sky"):
+            _lighting_job("dramatic")
+
+
+class TestLightingReachesTheJob:
+    def test_named_rig(self, blend_scene, camera, stub_blender, tiny_spec, tmp_path):
+        render_cycles_views(
+            blend_scene,
+            tiny_spec,
+            camera,
+            tmp_path / "sweep",
+            lighting="studio",
+            binary=str(stub_blender),
+            keep_job=True,
+            progress=False,
+        )
+        job = json.loads((tmp_path / "sweep" / "job.json").read_text())
+        assert job["lighting"] == {"kind": "studio"}
+
+    def test_none(self, blend_scene, camera, stub_blender, tiny_spec, tmp_path):
+        render_cycles_views(
+            blend_scene,
+            tiny_spec,
+            camera,
+            tmp_path / "sweep",
+            lighting=None,
+            binary=str(stub_blender),
+            keep_job=True,
+            progress=False,
+        )
+        job = json.loads((tmp_path / "sweep" / "job.json").read_text())
+        assert job["lighting"] is None
