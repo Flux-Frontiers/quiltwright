@@ -1,6 +1,7 @@
 # Blender Cycles Holographic Output
 
 **Module**: `quiltwright.cycles`
+**Script**: `scripts/render_dna_helix_hologram.py`
 **Source**: `src/quiltwright/cycles.py`
 
 > *POV-Ray will never see a ray-tracing core. Meshes don't have to care.*
@@ -183,6 +184,29 @@ Knobs that matter:
 **Requirements**: a `blender` binary -- `brew install --cask blender` on
 macOS (the standard `/Applications` install is found automatically), or
 `BLENDER_BINARY` pointing anywhere else. Blender 4.x or later.
+
+## Worked example: one scene, both backends
+
+`scripts/render_dna_helix_hologram.py` composes a B-DNA double helix -- sphere
+glyphs for the backbones, base-pair rungs coloured A/T/G/C -- and renders it
+with either backend from the same generating code:
+
+```bash
+python scripts/render_dna_helix_hologram.py --still                                # Cycles, studio lighting
+python scripts/render_dna_helix_hologram.py --backend povray --still               # POV-Ray, same camera
+python scripts/render_dna_helix_hologram.py --lighting sky --device portrait --cast
+```
+
+One `pv.Plotter` builds the geometry and camera; the Cycles path renders it
+directly (via `export_plotter_gltf`), the POV-Ray path rebuilds the same
+points as analytic `Sphere`/`Cylinder` primitives and borrows the plotter's
+camera through `pov_camera_from_plotter()`, so both frame the subject
+identically. On a scene this size (161 primitives, no mesh data) POV-Ray's
+analytic intersectors are hard to beat -- seconds, not minutes, on a single
+core; this backend earns its keep on mesh-heavy scenes (Richardson cartoons,
+scanned surfaces) and on Apple Silicon, where the same call runs on the GPU's
+ray-tracing cores instead. See [povray.md](povray.md) for that backend's own
+case study.
 
 ## What stays with POV-Ray
 

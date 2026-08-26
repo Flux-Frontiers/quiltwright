@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **`scripts/render_dna_helix_hologram.py`** -- a worked side-by-side of the
+  Cycles and POV-Ray backends on one composed scene: a B-DNA double helix,
+  built once as a `pv.Plotter` and rendered either directly (Cycles, via
+  `render_cycles_quilt_from_plotter`) or re-expressed as analytic
+  `Sphere`/`Cylinder` primitives sharing the plotter's own camera
+  (`pov_camera_from_plotter`) and a `lights_from_bounds` rig (POV-Ray, via
+  `render_pov_quilt`). Referenced from `docs/cycles.md` and `docs/povray.md`.
+
 - **Lighting rigs for the Cycles backend.** The `ensure_light` flag (added
   above, never released) grew into a `lighting` parameter on
   `render_cycles_quilt()` / `render_cycles_views()`: `"soft"` keeps the
