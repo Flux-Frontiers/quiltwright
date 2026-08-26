@@ -8,6 +8,9 @@ backends feed the same assembler:
     quiltwright.lfd      PyVista / VTK scenes, plus quilt geometry,
                          video encoding, and Looking Glass Bridge control
     quiltwright.povray   POV-Ray scenes, ray-traced off-axis views
+    quiltwright.cycles   Blender Cycles scenes and mesh imports, path-traced
+                         off-axis views -- GPU ray tracing where the
+                         hardware offers it (Metal on Apple Silicon)
     quiltwright.hld      Hololuminescent Displays, which play ordinary
                          2-D video rather than quilts
     quiltwright.weave    CPU port of the lenticular shader: pre-lensed
@@ -55,6 +58,7 @@ _LAZY: dict[str, str] = {
     "Calibration": "weave",
     "Clearance": "povray",
     "Connectome": "tvb_data",
+    "CyclesCamera": "cycles",
     "Cylinder": "povgen",
     "DEPTH_LABELS": "lfd",
     "Finish": "povgen",
@@ -104,6 +108,8 @@ _LAZY: dict[str, str] = {
     "parse_color": "povgen",
     "pause_quilt": "lfd",
     "pov_camera_from_plotter": "povgen",
+    "render_cycles_quilt": "cycles",
+    "render_cycles_views": "cycles",
     "render_hld_still": "hld",
     "render_hld_video": "hld",
     "render_pov_quilt": "povray",
@@ -124,6 +130,7 @@ _LAZY: dict[str, str] = {
     "to_pov": "povgen",
     "view_disparity": "lfd",
     "view_offsets": "lfd",
+    "view_shift_x": "cycles",
     "weave_quilt": "weave",
 }
 
@@ -176,6 +183,11 @@ __all__ = [
     "render_pov_quilt",
     "render_pov_views",
     "camera_block",
+    # Blender Cycles backend
+    "CyclesCamera",
+    "render_cycles_quilt",
+    "render_cycles_views",
+    "view_shift_x",
     # POV-Ray scene generation
     "PovScene",
     "Primitive",
