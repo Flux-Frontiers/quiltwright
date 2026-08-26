@@ -19,7 +19,8 @@
 #   pytest                             uses [tool.pytest.ini_options]
 #
 # The POV-Ray backend needs a `povray` binary on PATH (brew install povray),
-# not a Python dependency.
+# and the Cycles backend a `blender` binary (brew install --cask blender) --
+# renderers, not Python dependencies.
 
 [build-system]
 requires = ["poetry-core>=2.0.0"]
@@ -34,7 +35,7 @@ packages = [{ include = "quiltwright", from = "src" }]
 [project]
 name = "quiltwright"
 version = "0.8.0"
-description = "Holographic output for Looking Glass displays: off-axis multi-view quilts from PyVista or POV-Ray scenes"
+description = "Holographic output for Looking Glass displays: off-axis multi-view quilts from PyVista, POV-Ray or Blender Cycles scenes"
 readme = "README.md"
 license = "BSD-3-Clause"
 license-files = ["LICENSE"]
@@ -45,6 +46,8 @@ keywords = [
     "holographic-display",
     "quilt",
     "povray",
+    "blender",
+    "cycles",
     "pyvista",
     "stereoscopy",
 ]

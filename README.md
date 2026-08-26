@@ -65,16 +65,23 @@ _Full history: [CHANGELOG.md](CHANGELOG.md) and
    (WaveRider, TVB)   |        |  off-axis views  |        |          multi-view quilts
                       +------->|  depth budget    |------->+-->  HLD  hololuminescent
   POV-Ray  -----------+        |  quilt assembly  |        |          2-D video
-   (pypdb2pov, PyMOL)          |  view sweeps     |        +-->  LitiHolo  hogel sweeps
-                               +------------------+                       (in development)
+   (pypdb2pov, PyMOL) |        |  view sweeps     |        +-->  LitiHolo  hogel sweeps
+                      |        +------------------+                       (in development)
+  Blender / meshes ---+
+   (.blend, glTF, USD, OBJ)
 ```
 
-**Two backends, not two pipelines.** `render_quilt()` sweeps any PyVista/VTK
-scene held in memory. `render_pov_quilt()` ray-traces any POV-Ray scene on
-disk, appending a camera per view and modifying nothing -- which is what lets
-it render files written decades ago, by tools that no longer exist, without
-altering them. The two converge at a shared, renderer-agnostic assembler, so
-everything downstream remains indifferent to which backend produced the views.
+**Three backends, not three pipelines.** `render_quilt()` sweeps any
+PyVista/VTK scene held in memory. `render_pov_quilt()` ray-traces any POV-Ray
+scene on disk, appending a camera per view and modifying nothing -- which is
+what lets it render files written decades ago, by tools that no longer exist,
+without altering them. `render_cycles_quilt()` path-traces `.blend` files and
+mesh formats (glTF, USD, OBJ, STL, PLY, FBX, Alembic) through Blender's
+Cycles, picking up GPU ray tracing where the hardware offers it -- Metal's
+ray-tracing cores on Apple Silicon, OptiX/HIP/oneAPI elsewhere -- and loading
+the scene once for the whole sweep rather than once per view. All converge at
+a shared, renderer-agnostic assembler, so everything downstream remains
+indifferent to which backend produced the views.
 
 What feeds the backends is open. WaveRider's voxel and manifold visualiser and
 pypdb2pov's PDB conversion are the two that drove the design, but
@@ -131,11 +138,12 @@ pip install "quiltwright[viz]"          # + PyVista/VTK rendering backend
 pip install "quiltwright[molecules]"    # + PDB and mmCIF, via pypdb2pov
 ```
 
-The POV-Ray backend needs a `povray` binary on `PATH` rather than a Python
-package:
+The POV-Ray and Cycles backends need their renderers as binaries rather than
+Python packages:
 
 ```bash
-brew install povray                  # macOS
+brew install povray                  # macOS: POV-Ray backend
+brew install --cask blender          # macOS: Cycles backend (or any Blender 4.x+)
 ```
 
 For the complete stack -- renderers, ffmpeg, Looking Glass Bridge, pypdb2pov --
@@ -341,6 +349,7 @@ QUILT_PRESETS["16-landscape"]      # 8x6 views, 7680x4320, aspect 1.7778
 | [docs/pyvista-datasets.md](docs/pyvista-datasets.md) | PyVista dataset ideas for holograms: topography, the Allen mouse brain atlas, other strong-depth candidates |
 | [docs/tvb-data.md](docs/tvb-data.md) | Brain geometry from The Virtual Brain: cortical surfaces, connectomes, parcellations, downloaded on demand |
 | [docs/povray.md](docs/povray.md) | The POV-Ray backend: off-axis camera derivation, depth budget, sweep clearance, a worked case study |
+| [docs/cycles.md](docs/cycles.md) | The Blender Cycles backend: hardware ray tracing (Metal/OptiX/HIP), mesh and .blend scenes, one process per sweep |
 | [docs/povgen.md](docs/povgen.md) | Writing POV-Ray scenes from analytic primitives, so a scene composed in Python can be ray-traced rather than rasterised |
 | [docs/pov-workflow.md](docs/pov-workflow.md) | The procedure: taking an archive scene from "won't parse" to a quilt that fuses, step by step |
 | [docs/pdb2pov.md](docs/pdb2pov.md) | Rendering molecular structures as holograms with pypdb2pov, from the shell or in-process |
@@ -357,9 +366,11 @@ pip install -e ".[viz]" && pip install pytest
 pytest
 ```
 
-Rendering tests skip cleanly on machines with no OpenGL stack, and the POV-Ray
-tests skip when no `povray` binary is present. Under a headless CI runner, use
-`xvfb-run -a pytest` to exercise them.
+Rendering tests skip cleanly on machines with no OpenGL stack, the POV-Ray
+tests skip when no `povray` binary is present, and the Cycles end-to-end tests
+skip without a `blender` binary (or `QW_BPY_PYTHON` naming an interpreter with
+the `bpy` wheel). Under a headless CI runner, use `xvfb-run -a pytest` to
+exercise the OpenGL ones.
 
 ---
 

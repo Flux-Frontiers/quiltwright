@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **A third rendering backend: Blender Cycles, with hardware ray tracing
+  where the GPU offers it.** `quiltwright.cycles` renders `.blend` files and
+  mesh formats (glTF/GLB, OBJ, STL, PLY, USD, FBX, Alembic) into quilts and
+  view sweeps through `render_cycles_quilt()` / `render_cycles_views()`,
+  mirroring the POV-Ray backend's API. Cycles' Metal device runs
+  ray/triangle intersection on Apple Silicon's ray-tracing cores (M3+), with
+  OptiX/CUDA/HIP/oneAPI tried in turn elsewhere and CPU as the fallback --
+  and unlike POV-Ray's one-parse-per-view, the whole sweep runs in a single
+  Blender process with the BVH held across views (`use_persistent_data`).
+  `CyclesCamera` is the right-handed Z-up twin of `PovCamera` (same
+  `fov`/`focal_distance` surface, so `format_depth_budget` and `Clearance`
+  apply unchanged), or pass `camera=None` to adopt a `.blend`'s own active
+  camera with the focal plane taken from its DoF focus distance. The
+  off-axis shear is expressed through Blender's camera shift, mirroring
+  `BKE_camera_params_compute_viewplane`'s sensor-fit rules exactly --
+  including AUTO fit sizing the sensor off `sensor_width` even when it
+  resolves vertically -- because the naive reading of the docs pins nothing:
+  every branch is guarded by end-to-end tests that render emissive markers
+  at known depths and assert the focal-plane marker stays put across the
+  sweep. Imports with no lights get a neutral world and a sun by default
+  (`ensure_light=False` to opt out), since an unlit scene path-traces to
+  black; a `.blend` is never touched. The end-to-end tests run against a
+  real `blender` binary or, for CI, any interpreter carrying the `bpy`
+  wheel via `QW_BPY_PYTHON`. Documented in `docs/cycles.md`.
+
 ## [0.8.0] - 2026-08-24
 
 ### Added
