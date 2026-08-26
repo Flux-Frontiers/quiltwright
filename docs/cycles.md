@@ -102,7 +102,7 @@ specific look.
 A composed `pv.Plotter` needs no manual export step:
 
 ```python
-quilt = render_cycles_quilt_from_plotter(plotter, spec)   # render_quilt, ray-traced
+quilt = render_cycles_quilt_from_plotter(plotter, spec)  # render_quilt, ray-traced
 ```
 
 is the hardware-ray-traced sibling of `render_quilt()` -- same plotter in,
@@ -163,18 +163,24 @@ from quiltwright.cycles import CyclesCamera, render_cycles_quilt
 camera = CyclesCamera(location=(0, -35, 8), look_at=(0, 0, 5), fov=14)
 spec = QUILT_PRESETS["portrait"]
 quilt = render_cycles_quilt("protein.glb", spec, camera, samples=128)
-save_quilt(quilt, "protein", spec)      # -> protein_qs8x6a0.75.png
+save_quilt(quilt, "protein", spec)  # -> protein_qs8x6a0.75.png
 ```
 
 A `.blend` on its own camera:
 
 ```python
-quilt = render_cycles_quilt("scene.blend", spec, None)   # DoF focus = focal plane
+quilt = render_cycles_quilt("scene.blend", spec, None)  # DoF focus = focal plane
 ```
 
 Knobs that matter:
 
 - `samples` -- 64 previews cleanly with the denoiser on; 128-256 for finals.
+- `view_transform` -- `"Standard"` (default) is Blender's raw display-referred
+  output and reads closest to POV-Ray's; Blender's own interactive default
+  since 4.0 is `"AgX"`, whose filmic highlight compression noticeably
+  desaturates and flattens a render side by side with POV-Ray or a reference
+  photo -- deliberately not the default here. Any OCIO transform name
+  Blender recognises works (`"Filmic"`, `"False Color"`, ...).
 - `device` -- `"auto"` (GPU first, Metal first), `"gpu"` (error if none),
   `"cpu"`.
 - `threads` -- CPU renders get the same courtesy cap as the POV-Ray backend

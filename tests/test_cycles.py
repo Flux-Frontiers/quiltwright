@@ -382,7 +382,28 @@ class TestOrchestration:
         assert job["camera"]["focal_distance"] == pytest.approx(10.0)
         assert len(job["angles"]) == tiny_spec.n_views
         assert (job["width"], job["height"]) == (128, 128)
+        assert job["view_transform"] == "Standard"
         assert len(list(keep.glob("view*.png"))) == tiny_spec.n_views
+
+    def test_view_transform_override_reaches_the_job(
+        self, blend_scene, camera, stub_blender, tiny_spec, tmp_path
+    ):
+        """Standard is the default because AgX -- Blender's own interactive
+        default since 4.0 -- desaturates and flattens a render next to
+        POV-Ray's; the override must still reach the driver for callers who
+        want AgX's filmic highlight rolloff anyway."""
+        keep = tmp_path / "kept"
+        render_cycles_quilt(
+            blend_scene,
+            tiny_spec,
+            camera,
+            view_transform="AgX",
+            binary=str(stub_blender),
+            keep_views=keep,
+            progress=False,
+        )
+        job = json.loads((keep / "job.json").read_text())
+        assert job["view_transform"] == "AgX"
 
     def test_anamorphic_views_render_at_view_aspect(
         self, blend_scene, camera, stub_blender, tmp_path

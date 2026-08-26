@@ -381,6 +381,7 @@ def setup_render(scene, job):
     # The BVH survives between views; rebuilding it per view would be the
     # POV-Ray failure mode this backend exists to avoid.
     scene.render.use_persistent_data = True
+    scene.view_settings.view_transform = job["view_transform"]
     scene.cycles.samples = job["samples"]
     scene.cycles.use_denoising = job["denoise"]
 
@@ -852,6 +853,7 @@ def render_cycles_quilt(
     view_cone: float | None = None,
     samples: int = 64,
     denoise: bool = True,
+    view_transform: str = "Standard",
     device: str = "auto",
     lighting: str | Path | None = "soft",
     threads: int | None = None,
@@ -881,6 +883,13 @@ def render_cycles_quilt(
     :param samples: Cycles samples per pixel.  64 previews cleanly with
         denoising; 128-256 for finals.
     :param denoise: Run Cycles' denoiser on each view.
+    :param view_transform: Color management applied to the render -- an OCIO
+        view transform name Blender recognises (``"Standard"``,
+        ``"AgX"``, ``"Filmic"``, ...).  ``"Standard"`` is Blender's raw
+        display-referred output and reads closest to POV-Ray's; Blender's
+        own interactive default since 4.0 is ``"AgX"``, whose filmic
+        highlight compression desaturates and flattens a render next to
+        POV-Ray's or a reference photo -- deliberately not the default here.
     :param device: ``"auto"`` prefers a GPU (Metal first) and falls back to
         CPU; ``"gpu"`` errors if no GPU compute device exists; ``"cpu"``
         forces CPU rendering.
@@ -923,6 +932,7 @@ def render_cycles_quilt(
         "camera": _camera_job(camera),
         "samples": int(samples),
         "denoise": bool(denoise),
+        "view_transform": view_transform,
         "device": device,
         "lighting": _lighting_job(lighting),
     }
@@ -949,6 +959,7 @@ def render_cycles_views(
     view_cone: float | None = None,
     samples: int = 64,
     denoise: bool = True,
+    view_transform: str = "Standard",
     device: str = "auto",
     lighting: str | Path | None = "soft",
     threads: int | None = None,
@@ -974,6 +985,7 @@ def render_cycles_views(
     :param view_cone: Override the spec's view cone in degrees.
     :param samples: Cycles samples per pixel.
     :param denoise: Run Cycles' denoiser on each view.
+    :param view_transform: Color management; see :func:`render_cycles_quilt`.
     :param device: ``"auto"``, ``"gpu"`` or ``"cpu"``, as for
         :func:`render_cycles_quilt`.
     :param lighting: Rig for an unlit *imported* scene -- ``"soft"``,
@@ -1002,6 +1014,7 @@ def render_cycles_views(
         "camera": _camera_job(camera),
         "samples": int(samples),
         "denoise": bool(denoise),
+        "view_transform": view_transform,
         "device": device,
         "lighting": _lighting_job(lighting),
     }
