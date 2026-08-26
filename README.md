@@ -206,6 +206,48 @@ museum's pedestals were built from, and porin's beta-barrel over water. What is 
 each, and how to render them directly, is in
 [pov-scenes/README.md](pov-scenes/README.md).
 
+### From a Cycles scene
+
+Same plotter, path-traced instead of rasterised -- with GPU hardware ray
+tracing where it's available (Metal on Apple Silicon; OptiX/HIP/oneAPI
+elsewhere, CPU as the fallback):
+
+```python
+import pyvista as pv
+from quiltwright import QUILT_PRESETS, render_cycles_quilt_from_plotter, save_quilt
+
+p = pv.Plotter(off_screen=True)
+p.add_mesh(pv.ParametricTorus())
+
+spec = QUILT_PRESETS["portrait"]
+quilt = render_cycles_quilt_from_plotter(p, spec, lighting="studio")
+save_quilt(quilt, "torus_cycles", spec)
+```
+
+`render_cycles_quilt_from_plotter` reads the plotter -- never renders or
+mutates it -- so it also works on machines with no OpenGL stack, where
+`render_quilt` itself cannot run. It exports through glTF once and shares the
+result across the whole view sweep, rather than re-parsing per view the way
+the POV-Ray backend does. For a `.blend` file or a mesh already on disk
+(glTF, OBJ, STL, PLY, USD, FBX, Alembic), skip the plotter and call
+`render_cycles_quilt` directly with an explicit `CyclesCamera`:
+
+```python
+from quiltwright import CyclesCamera, QUILT_PRESETS, render_cycles_quilt, save_quilt
+
+camera = CyclesCamera(location=(0, -35, 8), look_at=(0, 0, 5), fov=14)
+quilt = render_cycles_quilt("protein.glb", QUILT_PRESETS["portrait"], camera, samples=128)
+save_quilt(quilt, "protein", spec)
+```
+
+Two worked examples ship in [scripts/](scripts/): `render_dna_helix_hologram.py`
+compares this backend against POV-Ray on the same composed scene (a case where
+POV-Ray's analytic primitives win outright), and `render_cartoon_hologram.py`
+does the reverse comparison on a real PyMOL Richardson cartoon -- tens of
+thousands of triangles, the case Cycles exists for. The mechanism, the
+lighting rigs (`"soft"`/`"studio"`/`"sky"`/an HDRI path), and both worked
+examples in full are in [docs/cycles.md](docs/cycles.md).
+
 ### Send it to the display
 
 ```python
@@ -281,6 +323,9 @@ quiltwright weave ... && quiltwright wallpaper ...   # the no-Bridge path
 quiltwright cartoon 2omf.cif.gz ompf_cartoon.inc     # molecular ribbon, via PyMOL
 
 python scripts/make_exhibit.py 7AHL --quilt          # fetch -> convert -> render
+
+python scripts/render_dna_helix_hologram.py --backend cycles --still     # Cycles, one scene
+python scripts/render_cartoon_hologram.py 2omf.cif.gz --backend povray --still   # ...and POV-Ray
 ```
 
 Worth knowing before the details:
