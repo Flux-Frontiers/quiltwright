@@ -14,12 +14,14 @@
 *Eric G. Suchanek, PhD -- Flux-Frontiers*
 
 Quiltwright is the last stage of a scientific rendering pipeline -- any
-pipeline that ends in a scene. It takes what you already have, whether that is
-a PyVista or VTK scene built in memory, a POV-Ray scene on disk, or a `.pov`
+pipeline that ends in a scene. It takes what you already have -- a PyVista or
+VTK scene built in memory, a Blender file or an exported mesh, or a `.pov`
 file written thirty years ago by someone who is no longer around to explain
-it, and puts it on holographic hardware in glasses-free depth. Nothing is
-rewritten to get there: a POV-Ray scene is ray-traced unmodified, with a
-camera appended per view.
+it -- and puts it on holographic hardware in glasses-free depth. Nothing is
+rewritten to get there: your scene file is never modified, the off-axis camera
+is supplied per view, and each scene is rendered by the renderer it already
+belongs to. Where that renderer is Blender's Cycles, the views are path-traced
+on the GPU's ray-tracing cores if the hardware has them.
 
 It is used that way by [WaveRider](https://github.com/Flux-Frontiers/waverider)
 for geometric ML manifolds and by
