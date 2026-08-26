@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **`quiltwright.pymol.cartoon_obj()` and `scripts/render_cartoon_hologram.py`**
+  -- the mesh-heavy comparison the DNA helix example deliberately isn't.
+  `cartoon_obj()` is the mesh twin of `cartoon_inc()`: the identical PyMOL
+  export and coalescing, written as a plain OBJ instead of a POV-Ray
+  include, so `render_cartoon_hologram.py --backend cycles` and
+  `--backend povray` render **the same PyMOL triangulation** through both
+  backends rather than two independently modelled scenes. Carries the same
+  POV-Ray-native-to-right-handed coordinate flip as the rest of the
+  package (negate *z*, reverse face winding to compensate) -- derived
+  algebraically and checked against a synthetic mesh2 fixture, but not yet
+  exercised against a real PyMOL export in this codebase's own development
+  environment (no PyMOL here); flagged prominently in both the function's
+  docstring and the script's, since this is exactly the kind of arithmetic
+  that renders a plausible-looking but inside-out mesh when wrong.
+
 - **`scripts/render_dna_helix_hologram.py`** -- a worked side-by-side of the
   Cycles and POV-Ray backends on one composed scene: a B-DNA double helix,
   built once as a `pv.Plotter` and rendered either directly (Cycles, via

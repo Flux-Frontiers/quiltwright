@@ -214,6 +214,32 @@ scanned surfaces) and on Apple Silicon, where the same call runs on the GPU's
 ray-tracing cores instead. See [povray.md](povray.md) for that backend's own
 case study.
 
+### The mesh-heavy case: a real PyMOL cartoon
+
+The helix above is deliberately the case POV-Ray wins -- a handful of
+analytic primitives. `scripts/render_cartoon_hologram.py` is the other end:
+a real Richardson cartoon (tens of thousands of triangles, the same shape
+`quiltwright cartoon` produces) rendered by both backends from **the same
+PyMOL triangulation**:
+
+```bash
+python scripts/render_cartoon_hologram.py 2omf.cif.gz --still                  # Cycles
+python scripts/render_cartoon_hologram.py 2omf.cif.gz --backend povray --still # POV-Ray, same mesh
+```
+
+`quiltwright.pymol.cartoon_obj()` is the mesh twin of `cartoon_inc()`: the
+identical PyMOL export and coalescing, written as a plain OBJ instead of a
+POV-Ray include -- geometry only, no per-vertex colour, since OBJ carries
+none reliably -- so a "which backend wins on a mesh this size" comparison
+starts from one triangulation, not two independently modelled scenes. It
+carries the same coordinate flip as everywhere else meshes cross from
+PyMOL's POV-Ray-native output into this package's right-handed convention:
+negate *z*, reverse each face's winding to compensate -- worth rereading its
+docstring before trusting a first render, since this path has not yet been
+exercised against a real PyMOL export in this codebase's own development
+environment (no PyMOL here) and the fix for a mesh that renders "inside out"
+is almost always exactly that flip.
+
 ## What stays with POV-Ray
 
 Scenes written in POV-Ray's scene language. CSG, isosurfaces and blobs do

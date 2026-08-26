@@ -68,10 +68,12 @@ from .povgen import coalesce_mesh2
 
 __all__ = [
     "REPRESENTATIONS",
+    "CartoonMeshResult",
     "CartoonResult",
     "PyMolNotAvailable",
     "available",
     "cartoon_inc",
+    "cartoon_obj",
     "pov_identifier",
 ]
 
@@ -261,6 +263,7 @@ def _run_export(script: str) -> None:
 
 _VERTEX_BLOCK = re.compile(r"vertex_vectors\s*\{\s*\d+\s*,(.*?)\}", re.S)
 _VEC = re.compile(r"<\s*(-?[\d.eE+-]+)\s*,\s*(-?[\d.eE+-]+)\s*,\s*(-?[\d.eE+-]+)\s*>")
+_FACE_BLOCK = re.compile(r"face_indices\s*\{\s*\d+\s*,(.*?)\}", re.S)
 
 
 def _measure(mesh: str, z_shift: float) -> tuple[tuple[float, float, float], float, int]:
@@ -401,6 +404,150 @@ def cartoon_inc(
         faces=faces,
         rep=rep,
         backend=backend,
+    )
+
+
+@dataclass(frozen=True)
+class CartoonMeshResult:
+    """What :func:`cartoon_obj` wrote.
+
+    :param path: The ``.obj`` written.
+    :param enclosing_radius: Radius of the sphere about the origin that
+        contains the geometry, in angstroms -- identical to what
+        :func:`cartoon_inc` would report for the same PyMOL export, since
+        both are measured from the same mesh before either the POV
+        ``translate`` trick or this function's coordinate flip is applied.
+    :param vertices: Vertices in the emitted mesh, after deduplication.
+    :param faces: Triangles in the emitted mesh.
+    :param backend: ``"module"`` or ``"subprocess"``.
+    """
+
+    path: Path
+    enclosing_radius: float
+    vertices: int
+    faces: int
+    backend: str
+
+
+def cartoon_obj(
+    source: str | Path,
+    out: str | Path,
+    *,
+    rep: str = "cartoon",
+    selection: str = "polymer",
+    assembly: str = "1",
+    surface_quality: int | None = None,
+) -> CartoonMeshResult:
+    """Export a structure as a plain Wavefront OBJ -- the mesh twin of :func:`cartoon_inc`.
+
+    Runs the identical PyMOL export (same representation, selection and
+    assembly) and coalesces it the same way, but writes the triangles as a
+    plain ``.obj`` -- geometry only, no colour, no POV-Ray wrapper -- for
+    feeding the same subject to :mod:`quiltwright.cycles` instead of
+    :mod:`quiltwright.povray`.  This is what makes a "which backend wins on a
+    mesh this size" comparison honest: both start from the exact same PyMOL
+    triangulation, not two independently-modelled scenes.
+
+    Geometry is centred on the origin exactly as :func:`cartoon_inc` centres
+    it (undoing PyMOL's camera pull-back, then the same bounding-box
+    recentring), so the enclosing radius here matches what that function
+    would report for the same export.
+
+    **The coordinate flip.**  ``cmd.get_povray()`` emits directly in
+    POV-Ray's left-handed convention -- :func:`cartoon_inc` passes it through
+    unchanged, because POV-Ray is exactly where it is going.  An OBJ headed
+    for :mod:`quiltwright.cycles` (right-handed, +z up, same as everything
+    else in this package) needs the same reflection :func:`to_pov` applies in
+    the other direction: negate *z*, and reverse each face's winding to
+    compensate, or the mesh imports with its normals -- and every backface
+    culling decision Cycles makes -- turned inside out.  This mirrors
+    :class:`~quiltwright.povgen.Mesh2`'s own ``wind()`` step exactly, just
+    run backwards.  Not yet exercised against a real PyMOL export in this
+    codebase's own test run (no PyMOL in this environment) -- if a rendered
+    cartoon comes out unlit or looks like its shadowed side is facing the
+    camera, this flip is the first thing to re-check.
+
+    :param source: Anything PyMOL can load -- ``.pdb``, ``.cif``, ``.cif.gz``.
+    :param out: Path of the ``.obj`` to write.
+    :param rep: One of :data:`REPRESENTATIONS`.  Only representations that
+        export as mesh triangles are usable here; ``sticks`` and ``spheres``
+        raise, since they carry no vertex list to convert (use
+        :func:`cartoon_inc` and quiltwright's POV-Ray backend for those, or
+        author them directly as :class:`~quiltwright.povgen.Sphere` /
+        :class:`~quiltwright.povgen.Cylinder` primitives for either backend).
+    :param selection: PyMOL selection to show; ``"polymer"`` drops waters and
+        ligands.
+    :param assembly: Biological assembly to load; ``"1"`` is the biological
+        unit.
+    :param surface_quality: PyMOL's ``surface_quality``, for ``rep="surface"``.
+    :return: A :class:`CartoonMeshResult`.
+    :raises PyMolNotAvailable: If PyMOL cannot be reached at all.
+    :raises ValueError: If *rep* is not a known representation, or exports as
+        native POV-Ray primitives rather than mesh triangles.
+    """
+    if rep not in REPRESENTATIONS:
+        raise ValueError(f"rep must be one of {REPRESENTATIONS}, got {rep!r}")
+
+    out = Path(out)
+    with tempfile.TemporaryDirectory() as work:
+        body_out = str(Path(work) / "body.pov")
+        meta_out = str(Path(work) / "meta.json")
+        script = (
+            _literals(
+                SOURCE=str(Path(source).resolve()),
+                REP=rep,
+                COLOR=None,
+                SELECTION=selection,
+                ASSEMBLY=assembly,
+                TRANSPARENCY=0.0,
+                SURFACE_QUALITY=surface_quality,
+                PULL_BACK=_PULL_BACK,
+                BODY_OUT=body_out,
+                META_OUT=meta_out,
+            )
+            + _EXPORT_SCRIPT
+        )
+        _run_export(script)
+        body = Path(body_out).read_text()
+        meta = json.loads(Path(meta_out).read_text())
+
+    mesh = coalesce_mesh2(body)
+    if "mesh2" not in mesh:
+        raise ValueError(
+            f"rep={rep!r} exports as native POV-Ray primitives, not mesh "
+            "triangles, so there is nothing for cartoon_obj() to convert -- "
+            "use cartoon_inc() and the POV-Ray backend for this rep, or "
+            "author the same primitives directly for either backend"
+        )
+
+    centre, radius, _ = _measure(mesh, meta["pull_back"])
+    cx, cy, cz = centre
+    vertices = [
+        (float(x) - cx, float(y) - cy, -(float(z) + meta["pull_back"] - cz))
+        for block in _VERTEX_BLOCK.finditer(mesh)
+        for x, y, z in _VEC.findall(block.group(1))
+    ]
+    faces = [
+        (int(a), int(c), int(b))  # winding reversed to match the z flip above
+        for block in _FACE_BLOCK.finditer(mesh)
+        for a, b, c in _VEC.findall(block.group(1))
+    ]
+
+    out.parent.mkdir(parents=True, exist_ok=True)
+    with out.open("w") as fh:
+        fh.write(f"# {out.stem} -- {rep}, via quiltwright.pymol.cartoon_obj\n")
+        fh.write(f"# {meta['atoms']} atoms, {len(vertices)} vertices, {len(faces)} faces\n")
+        for x, y, z in vertices:
+            fh.write(f"v {x:.6g} {y:.6g} {z:.6g}\n")
+        for a, b, c in faces:
+            fh.write(f"f {a + 1} {b + 1} {c + 1}\n")
+
+    return CartoonMeshResult(
+        path=out,
+        enclosing_radius=radius,
+        vertices=len(vertices),
+        faces=len(faces),
+        backend=available() or "subprocess",
     )
 
 
