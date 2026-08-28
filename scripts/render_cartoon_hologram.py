@@ -259,7 +259,7 @@ def main() -> int:
     if args.preview:
         spec = spec.scaled(0.25)
     if args.still:
-        spec = QuiltSpec(columns=1, rows=1, quilt_width=880, quilt_height=1100, aspect=0.8)
+        spec = spec.still()
 
     print(f"cartoon hologram -> {args.backend}{' (preview)' if args.preview else ''}")
     print(

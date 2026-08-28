@@ -32,6 +32,7 @@ import time
 from pathlib import Path
 
 from quiltwright.lfd import QUILT_PRESETS, focal_distance_for_range, save_quilt
+from quiltwright.povgen import fov_vertical_to_horizontal
 from quiltwright.povray import Clearance, PovCamera, format_depth_budget, render_pov_quilt
 from quiltwright.runreport import RunReport, povray_parallelism
 
@@ -83,19 +84,6 @@ FAR = 10.300
 
 #: The alcove's side walls, in scene units either side of the eye.
 ROOM = Clearance(left=-5.30, right=5.30, margin=0.50)
-
-
-def fov_vertical_to_horizontal(fov_v: float, aspect: float) -> float:
-    """POV-Ray frames from ``right``/``up``; PovCamera wants the horizontal
-    angle.  Convert rather than hard-coding one of the two.
-
-    :param fov_v: Vertical field of view in degrees.
-    :param aspect: Frame aspect ratio (width / height).
-    :returns: Horizontal field of view in degrees.
-    """
-    import math
-
-    return 2 * math.degrees(math.atan(math.tan(math.radians(fov_v) / 2) * aspect))
 
 
 def main(argv: list[str] | None = None) -> int:

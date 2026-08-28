@@ -25,13 +25,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   `frame_camera()` is pure arithmetic and unit-tested directly; `mesh_bounds()`
   and the end-to-end path are covered against a real Blender import.
 
-- **`scripts/render_mesh_hologram.py`** — the model-agnostic front door to the
-  above. `python scripts/render_mesh_hologram.py model.glb` probes, frames,
-  renders and writes a quilt in one command, with `--lighting`
-  (`studio`/`soft`/`sky`/an HDRI), `--view-direction`, `--fov`, `--device`,
-  `--still`, `--preview` and `--cast`. Documented in
+- **`quiltwright mesh`** — the model-agnostic front door to the above, and the
+  first CLI command that is a render rather than a step downstream of one.
+  `quiltwright mesh model.glb` probes, frames, renders and writes a quilt in
+  one command, with `--lighting` (`studio`/`soft`/`sky`/an HDRI),
+  `--view-direction`, `--fov`, `--margin`, `--device`, `--samples`,
+  `--compute`, `--view-transform`, `--still`, `--preview`, `--out` and
+  `--cast`. A `.blend` is refused with the reason (it carries its own camera,
+  so there is nothing to auto-frame). Documented in
   [docs/mesh-import.md](docs/mesh-import.md), now linked from the README
   documentation table.
+
+- **`quiltwright probe`, and the plane sweep behind it, promoted into the
+  package.** `depth_sweep()` and `summarise_depth_sweep()` now live in
+  `quiltwright.povray` alongside the budget they feed, having previously been
+  reachable only by running a script out of a checkout -- and they are the
+  measurement every near/far figure in this repo was taken with. Both are
+  tested: the marker plane's arithmetic and the summary thresholds directly,
+  the sweep end to end against a scene with known depths. The sweep now takes
+  the same courtesy thread cap the quilt renderers do, rather than every core
+  for the length of a few hundred frames. The command adds one thing the
+  script did not: when the sweep never closed -- a sea, a sky, any backdrop
+  running to the horizon -- the reported *far* is the end of the sweep rather
+  than a measurement, and it now says so instead of letting the number be
+  copied into a scene.
+
+- **`frame_and_focus()`** in `quiltwright.lfd` -- the PyVista counterpart to
+  `frame_camera()`, promoted out of `scripts/render_pyvista_hologram.py`,
+  where a tight fit for a tilted view was reachable only by copying forty
+  lines. It re-fits the camera at the final view direction by projecting the
+  bounding box's corners onto the camera's own axes (so an obliquely viewed
+  flat subject is not held at its bounding *sphere*'s distance, which is what
+  made mountains read as specks) and places the focal plane at the harmonic
+  mean of the resulting depths. Documented in
+  [docs/lfd.md](docs/lfd.md#framing-a-tilted-view).
+
+- **`fov_vertical_to_horizontal()`** in `quiltwright.povgen`, the inverse of
+  the `fov_horizontal_to_vertical()` that was already public. A scene composed
+  from `right`/`up` vectors states its lens vertically while `PovCamera` wants
+  the horizontal angle, so the conversion was being done in a script.
+
+- **`QuiltSpec.still()`** — a one-tile spec at the device's own aspect, for
+  the single centre view that checks framing before a sweep is paid for. The
+  worked-example scripts each carried their own hard-coded `880x1100`
+  literal, which ignored `--device` and framed a landscape panel's still in
+  portrait.
 
 ## [0.9.0] - 2026-08-26
 

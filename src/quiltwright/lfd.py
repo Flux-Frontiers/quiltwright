@@ -158,6 +158,26 @@ class QuiltSpec:
         """
         return replace(self, columns=columns, rows=rows)
 
+    def still(self, height: int = 1100) -> QuiltSpec:
+        """The same view, once, as a flat image at this device's aspect.
+
+        A one-tile "quilt" is the cheapest way to check framing, lighting and
+        materials before paying for the whole sweep, and it is what the
+        gallery images are: :func:`view_offsets` returns a single zero offset
+        at ``n_views == 1``, so the render is the centre view and nothing
+        else.  The width follows :attr:`aspect` rather than being fixed, so
+        the still is framed like the panel it is standing in for -- a still
+        of a landscape device is a landscape image.
+
+        :param height: Image height in pixels.
+        :return: A new 1x1 :class:`QuiltSpec` at this spec's aspect.
+        :raises ValueError: If *height* is not positive.
+        """
+        if height <= 0:
+            raise ValueError(f"still height must be positive, got {height}")
+        width = max(1, round(height * self.aspect))
+        return replace(self, columns=1, rows=1, quilt_width=width, quilt_height=height)
+
     def scaled(self, factor: float) -> QuiltSpec:
         """Same view grid at a fraction of the pixel size.
 
@@ -340,6 +360,96 @@ def focal_distance_for_range(near: float, far: float) -> float:
     if math.isinf(far):
         return 2.0 * near
     return 2.0 / (1.0 / near + 1.0 / far)
+
+
+def frame_and_focus(
+    plotter,
+    *,
+    fov: float = 14.0,
+    margin: float = 1.15,
+) -> tuple[float, float, float]:
+    """Frame a PyVista scene tightly at its final view, and focus it.
+
+    The PyVista counterpart to
+    :func:`~quiltwright.cycles.frame_camera`, and the thing to call once the
+    camera is pointing where you want it.  ``reset_camera()`` fits the
+    *un-tilted* bounds, so once the view is tilted -- by an orbit, or an
+    explicit ``camera_position`` -- that framing is too loose and the subject
+    reads as small with a lot of empty margin: ask for a mountain hologram
+    and get a speck.
+
+    This re-fits from scratch at the final view direction.  The eight
+    bounding-box corners are projected onto the camera's own right/up/forward
+    axes, which accounts for foreshortening -- a flat, elongated terrain
+    viewed obliquely needs far less distance than its bounding *sphere* would
+    suggest -- giving the tightest distance that still keeps every corner in
+    frame at the target FOV and window aspect.  The focal plane then goes at
+    the harmonic mean of the resulting near and far depths, the same balance
+    :func:`focal_distance_for_range` gives the POV-Ray path, measured from
+    exact geometry rather than a rendered plane sweep.
+
+    **The camera is modified**, unlike :func:`scene_depths`, which measures
+    copies: position, view angle and focal point are all overwritten.  Only
+    the view *direction* survives.  Having locked the camera here, pass
+    ``fov=None`` to :func:`render_quilt` so it does not frame the scene a
+    second time from scratch.
+
+    :param plotter: A ``pv.Plotter`` with the data added, ``window_size``
+        already set to the final render resolution (the aspect matters), and
+        the camera pointing in the desired direction.
+    :param fov: Vertical field of view to lock the camera to, in degrees.
+        Must match what the render actually uses, or the depth budget
+        describes a different camera than the one that renders.
+    :param margin: Headroom beyond the tight corner-projected fit, as a
+        fraction -- ``1.15`` leaves 15% so the subject does not touch the
+        frame edges.
+    :return: ``(near, far, focal_distance)`` in scene units, measured from
+        the final camera position -- the numbers :func:`view_disparity`
+        expects.
+    :raises ImportError: If PyVista is not installed.
+    """
+    _require_pyvista("frame_and_focus")
+    camera = plotter.camera
+    position = np.asarray(camera.position, dtype="d")
+    focus = np.asarray(camera.focal_point, dtype="d")
+    up = np.asarray(camera.up, dtype="d")
+    forward = focus - position
+    forward /= np.linalg.norm(forward)
+    right = np.cross(forward, up)
+    right /= np.linalg.norm(right)
+    true_up = np.cross(right, forward)
+
+    xmin, xmax, ymin, ymax, zmin, zmax = plotter.bounds
+    lo = np.array([xmin, ymin, zmin], dtype="d")
+    hi = np.array([xmax, ymax, zmax], dtype="d")
+    centre = (lo + hi) / 2.0
+    corners = np.array(
+        [[x, y, z] for x in (xmin, xmax) for y in (ymin, ymax) for z in (zmin, zmax)],
+        dtype="d",
+    )
+    offsets = corners - centre
+    f = offsets @ forward  # signed depth of each corner relative to the centre
+    r = offsets @ right
+    u = offsets @ true_up
+
+    win_w, win_h = plotter.window_size
+    half_v = math.tan(math.radians(fov) / 2.0)
+    half_h = half_v * (win_w / win_h)
+
+    # Smallest distance-from-centre D such that every corner's angular extent
+    # |u_i|/(D + f_i) (and |r_i|/half_h) still fits inside the FOV.
+    needed = np.concatenate([np.abs(u) / half_v - f, np.abs(r) / half_h - f])
+    distance = margin * max(float(needed.max()), 1.0)
+
+    camera.position = tuple(centre - forward * distance)
+    camera.view_angle = fov
+    depths = distance + f  # each corner's distance from the new camera
+    near = float(depths.min())
+    far = float(depths.max())
+
+    focal_distance = focal_distance_for_range(near, far)
+    camera.focal_point = tuple(np.asarray(camera.position) + forward * focal_distance)
+    return near, far, focal_distance
 
 
 #: Labels used by :func:`depth_report` for the three depths it measures

@@ -1339,6 +1339,22 @@ def fov_horizontal_to_vertical(fov_h: float, aspect: float) -> float:
     return math.degrees(2.0 * math.atan(math.tan(half) / aspect))
 
 
+def fov_vertical_to_horizontal(fov_v: float, aspect: float) -> float:
+    """Convert a vertical FOV to POV-Ray's horizontal ``angle``.
+
+    The inverse of :func:`fov_horizontal_to_vertical`, and needed in the
+    other direction: a scene composed from ``right``/``up`` vectors states
+    its lens vertically, while :class:`PovCamera` and POV-Ray's ``angle``
+    keyword both want the horizontal one.
+
+    :param fov_v: Vertical field of view in degrees.
+    :param aspect: Image width divided by height.
+    :return: Horizontal field of view in degrees.
+    """
+    half = math.radians(fov_v) / 2.0
+    return math.degrees(2.0 * math.atan(math.tan(half) * aspect))
+
+
 def ground_slab(
     lo: Vec,
     hi: Vec,

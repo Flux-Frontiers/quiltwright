@@ -4,6 +4,7 @@ import math
 import re
 import shutil
 from dataclasses import replace
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -16,8 +17,17 @@ from quiltwright.povray import (
     camera_block,
     depth_budget,
     format_depth_budget,
+    summarise_depth_sweep,
     sweep_extent,
 )
+
+
+def _parse_plane(text: str) -> tuple[np.ndarray, float]:
+    """Pull ``(normal, offset)`` out of a probe wrapper's ``plane`` statement."""
+    m = re.search(r"plane \{ <([^>]+)>, ([-\d.e+]+)", text)
+    assert m, text
+    return np.array([float(v) for v in m.group(1).split(",")]), float(m.group(2))
+
 
 # ---------------------------------------------------------------------------
 # Fixtures + helpers
@@ -671,3 +681,142 @@ class TestResolveWorkThreads:
         povray.render_pov_quilt(scene, spec, camera, progress=False, extra_args=("+WT3",))
         assert all(len([a for a in args if a.startswith("+WT")]) == 1 for args in seen)
         assert all("+WT3" in args for args in seen)
+
+
+# ---------------------------------------------------------------------------
+# Depth probing
+# ---------------------------------------------------------------------------
+
+
+class TestProbeWrapper:
+    """The marker plane's arithmetic, which decides what a probe measures.
+
+    A plane one unit off is a depth histogram one unit wrong, and nothing
+    downstream can tell -- so the geometry is pinned here rather than trusted
+    to the rendered result.
+    """
+
+    def test_the_plane_passes_through_the_probe_distance(self, camera):
+        from quiltwright.povray import _probe_wrapper
+
+        text = _probe_wrapper(Path("/scene.pov"), camera, 16 / 9, 42.0)
+        normal, offset = _parse_plane(text)
+        forward = camera.basis()[0]
+        point = np.asarray(camera.location, dtype="d") + forward * 42.0
+        assert np.dot(normal, point) == pytest.approx(offset)
+
+    def test_the_plane_faces_along_the_view_axis(self, camera):
+        from quiltwright.povray import _probe_wrapper
+
+        normal, _ = _parse_plane(_probe_wrapper(Path("/scene.pov"), camera, 1.0, 5.0))
+        assert np.allclose(normal, camera.basis()[0])
+
+    def test_the_marker_is_self_lit_and_casts_nothing(self, camera):
+        """The scene's own lights must not tint the thing being measured,
+        and its shadow must not darken what it is meant to reveal.
+        """
+        from quiltwright.povray import _probe_wrapper
+
+        text = _probe_wrapper(Path("/scene.pov"), camera, 1.0, 5.0)
+        assert "ambient 1 diffuse 0" in text
+        assert "no_shadow" in text
+        assert '#include "/scene.pov"' in text
+
+
+class TestSummariseDepthSweep:
+    def test_near_is_where_geometry_first_appears(self):
+        rows = [(10.0, 0.0), (20.0, 0.0005), (30.0, 0.4), (40.0, 0.9)]
+        assert summarise_depth_sweep(rows)["near"] == 30.0  # 0.0005 is below `appear`
+
+    def test_far_is_a_share_of_what_the_sweep_accumulated(self):
+        """Not a share of the frame: a scene that is 40% sky must not be
+        judged against content it can never occlude.
+        """
+        rows = [(10.0, 0.0), (20.0, 0.30), (30.0, 0.57), (40.0, 0.60), (5000.0, 0.60)]
+        found = summarise_depth_sweep(rows)
+        assert found["far"] == 30.0  # 0.57 >= 0.95 * 0.60
+        assert found["sky_fraction"] == pytest.approx(0.40)
+
+    def test_thresholds_are_tunable(self):
+        rows = [(10.0, 0.0), (20.0, 0.30), (30.0, 0.57), (40.0, 0.60)]
+        assert summarise_depth_sweep(rows, structured=0.99)["far"] == 40.0
+
+    def test_an_empty_sweep_is_refused(self):
+        with pytest.raises(ValueError, match="no probe rows"):
+            summarise_depth_sweep([])
+
+
+#: A closed scene: two markers at known depths in front of an opaque backdrop,
+#: so the sweep saturates instead of creeping the way a sea does.  The camera
+#: sits at ``z = -10``, so the near sphere is 10 units out, the far one 14,
+#: and the backdrop 30.
+PROBE_SCENE = """
+#version 3.7;
+global_settings { assumed_gamma 1.0 }
+background { color rgb 0 }
+sphere { <0,-0.9,0>, 0.9 pigment { color rgb <0,1,0> } finish { ambient 1 } }
+sphere { <0,0.9,4>,  0.9 pigment { color rgb <0,0,1> } finish { ambient 1 } }
+plane { <0,0,-1>, -20 pigment { color rgb <0.5,0.5,0.5> } finish { ambient 1 } }
+"""
+
+
+@requires_povray
+class TestDepthSweep:
+    """The measurement itself, against a scene whose depths are known exactly."""
+
+    @pytest.fixture
+    def scene(self, tmp_path):
+        path = tmp_path / "probe_scene.pov"
+        path.write_text(PROBE_SCENE)
+        return path
+
+    @pytest.fixture
+    def curve(self, scene, camera):
+        from quiltwright.povray import depth_sweep
+
+        return depth_sweep(
+            scene,
+            camera,
+            [5.0, 8.0, 11.0, 13.0, 16.0, 25.0, 40.0],
+            width=64,
+            height=64,
+            quality=9,
+            progress=False,
+        )
+
+    def test_the_histogram_is_cumulative(self, curve):
+        fractions = [f for _, f in curve]
+        assert fractions == sorted(fractions)
+
+    def test_it_finds_the_geometry_where_it_is(self, curve):
+        found = summarise_depth_sweep(curve)
+        # The near sphere is at 10 units, the far one at 14, the backdrop 30.
+        assert found["near"] == 11.0
+        assert found["far"] == 40.0
+
+    def test_a_closed_scene_leaves_no_sky(self, curve):
+        """The backdrop occludes everything, so nothing survives to infinity
+        -- which is what makes the 95% rule land on real content here.
+        """
+        assert summarise_depth_sweep(curve)["sky_fraction"] == pytest.approx(0.0, abs=0.01)
+
+    def test_geometry_inside_the_near_plane_is_refused(self, scene):
+        """The calibration frame is the one check that the sweep is measuring
+        the scene rather than something sitting on the lens.
+        """
+        from quiltwright.povray import depth_sweep
+
+        # 0.6 units off the near sphere's front, so it is inside the d=1
+        # calibration plane and every later reading would measure against it.
+        # The wide lens leaves the rest of the frame marker-coloured, which is
+        # what the uniformity check reads: an intruder covering *everything*
+        # is uniform too, and no calibration frame can tell that from a clean one.
+        inside = PovCamera(location=(0.0, -0.9, -1.5), look_at=(0.0, -0.9, 1.0), fov=90.0)
+        with pytest.raises(RuntimeError, match="calibration frame is not uniform"):
+            depth_sweep(scene, inside, [5.0], width=32, height=32, quality=9, progress=False)
+
+    def test_a_missing_scene_is_refused_before_povray_starts(self, camera, tmp_path):
+        from quiltwright.povray import depth_sweep
+
+        with pytest.raises(FileNotFoundError):
+            depth_sweep(tmp_path / "absent.pov", camera, [5.0], progress=False)

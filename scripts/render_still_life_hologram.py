@@ -108,11 +108,11 @@ class StillLife:
 
 
 #: The scenes this script knows how to aim at.  Depths are measured, not
-#: guessed -- ``measure_depth_range.py`` slides an opaque plane along the view
+#: guessed -- ``quiltwright probe`` slides an opaque plane along the view
 #: axis and scores each frame for how much geometry remains in front of it::
 #:
-#:     python scripts/measure_depth_range.py --scene pov-scenes/porin/3porin.pov \
-#:         --include-path pov-scenes/myinclude --eye 0,0,-1100 --aim 0,0,0 \
+#:     quiltwright probe pov-scenes/porin/3porin.pov \
+#:         --include-path pov-scenes/myinclude --eye 0 0 -1100 --aim 0 0 0 \
 #:         --min-distance 700 --max-distance 1600 --pov-arg +MV3.1
 SCENES = {
     "bell-jar": StillLife(
