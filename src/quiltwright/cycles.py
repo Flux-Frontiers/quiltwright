@@ -1037,6 +1037,237 @@ def render_cycles_views(
 
 
 # ---------------------------------------------------------------------------
+# Auto-framing: give an imported mesh file a camera it doesn't carry
+# ---------------------------------------------------------------------------
+#
+# A ``.blend`` can carry its own camera (``camera=None``); an OBJ, glTF, FBX
+# or USD off a modelling tool or a generator cannot.  The camera math in this
+# module needs one, and picking ``location``/``look_at`` by hand for an
+# unfamiliar mesh -- unknown scale, unknown origin, unknown up-axis after
+# import -- is exactly the friction that makes "I have a mesh file" not yet
+# "I have a hologram".  These three functions close that gap: probe the
+# imported bounds, then frame them.  The framing is pure and unit-tested; the
+# probe is the same headless import the render uses, so the box is what the
+# render will actually see.
+
+#: Framing headroom beyond a tight fit, so the subject's enclosing sphere
+#: does not touch the frame edge.  Matches the value the worked-example
+#: scripts frame with.
+FRAME_MARGIN = 1.2
+
+#: A background bpy script that imports a scene and prints its combined
+#: world-space mesh bounds as one ``QW_BBOX`` json line.  Generated; the
+#: source of truth is quiltwright/cycles.py.  The importer routing is copied
+#: verbatim from :data:`_DRIVER` -- most importantly the OBJ axis arguments
+#: -- so the probed box matches the geometry the render frames.
+_BBOX_DRIVER = r'''
+"""Quiltwright bounding-box probe.  Generated; do not edit -- the source of
+truth is quiltwright/cycles.py.  Runs under Blender's bundled Python."""
+
+import json
+import sys
+
+import bpy
+from mathutils import Vector
+
+argv = sys.argv
+with open(argv[argv.index("--") + 1]) as fh:
+    job = json.load(fh)
+
+bpy.ops.wm.read_factory_settings(use_empty=True)
+importers = {
+    "gltf": lambda p: bpy.ops.import_scene.gltf(filepath=p),
+    "obj": lambda p: bpy.ops.wm.obj_import(filepath=p, forward_axis="Y", up_axis="Z"),
+    "stl": lambda p: bpy.ops.wm.stl_import(filepath=p),
+    "ply": lambda p: bpy.ops.wm.ply_import(filepath=p),
+    "usd": lambda p: bpy.ops.wm.usd_import(filepath=p),
+    "fbx": lambda p: bpy.ops.import_scene.fbx(filepath=p),
+    "abc": lambda p: bpy.ops.wm.alembic_import(filepath=p),
+}
+importer = importers.get(job["format"])
+if importer is None:
+    print("QW_ERROR: unsupported scene format: " + job["format"], flush=True)
+    sys.exit(1)
+try:
+    importer(job["scene"])
+except Exception as exc:
+    print("QW_ERROR: import of %s failed: %s" % (job["scene"], exc), flush=True)
+    sys.exit(1)
+
+lo = [1e30, 1e30, 1e30]
+hi = [-1e30, -1e30, -1e30]
+found = False
+for ob in bpy.context.scene.objects:
+    if ob.type != "MESH":
+        continue
+    found = True
+    for corner in ob.bound_box:
+        w = ob.matrix_world @ Vector(corner)
+        for i in range(3):
+            lo[i] = min(lo[i], w[i])
+            hi[i] = max(hi[i], w[i])
+if not found:
+    print("QW_ERROR: no mesh objects in %s" % job["scene"], flush=True)
+    sys.exit(1)
+print("QW_BBOX " + json.dumps({"lo": lo, "hi": hi}), flush=True)
+'''
+
+
+def mesh_bounds(
+    scene: str | Path,
+    *,
+    binary: str | None = None,
+    extra_args: Sequence[str] = (),
+) -> tuple[np.ndarray, np.ndarray]:
+    """Import a mesh file headlessly and return its world-space bounds.
+
+    Runs one background Blender that imports *scene* through the same
+    importer :func:`render_cycles_quilt` uses -- so the returned box is
+    exactly what the render will see, with the file's transforms and
+    axis conversion applied -- and reports the combined bounding box of every
+    mesh object.  Pair with :func:`frame_camera` (or call
+    :func:`autoframe_camera`, which does both) to give an imported mesh the
+    camera it doesn't carry.
+
+    :param scene: Path to an importable mesh format in :data:`SCENE_FORMATS`.
+        Not ``.blend`` -- a ``.blend`` carries its own camera, so frame it
+        with ``camera=None`` instead of this.
+    :param binary: Blender executable; see :func:`render_cycles_quilt`.
+    :param extra_args: Extra Blender command-line arguments.
+    :return: ``(lo, hi)``, each a ``(3,)`` float array of the world-space
+        minimum and maximum corner.
+    :raises FileNotFoundError: If the scene file does not exist.
+    :raises ValueError: If the format is unsupported, or is ``.blend``.
+    :raises RuntimeError: If Blender fails, or the scene has no mesh object.
+    """
+    blender = _find_blender(binary)
+    scene_path = Path(scene).expanduser().resolve()
+    if not scene_path.is_file():
+        raise FileNotFoundError(f"scene not found: {scene_path}")
+    kind = _scene_format(scene_path)
+    if kind == "blend":
+        raise ValueError(
+            "mesh_bounds is for importable mesh files; a .blend carries its own "
+            "camera -- render it with camera=None"
+        )
+
+    with tempfile.TemporaryDirectory(prefix="cycles_bbox_") as tmp:
+        workdir = Path(tmp)
+        job_file = workdir / "bbox_job.json"
+        job_file.write_text(json.dumps({"scene": str(scene_path), "format": kind}))
+        driver = workdir / "bbox.py"
+        driver.write_text(_BBOX_DRIVER)
+        cmd = [
+            blender,
+            "--background",
+            "--factory-startup",
+            *extra_args,
+            "--python",
+            str(driver),
+            "--",
+            str(job_file),
+        ]
+        proc = subprocess.run(cmd, capture_output=True, text=True, cwd=workdir)
+
+        bbox: dict | None = None
+        error: str | None = None
+        for line in proc.stdout.splitlines():
+            if line.startswith("QW_BBOX "):
+                bbox = json.loads(line[len("QW_BBOX ") :])
+            elif line.startswith("QW_ERROR: "):
+                error = line[len("QW_ERROR: ") :]
+        if error is not None:
+            raise RuntimeError(f"bounding-box probe failed: {error}")
+        if bbox is None:
+            tail = (proc.stdout[-1500:] + "\n" + proc.stderr[-1500:]).strip()
+            raise RuntimeError(f"bounding-box probe produced no bounds:\n{tail}")
+        return np.asarray(bbox["lo"], dtype="d"), np.asarray(bbox["hi"], dtype="d")
+
+
+def frame_camera(
+    lo: Sequence[float] | np.ndarray,
+    hi: Sequence[float] | np.ndarray,
+    *,
+    fov: float = 14.0,
+    view_direction: Sequence[float] | np.ndarray = (0.0, -1.0, 0.0),
+    up: tuple[float, float, float] = (0.0, 0.0, 1.0),
+    margin: float = FRAME_MARGIN,
+) -> CyclesCamera:
+    """A :class:`CyclesCamera` framing an axis-aligned box, aimed at its centre.
+
+    Places the eye along *view_direction* from the box centre at the distance
+    that makes the box's enclosing sphere fill *fov* (with *margin*
+    headroom), and aims back at the centre -- which becomes the holographic
+    focal plane.  Uses the exact spherical relation ``sin(fov/2) = r / d``
+    rather than the small-angle tangent, since object-centric FOVs (~14-30
+    deg) are not small angles; the enclosing *sphere* (half the box diagonal)
+    is used so the whole box stays framed from any *view_direction*.
+
+    :param lo: Box minimum corner ``(x, y, z)`` -- e.g. from
+        :func:`mesh_bounds`.
+    :param hi: Box maximum corner.
+    :param fov: Vertical field of view in degrees.
+    :param view_direction: Direction from the box centre to the eye; need not
+        be normalised.  The default ``(0, -1, 0)`` is a front-on view looking
+        along +y, with +z up.
+    :param up: Up-hint passed to the camera; must not be parallel to
+        *view_direction*.
+    :param margin: Framing headroom beyond a tight fit -- 1.0 is exactly
+        tight, the default leaves a little air.
+    :return: The centre-view :class:`CyclesCamera`.
+    :raises ValueError: If the box is degenerate (zero diagonal) or
+        *view_direction* is the zero vector.
+    """
+    lo_a = np.asarray(lo, dtype="d")
+    hi_a = np.asarray(hi, dtype="d")
+    centre = (lo_a + hi_a) / 2.0
+    radius = float(np.linalg.norm(hi_a - lo_a)) / 2.0
+    if radius == 0.0:
+        raise ValueError("degenerate bounds: lo == hi")
+    direction = np.asarray(view_direction, dtype="d")
+    dnorm = np.linalg.norm(direction)
+    if dnorm == 0.0:
+        raise ValueError("view_direction must be a non-zero vector")
+    direction = direction / dnorm
+    distance = radius / math.sin(math.radians(fov) / 2.0) * margin
+    eye = centre + direction * distance
+    return CyclesCamera(location=_triple(eye), look_at=_triple(centre), up=up, fov=float(fov))
+
+
+def autoframe_camera(
+    scene: str | Path,
+    *,
+    fov: float = 14.0,
+    view_direction: Sequence[float] = (0.0, -1.0, 0.0),
+    up: tuple[float, float, float] = (0.0, 0.0, 1.0),
+    margin: float = FRAME_MARGIN,
+    binary: str | None = None,
+) -> CyclesCamera:
+    """Probe a mesh file's bounds and return a :class:`CyclesCamera` framing it.
+
+    :func:`mesh_bounds` then :func:`frame_camera` -- the one call an
+    unfamiliar mesh file needs before :func:`render_cycles_quilt`, since the
+    file carries no camera of its own.  The returned camera's ``look_at`` is
+    the bounds centre (the focal plane); run
+    :func:`~quiltwright.povray.format_depth_budget` on it before committing to
+    a full sweep, exactly as for any other :class:`CyclesCamera`.
+
+    :param scene: Path to an importable mesh format in :data:`SCENE_FORMATS`
+        (not ``.blend``); see :func:`mesh_bounds`.
+    :param fov: Vertical field of view in degrees.
+    :param view_direction: Direction from the bounds centre to the eye; see
+        :func:`frame_camera`.
+    :param up: Up-hint for the camera.
+    :param margin: Framing headroom; see :func:`frame_camera`.
+    :param binary: Blender executable; see :func:`render_cycles_quilt`.
+    :return: The centre-view :class:`CyclesCamera`.
+    :raises RuntimeError: If the bounds probe fails; see :func:`mesh_bounds`.
+    """
+    lo, hi = mesh_bounds(scene, binary=binary)
+    return frame_camera(lo, hi, fov=fov, view_direction=view_direction, up=up, margin=margin)
+
+
+# ---------------------------------------------------------------------------
 # The PyVista bridge: a composed plotter, hardware-ray-traced
 # ---------------------------------------------------------------------------
 #

@@ -410,6 +410,7 @@ QUILT_PRESETS["16-landscape"]      # 8x6 views, 7680x4320, aspect 1.7778
 | [docs/tvb-data.md](docs/tvb-data.md) | Brain geometry from The Virtual Brain: cortical surfaces, connectomes, parcellations, downloaded on demand |
 | [docs/povray.md](docs/povray.md) | The POV-Ray backend: off-axis camera derivation, depth budget, sweep clearance, a worked case study |
 | [docs/cycles.md](docs/cycles.md) | The Blender Cycles backend: hardware ray tracing (Metal/OptiX/HIP), mesh and .blend scenes, one process per sweep |
+| [docs/mesh-import.md](docs/mesh-import.md) | Any 3D object file (glTF/GLB, OBJ, FBX, USD, …) to a quilt in one command, with the camera auto-framed from the mesh's bounds |
 | [docs/povgen.md](docs/povgen.md) | Writing POV-Ray scenes from analytic primitives, so a scene composed in Python can be ray-traced rather than rasterised |
 | [docs/pov-workflow.md](docs/pov-workflow.md) | The procedure: taking an archive scene from "won't parse" to a quilt that fuses, step by step |
 | [docs/pdb2pov.md](docs/pdb2pov.md) | Rendering molecular structures as holograms with pypdb2pov, from the shell or in-process |
