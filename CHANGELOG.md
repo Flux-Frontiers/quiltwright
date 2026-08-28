@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **A general-purpose "any 3D object file → quilt" path, with the camera
+  auto-framed from the mesh.** The Cycles backend already imported glTF/GLB,
+  OBJ, STL, PLY, USD, FBX and Alembic, but every worked example so far
+  *built* its own geometry and so already knew where the camera went. A
+  finished mesh that arrives from elsewhere — a modelling tool, a scan, an
+  asset library, an AI generator such as Meshy — carries no camera, and its
+  scale, origin and post-import up-axis are unknown, so a hand-picked
+  `CyclesCamera` was guesswork. Three new functions in `quiltwright.cycles`
+  remove the guess: `mesh_bounds()` imports the file once (through the same
+  importer the render uses) and reports its world-space bounding box,
+  `frame_camera()` turns a box into a `CyclesCamera` that fills the field of
+  view via the exact spherical relation `sin(fov/2) = r/d` and aims at the
+  bounds centre (the focal plane), and `autoframe_camera()` composes the two.
+  `frame_camera()` is pure arithmetic and unit-tested directly; `mesh_bounds()`
+  and the end-to-end path are covered against a real Blender import.
+
+- **`scripts/render_mesh_hologram.py`** — the model-agnostic front door to the
+  above. `python scripts/render_mesh_hologram.py model.glb` probes, frames,
+  renders and writes a quilt in one command, with `--lighting`
+  (`studio`/`soft`/`sky`/an HDRI), `--view-direction`, `--fov`, `--device`,
+  `--still`, `--preview` and `--cast`. Documented in
+  [docs/mesh-import.md](docs/mesh-import.md), now linked from the README
+  documentation table.
+
 ## [0.9.0] - 2026-08-26
 
 ### Added

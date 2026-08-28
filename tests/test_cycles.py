@@ -25,12 +25,16 @@ import numpy as np
 import pytest
 
 from quiltwright.cycles import (
+    _BBOX_DRIVER,
     _DRIVER,
     CyclesCamera,
     _find_blender,
     _lighting_job,
     _scene_format,
     _view_angles,
+    autoframe_camera,
+    frame_camera,
+    mesh_bounds,
     render_cycles_quilt,
     render_cycles_views,
     view_shift_x,
@@ -207,6 +211,93 @@ class TestDriver:
         """The driver only ever runs inside Blender, so a syntax error would
         otherwise surface as a cryptic subprocess failure at render time."""
         compile(_DRIVER, "driver.py", "exec")
+
+    def test_bbox_driver_is_valid_python(self):
+        """Same for the bounding-box probe -- it runs inside Blender too."""
+        compile(_BBOX_DRIVER, "bbox.py", "exec")
+
+
+# ---------------------------------------------------------------------------
+# Auto-framing (frame_camera is pure -- no Blender)
+# ---------------------------------------------------------------------------
+
+
+class TestFrameCamera:
+    def test_aims_at_the_box_centre(self):
+        """The look_at point is the bounds centre, which becomes the focal
+        plane -- not the origin, and not a corner."""
+        cam = frame_camera((2.0, 4.0, 6.0), (4.0, 8.0, 10.0))
+        np.testing.assert_allclose(cam.look_at, [3.0, 6.0, 8.0], atol=1e-12)
+
+    def test_default_view_is_front(self):
+        """Default view_direction (0,-1,0): the eye sits on the -y side of
+        the centre, looking along +y with the standard Z up."""
+        cam = frame_camera((-1.0, -1.0, -1.0), (1.0, 1.0, 1.0))
+        assert cam.location[1] < 0.0
+        np.testing.assert_allclose(cam.location[0], 0.0, atol=1e-12)
+        np.testing.assert_allclose(cam.location[2], 0.0, atol=1e-12)
+        assert cam.up == (0.0, 0.0, 1.0)
+
+    def test_focal_distance_fills_the_fov(self):
+        """The enclosing sphere (half the diagonal) subtends fov at the eye:
+        sin(fov/2) == r / (focal / margin).  This is the exact spherical
+        relation the framing promises, margin included."""
+        lo, hi = (-1.0, -2.0, -3.0), (1.0, 2.0, 3.0)
+        fov, margin = 18.0, 1.2
+        cam = frame_camera(lo, hi, fov=fov, margin=margin)
+        radius = math.dist(lo, hi) / 2.0
+        tight = radius / math.sin(math.radians(fov) / 2.0)
+        assert cam.focal_distance == pytest.approx(tight * margin)
+
+    def test_margin_scales_distance_linearly(self):
+        lo, hi = (0.0, 0.0, 0.0), (1.0, 1.0, 1.0)
+        near = frame_camera(lo, hi, margin=1.0).focal_distance
+        far = frame_camera(lo, hi, margin=2.0).focal_distance
+        assert far == pytest.approx(2.0 * near)
+
+    def test_narrower_fov_dollies_back(self):
+        lo, hi = (0.0, 0.0, 0.0), (1.0, 1.0, 1.0)
+        wide = frame_camera(lo, hi, fov=30.0).focal_distance
+        narrow = frame_camera(lo, hi, fov=10.0).focal_distance
+        assert narrow > wide
+
+    def test_custom_view_direction_need_not_be_normalised(self):
+        """An unnormalised view_direction only sets the eye's bearing; the
+        distance is still governed by the fill-the-fov rule."""
+        lo, hi = (-1.0, -1.0, -1.0), (1.0, 1.0, 1.0)
+        cam = frame_camera(lo, hi, view_direction=(0.0, -5.0, 0.0))
+        ref = frame_camera(lo, hi, view_direction=(0.0, -1.0, 0.0))
+        np.testing.assert_allclose(cam.location, ref.location, atol=1e-12)
+
+    def test_degenerate_bounds_rejected(self):
+        with pytest.raises(ValueError, match="degenerate"):
+            frame_camera((1.0, 1.0, 1.0), (1.0, 1.0, 1.0))
+
+    def test_zero_view_direction_rejected(self):
+        with pytest.raises(ValueError, match="non-zero"):
+            frame_camera((0.0, 0.0, 0.0), (1.0, 1.0, 1.0), view_direction=(0.0, 0.0, 0.0))
+
+
+class TestMeshBoundsValidation:
+    """mesh_bounds argument checks reachable without Blender."""
+
+    def test_missing_scene_raises(self, tmp_path, no_blender_needed):
+        with pytest.raises(FileNotFoundError):
+            mesh_bounds(tmp_path / "nope.obj")
+
+    def test_blend_rejected(self, tmp_path, no_blender_needed):
+        """A .blend carries its own camera; mesh_bounds is for the imports
+        that don't, and must say so rather than fail deep in Blender."""
+        scene = tmp_path / "scene.blend"
+        scene.write_bytes(b"BLENDER")
+        with pytest.raises(ValueError, match="camera=None"):
+            mesh_bounds(scene)
+
+    def test_unsupported_format_raises(self, tmp_path, no_blender_needed):
+        scene = tmp_path / "scene.pov"
+        scene.write_text("sphere { 0, 1 }\n")
+        with pytest.raises(ValueError, match="unsupported scene format"):
+            mesh_bounds(scene)
 
 
 # ---------------------------------------------------------------------------
@@ -794,6 +885,65 @@ class TestRenderCyclesViews:
         assert [p.name for p in paths] == [f"view{i:03d}.png" for i in range(5)]
         assert all(p.is_file() for p in paths)
         assert not (tmp_path / "sweep" / "job.json").exists()
+
+
+# A unit cube spanning (-1,-1,-1)..(1,1,1); OBJ import is an identity here
+# (forward_axis=Y, up_axis=Z), so the imported bounds are these coordinates.
+_CUBE_OBJ = (
+    "v -1 -1 -1\nv 1 -1 -1\nv 1 1 -1\nv -1 1 -1\n"
+    "v -1 -1 1\nv 1 -1 1\nv 1 1 1\nv -1 1 1\n"
+    "f 1 2 3 4\nf 5 8 7 6\nf 1 5 6 2\nf 2 6 7 3\nf 3 7 8 4\nf 5 1 4 8\n"
+)
+
+
+class TestMeshBoundsEndToEnd:
+    """mesh_bounds / autoframe_camera against a real Blender import."""
+
+    def test_bounds_match_the_geometry(self, blender_binary, tmp_path):
+        cube = tmp_path / "cube.obj"
+        cube.write_text(_CUBE_OBJ)
+        lo, hi = mesh_bounds(cube, binary=blender_binary)
+        np.testing.assert_allclose(lo, [-1, -1, -1], atol=1e-5)
+        np.testing.assert_allclose(hi, [1, 1, 1], atol=1e-5)
+
+    def test_no_mesh_surfaces_a_clear_error(self, blender_binary, tmp_path):
+        """An OBJ with only points -- no faces makes no mesh Blender keeps --
+        must fail loudly, not return a nonsense box."""
+        empty = tmp_path / "empty.obj"
+        empty.write_text("# no geometry\n")
+        with pytest.raises(RuntimeError, match="no mesh|probe"):
+            mesh_bounds(empty, binary=blender_binary)
+
+    def test_autoframe_frames_the_import(self, blender_binary, tmp_path):
+        """The composed helper aims at the imported centre and dollies to
+        fill the FOV -- the same result as framing the known bounds by hand."""
+        cube = tmp_path / "cube.obj"
+        cube.write_text(_CUBE_OBJ)
+        cam = autoframe_camera(cube, fov=20.0, binary=blender_binary)
+        np.testing.assert_allclose(cam.look_at, [0, 0, 0], atol=1e-5)
+        radius = math.sqrt(3) * 2.0 / 2.0  # half the diagonal of a 2x2x2 cube
+        tight = radius / math.sin(math.radians(20.0) / 2.0)
+        assert cam.focal_distance == pytest.approx(tight * 1.2, rel=1e-4)
+
+    def test_autoframed_camera_renders_the_import(self, blender_binary, tmp_path):
+        """End to end: an unfamiliar mesh file, framed with no hand-picked
+        camera, renders a non-black quilt."""
+        cube = tmp_path / "cube.obj"
+        cube.write_text(_CUBE_OBJ)
+        cam = autoframe_camera(cube, binary=blender_binary)
+        spec = QuiltSpec(columns=1, rows=1, quilt_width=64, quilt_height=64, aspect=1.0)
+        quilt = render_cycles_quilt(
+            cube,
+            spec,
+            cam,
+            lighting="soft",
+            samples=8,
+            denoise=False,
+            device="cpu",
+            binary=blender_binary,
+            progress=False,
+        )
+        assert quilt.mean() > 5.0
 
 
 # ---------------------------------------------------------------------------
