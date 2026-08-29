@@ -314,9 +314,11 @@ slicer expects off-axis frusta or a toe-in arc, and whether 2.05° is too coarse
 ## Driving it from the shell
 
 Two things sit around the library: a `Makefile` for the bundled 1993-99
-scenes, and a CLI for the stage after the assembler, which does not care what
-produced the quilt. The full tour -- every target, the parallelism model, run
-reports, and what each CLI command is for -- is [docs/shell.md](docs/shell.md).
+scenes, and a CLI for hardware and tooling -- `cast`, `weave`, `wallpaper`,
+`bridge` -- plus `mesh` / `cartoon` / `probe` for arbitrary input. The
+worked exhibits for the scenes this repo ships (museum, vitrine, still-life,
+DNA helix, cartoon comparison) stay in `scripts/`; they are not unfinished
+CLI. The full tour is [docs/shell.md](docs/shell.md).
 
 ```bash
 make gallery                    # every reference still -> gallery/
