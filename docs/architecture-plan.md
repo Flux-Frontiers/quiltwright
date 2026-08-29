@@ -103,7 +103,7 @@ probe; museum, vitrine, still-life, and the PyVista demo did not follow.
 
 1. A numpy-only quilt core that `povgen` can import without touching VTK.
 2. A stdlib Bridge client that the CLI can import without touching VTK.
-3. One `CameraFrame` protocol and one algebraic off-axis identity test
+3. One `QuiltCamera` protocol and one algebraic off-axis identity test
    across the three backends.
 4. Depth-budget *arithmetic* (`view_disparity`, `focal_distance_for_range`,
    `sweep_extent`) next to `QuiltSpec`. Scene *measurement* stays in the
@@ -266,7 +266,7 @@ Do **not** unify the three emit functions. VTK, POV-Ray, and Blender take
 different numbers. Share the frame and the dimensionless shear.
 
 ```python
-class CameraFrame(Protocol):
+class QuiltCamera(Protocol):
     location: tuple[float, float, float]
     look_at: tuple[float, float, float]
     fov: float
@@ -518,7 +518,7 @@ These block PRs 4 and 5. They do not block PRs 1--3.
 
 ### PR 2 -- Camera protocol and off-axis identity
 
-- **Title:** `feat: CameraFrame protocol and shared window-shear`
+- **Title:** `feat: QuiltCamera protocol and shared window-shear`
 - **Depends on:** PR 1
 - **Files:** `quilt.py` (`window_shear`); `povray.py` / `cycles.py` /
   `lfd.py` consume it; promote `camera_frame`; move
