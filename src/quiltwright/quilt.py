@@ -372,6 +372,22 @@ def focal_distance_for_range(near: float, far: float) -> float:
     return 2.0 / (1.0 / near + 1.0 / far)
 
 
+def sweep_extent(spec: QuiltSpec, focal_distance: float) -> float:
+    """Half-width of the lateral eye travel the quilt's view sweep needs.
+
+    The outermost views sit ``focal_distance * tan(cone/2)`` to either side
+    of the centre view -- the largest magnitude in :func:`view_offsets`, in
+    closed form.  For an object on a turntable that space is empty; inside a
+    room it is furniture and walls, so compare it against a measured
+    :class:`~quiltwright.povray.Clearance` before committing to a render.
+
+    :param spec: Quilt specification (supplies the view cone).
+    :param focal_distance: Camera-to-focal-plane distance, in scene units.
+    :return: Half the total eye sweep, in scene units.
+    """
+    return focal_distance * math.tan(math.radians(spec.view_cone) / 2.0)
+
+
 # ---------------------------------------------------------------------------
 # Quilt assembly and save
 # ---------------------------------------------------------------------------

@@ -137,7 +137,7 @@ _LAZY: dict[str, str] = {
     "style_plotter_for_hld": "hld",
     "surface_polydata": "tvb_data",
     "summarise_depth_sweep": "povray",
-    "sweep_extent": "povray",
+    "sweep_extent": "quilt",
     "sweep_spec": "quilt",
     "to_pov": "povgen",
     "view_disparity": "quilt",

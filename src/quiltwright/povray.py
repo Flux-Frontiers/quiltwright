@@ -81,10 +81,18 @@ from collections.abc import Iterable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, replace
 from pathlib import Path
+from typing import Protocol
 
 import numpy as np
 
-from quiltwright.quilt import QuiltSpec, assemble_quilt, view_disparity, view_offsets, window_shear
+from quiltwright.quilt import (
+    QuiltSpec,
+    assemble_quilt,
+    sweep_extent,
+    view_disparity,
+    view_offsets,
+    window_shear,
+)
 from quiltwright.runtime import COURTESY_CORES_HELD_BACK
 
 #: Environment variable overriding which POV-Ray binary is used.
@@ -320,25 +328,8 @@ def camera_block(camera: PovCamera, offset: float, aspect: float) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Framing: sweep extent, wall clearance, depth budget
+# Framing: wall clearance, depth budget
 # ---------------------------------------------------------------------------
-
-
-def sweep_extent(spec: QuiltSpec, focal_distance: float) -> float:
-    """Half-width of the lateral eye travel the quilt's view sweep needs.
-
-    The outermost views sit ``focal_distance * tan(cone/2)`` to either side
-    of the centre view -- the largest magnitude in
-    :func:`~quiltwright.lfd.view_offsets`, in closed form.  For an object on
-    a turntable that space is empty; inside a room it is furniture and
-    walls, so compare it against a measured :class:`Clearance` before
-    committing to a render.
-
-    :param spec: Quilt specification (supplies the view cone).
-    :param focal_distance: Camera-to-focal-plane distance, in scene units.
-    :return: Half the total eye sweep, in scene units.
-    """
-    return focal_distance * math.tan(math.radians(spec.view_cone) / 2.0)
 
 
 @dataclass(frozen=True)
@@ -418,18 +409,35 @@ class Clearance:
         return sweep <= self.half_width or math.isclose(sweep, self.half_width, rel_tol=1e-9)
 
 
+class _HasLens(Protocol):
+    """``fov`` and ``focal_distance`` -- all the depth budget reads.
+
+    :class:`~quiltwright.quilt.QuiltCamera` satisfies this, as does a tiny
+    namespace with those two attributes.  The PyVista
+    :func:`~quiltwright.lfd.depth_report` uses the latter so it does not
+    have to construct a throwaway :class:`PovCamera`.
+    """
+
+    @property
+    def fov(self) -> float: ...
+
+    @property
+    def focal_distance(self) -> float: ...
+
+
 def depth_budget(
-    spec: QuiltSpec, camera: PovCamera, depths: Mapping[str, float]
+    spec: QuiltSpec, camera: _HasLens, depths: Mapping[str, float]
 ) -> list[tuple[str, float, float]]:
     """Adjacent-view disparity at each depth of interest.
 
-    A thin pairing of :func:`~quiltwright.lfd.view_disparity` with the
+    A thin pairing of :func:`~quiltwright.quilt.view_disparity` with the
     labelled depths measured from a scene, kept separate from
     :func:`format_depth_budget` so the numbers can be asserted on rather
     than only printed.
 
     :param spec: Quilt specification.
-    :param camera: Centre-view camera; supplies the focal distance and FOV.
+    :param camera: Centre-view camera; a :class:`~quiltwright.quilt.QuiltCamera`
+        or anything with ``fov`` and ``focal_distance``.
     :param depths: Labelled distances from the camera, in scene units.  Use
         ``math.inf`` for sky or a backdrop at infinity.
     :return: ``(label, depth, disparity_px)`` in the order given.
@@ -442,7 +450,7 @@ def depth_budget(
 
 def format_depth_budget(
     spec: QuiltSpec,
-    camera: PovCamera,
+    camera: _HasLens,
     depths: Mapping[str, float],
     *,
     clearance: Clearance | None = None,
@@ -456,7 +464,8 @@ def format_depth_budget(
     than after the ray-tracer has spent an hour on it.
 
     :param spec: Quilt specification.
-    :param camera: Centre-view camera.
+    :param camera: Centre-view camera; a :class:`~quiltwright.quilt.QuiltCamera`
+        or anything with ``fov`` and ``focal_distance``.
     :param depths: Labelled depths, as for :func:`depth_budget`.
     :param clearance: Measured lateral corridor, if the scene is enclosed.
         When given, the sweep is checked against it and a warning emitted if

@@ -56,7 +56,7 @@ from __future__ import annotations
 # pylint: disable=import-outside-toplevel  # pyvista/imageio-ffmpeg are optional extras and pillow is heavy; all lazy-loaded only when needed
 import math
 from collections.abc import Mapping
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 import numpy as np
@@ -282,6 +282,14 @@ def scene_depths(
     }
 
 
+@dataclass(frozen=True)
+class _Lens:
+    """The two numbers :func:`format_depth_budget` reads off a camera."""
+
+    fov: float
+    focal_distance: float
+
+
 def depth_report(
     plotter,
     spec: QuiltSpec,
@@ -295,13 +303,9 @@ def depth_report(
     """Depth budget for a PyVista scene, as a report to print before rendering.
 
     The PyVista counterpart to
-    :func:`~quiltwright.povray.format_depth_budget`, which takes a POV-Ray
-    camera.  Without this, every PyVista caller has to measure the scene by
-    hand and then build a throwaway ``PovCamera`` purely to carry two floats
-    -- which is exactly what two separate consumers ended up doing.
-
-    Pass the same *fov* and *zoom* you will pass to :func:`render_quilt`, so
-    the numbers describe the render you are about to make.
+    :func:`~quiltwright.povray.format_depth_budget`.  Pass the same *fov*
+    and *zoom* you will pass to :func:`render_quilt`, so the numbers
+    describe the render you are about to make.
 
     :param plotter: Plotter with the scene composed and the camera framed.
     :param spec: Quilt specification.
@@ -313,25 +317,16 @@ def depth_report(
     :param soft_px: Disparity above which a row is flagged as soft.
     :return: Multi-line report.
     """
-    # Imported here, not at module scope: povray imports this module, so a
-    # top-level import would close the cycle.
-    from quiltwright.povray import PovCamera, format_depth_budget
+    from quiltwright.povray import format_depth_budget
 
     depths = scene_depths(plotter, fov=fov, zoom=zoom, labels=labels)
     if extra_depths:
         depths.update(extra_depths)
-
-    camera = plotter.camera
-    pos, focal, _right, up, distance = camera_frame(camera)
-    forward = (focal - pos) / distance
-    focal_distance = depths[labels[1]]
-    pov_camera = PovCamera(
-        location=tuple(focal - forward * focal_distance),
-        look_at=tuple(focal),
-        sky=tuple(up),
-        fov=camera.view_angle if fov is None else fov,
+    lens = _Lens(
+        fov=float(plotter.camera.view_angle if fov is None else fov),
+        focal_distance=float(depths[labels[1]]),
     )
-    return format_depth_budget(spec, pov_camera, depths, soft_px=soft_px)
+    return format_depth_budget(spec, lens, depths, soft_px=soft_px)
 
 
 def camera_frame(camera) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, float]:
