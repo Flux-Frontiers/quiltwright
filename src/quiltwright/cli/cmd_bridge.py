@@ -143,7 +143,7 @@ def status_cmd(bridge_url: str | None, timeout: float) -> None:
     Exits non-zero if Bridge is unusable, so this can gate a cast in a
     script.
     """
-    from quiltwright.lfd import BRIDGE_URL
+    from quiltwright.bridge import BRIDGE_URL
 
     url = bridge_url or BRIDGE_URL
     pids = _bridge_pids()
@@ -222,7 +222,7 @@ def reset_cmd(no_relaunch: bool, wait: float, bridge_url: str | None) -> None:
     which is why this kills the processes outright. Anything currently
     playing on the panel stops.
     """
-    from quiltwright.lfd import BRIDGE_URL
+    from quiltwright.bridge import BRIDGE_URL
 
     if sys.platform != "darwin":
         raise click.ClickException("bridge reset is implemented for macOS only")

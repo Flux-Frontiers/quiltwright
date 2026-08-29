@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- **Quilt geometry and Bridge HTTP no longer live inside the PyVista
+  backend.** `QuiltSpec`, presets, `assemble_quilt`, `save_quilt` and the
+  view-offset arithmetic moved to `quiltwright.quilt` (numpy + pillow).
+  `cast_quilt` and the transport controls moved to `quiltwright.bridge`
+  (stdlib). `quiltwright.lfd` re-exports every moved name, so
+  `from quiltwright.lfd import QuiltSpec` is unchanged. Package-level lazy
+  imports now resolve `QuiltSpec` without loading VTK. Plan:
+  [docs/architecture-plan.md](docs/architecture-plan.md).
+
 ### Added
 
 - **A general-purpose "any 3D object file → quilt" path, with the camera

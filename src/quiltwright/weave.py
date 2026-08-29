@@ -73,7 +73,7 @@ from pathlib import Path
 
 import numpy as np
 
-from quiltwright.lfd import QuiltSpec
+from quiltwright.quilt import QuiltSpec
 
 __all__ = ["Calibration", "SubpixelCell", "weave_quilt"]
 

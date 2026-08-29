@@ -406,6 +406,7 @@ QUILT_PRESETS["16-landscape"]      # 8x6 views, 7680x4320, aspect 1.7778
 |----------|----------|
 | [docs/install.md](docs/install.md) | Installing the full stack: package extras, POV-Ray, ffmpeg, Bridge, pypdb2pov |
 | [docs/shell.md](docs/shell.md) | Driving it from the shell: every make target, the parallelism model, run reports, and the CLI command by command |
+| [docs/architecture-plan.md](docs/architecture-plan.md) | Module split: quilt geometry and Bridge out of `lfd`, shared camera protocol, depth-budget arithmetic. Proposed; PRs 1-3 unblocked |
 | [docs/lfd.md](docs/lfd.md) | Light-field output, Bridge/Studio setup, device presets, the PyVista path, view sweeps for hologram printers |
 | [docs/pyvista-datasets.md](docs/pyvista-datasets.md) | PyVista dataset ideas for holograms: topography, the Allen mouse brain atlas, other strong-depth candidates |
 | [docs/tvb-data.md](docs/tvb-data.md) | Brain geometry from The Virtual Brain: cortical surfaces, connectomes, parcellations, downloaded on demand |

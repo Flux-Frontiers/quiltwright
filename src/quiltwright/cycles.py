@@ -85,8 +85,9 @@ from pathlib import Path
 
 import numpy as np
 
-from quiltwright.lfd import QuiltSpec, _camera_frame, assemble_quilt
+from quiltwright.lfd import _camera_frame
 from quiltwright.povray import COURTESY_CORES_HELD_BACK
+from quiltwright.quilt import QuiltSpec, assemble_quilt
 
 #: Environment variable overriding which Blender binary is used.
 BLENDER_ENV = "BLENDER_BINARY"
