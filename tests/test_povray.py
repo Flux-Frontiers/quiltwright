@@ -305,6 +305,14 @@ class TestDepthBudget:
         assert "<- soft" not in near
         assert "<- soft" in sky
 
+    def test_cycles_camera_is_accepted(self, spec):
+        """The budget reads fov and focal_distance, not a POV-Ray type."""
+        from quiltwright.cycles import CyclesCamera
+
+        cam = CyclesCamera(location=(0.0, 0.0, 0.0), look_at=(0.0, 0.0, 46.87), fov=53.13)
+        rows = depth_budget(spec, cam, {"focal": 46.87, "near": 31.0})
+        assert dict((label, px) for label, _, px in rows)["focal"] == pytest.approx(0.0)
+
 
 # ---------------------------------------------------------------------------
 # Binary discovery

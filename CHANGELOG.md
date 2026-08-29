@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **`sweep_extent()` lives next to `QuiltSpec`.** The closed-form half-width
+  of a view sweep is quilt geometry, not POV-Ray-specific; `povray` re-exports
+  it. `depth_budget` / `format_depth_budget` take any camera with `fov` and
+  `focal_distance` (`QuiltCamera`, `CyclesCamera`, or a two-field lens), so
+  `lfd.depth_report` no longer builds a throwaway `PovCamera`.
+
 - **`QuiltCamera` protocol and `window_shear()`.** The three backends
   (VTK `SetWindowCenter`, Blender `shift_x`, POV-Ray `direction` shear)
   are unit conversions of one dimensionless window shift, now in

@@ -328,8 +328,8 @@ Leave in `povray.py`:
 
 - `Clearance` -- measured corridor of an interior `.pov`
 - `depth_sweep` / `summarise_depth_sweep` -- probe renders
-- `depth_budget` / `format_depth_budget` -- take a `CameraFrame`, not a
-  `PovCamera`
+- `depth_budget` / `format_depth_budget` -- take a `QuiltCamera` (or
+  anything with `fov` and `focal_distance`), not a `PovCamera`
 
 Leave in `lfd.py`:
 
@@ -528,10 +528,10 @@ These block PRs 4 and 5. They do not block PRs 1--3.
 
 ### PR 3 -- Depth-budget arithmetic in `quilt`
 
-- **Title:** `refactor: move sweep_extent and CameraFrame depth budget into quilt`
-- **Depends on:** PR 2 (needs `CameraFrame`)
+- **Title:** `refactor: move sweep_extent and QuiltCamera depth budget into quilt`
+- **Depends on:** PR 2 (needs `QuiltCamera`)
 - **Files:** `sweep_extent` -> `quilt.py`; `format_depth_budget` takes
-  `CameraFrame`; `lfd.depth_report` drops the `PovCamera` import
+  `QuiltCamera`; `lfd.depth_report` drops the `PovCamera` import
 - **Verify:** `tests/test_povray.py` depth-budget cases, `tests/test_lfd.py`
   `TestSceneDepths` / `depth_report`
 

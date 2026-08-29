@@ -2,7 +2,7 @@
 
 import sys
 
-from quiltwright import bridge, lfd, quilt
+from quiltwright import bridge, lfd, povray, quilt
 
 
 def test_lfd_reexports_the_same_objects() -> None:
@@ -22,6 +22,7 @@ def test_lfd_reexports_the_same_objects() -> None:
     assert lfd.resume_quilt is bridge.resume_quilt
     assert lfd.stop_quilt is bridge.stop_quilt
     assert lfd.BRIDGE_URL == bridge.BRIDGE_URL
+    assert povray.sweep_extent is quilt.sweep_extent
 
 
 def test_importing_quilt_does_not_load_pyvista() -> None:
@@ -52,3 +53,5 @@ def test_package_lazy_map_points_at_the_new_homes() -> None:
     assert quiltwright._LAZY["cast_quilt"] == "bridge"
     assert quiltwright._LAZY["save_and_cast_quilt"] == "bridge"
     assert quiltwright._LAZY["render_quilt"] == "lfd"
+    assert quiltwright._LAZY["sweep_extent"] == "quilt"
+    assert quiltwright._LAZY["window_shear"] == "quilt"
