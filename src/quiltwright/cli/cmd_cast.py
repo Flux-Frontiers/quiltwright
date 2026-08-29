@@ -39,7 +39,7 @@ import click
 
 from quiltwright.cli.main import cli
 from quiltwright.cli.options import aspect_from_filename, resolve_grid
-from quiltwright.lfd import QUILT_PRESETS, QuiltSpec
+from quiltwright.quilt import QUILT_PRESETS, QuiltSpec
 
 
 def _describe_heads(bridge_url: str, timeout: float) -> list[tuple[str, str, str]]:
@@ -51,7 +51,7 @@ def _describe_heads(bridge_url: str, timeout: float) -> list[tuple[str, str, str
     :raises click.ClickException: If Bridge cannot be reached or refuses a
         session.
     """
-    from quiltwright.lfd import _bridge_post, _enter_orchestration
+    from quiltwright.bridge import _bridge_post, _enter_orchestration
 
     try:
         token = _enter_orchestration(bridge_url, timeout)
@@ -166,7 +166,7 @@ def cast_cmd(
       quiltwright cast plain.png --grid 8x6 --aspect 1.77778
       quiltwright cast plain.png --preset 16-landscape
     """
-    from quiltwright.lfd import BRIDGE_URL, cast_quilt
+    from quiltwright.bridge import BRIDGE_URL, cast_quilt
 
     url = bridge_url or BRIDGE_URL
 

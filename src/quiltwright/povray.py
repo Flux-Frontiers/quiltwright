@@ -84,7 +84,7 @@ from pathlib import Path
 
 import numpy as np
 
-from quiltwright.lfd import QuiltSpec, assemble_quilt, view_disparity, view_offsets
+from quiltwright.quilt import QuiltSpec, assemble_quilt, view_disparity, view_offsets
 
 #: Environment variable overriding which POV-Ray binary is used.
 POVRAY_ENV = "POVRAY_BINARY"
@@ -1029,7 +1029,7 @@ def render_pov_views(
     Pair it with :func:`~quiltwright.lfd.sweep_spec` when the view count is
     not a convenient rectangle::
 
-        from quiltwright.lfd import LITIHOLO_SWEEP
+        from quiltwright.quilt import LITIHOLO_SWEEP
         render_pov_views("risedronate.pov", LITIHOLO_SWEEP, camera, "sweep/")
         # -> sweep/view000.png ... sweep/view022.png
 

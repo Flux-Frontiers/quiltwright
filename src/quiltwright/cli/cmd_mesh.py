@@ -44,7 +44,7 @@ import click
 
 from quiltwright.cli.main import cli
 from quiltwright.cycles import LIGHTING_RIGS, frame_camera, mesh_bounds, render_cycles_quilt
-from quiltwright.lfd import QUILT_PRESETS, save_quilt
+from quiltwright.quilt import QUILT_PRESETS, save_quilt
 
 
 @cli.command("mesh")
@@ -195,7 +195,7 @@ def mesh(
     click.echo(f"  wrote {out}  ({elapsed:.0f}s, {elapsed / spec.n_views:.1f}s/view)")
 
     if do_cast:
-        from quiltwright.lfd import cast_quilt
+        from quiltwright.bridge import cast_quilt
 
         cast_quilt(out, spec)
         click.echo("  cast to Looking Glass Bridge")

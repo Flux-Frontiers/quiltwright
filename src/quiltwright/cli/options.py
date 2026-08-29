@@ -15,7 +15,7 @@ import re
 
 import click
 
-from quiltwright.lfd import QUILT_PRESETS
+from quiltwright.quilt import QUILT_PRESETS
 
 #: Looking Glass filename convention: ``stem_qs<cols>x<rows>a<aspect>.ext``
 #: (see :meth:`~quiltwright.lfd.QuiltSpec.filename`).  Recovers the tiling
