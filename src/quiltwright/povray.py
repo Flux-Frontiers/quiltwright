@@ -487,6 +487,209 @@ def format_depth_budget(
 
 
 # ---------------------------------------------------------------------------
+# Depth probing
+# ---------------------------------------------------------------------------
+
+#: Colour of the plane-sweep marker, chosen to be absent from real scenes.
+PROBE_MARKER = (1.0, 0.0, 1.0)
+
+
+def _probe_wrapper(scene_path: Path, camera: PovCamera, aspect: float, distance: float) -> str:
+    """Scene, camera, and an opaque marker plane *distance* units out.
+
+    The plane is perpendicular to the view axis, so everything beyond it is
+    hidden and the frame's remaining non-marker pixels are exactly the
+    geometry in front of it.  ``ambient 1 diffuse 0`` keeps it self-lit --
+    the scene's own lights must not tint the thing being measured -- and
+    ``no_shadow`` keeps it from darkening what it is meant to reveal.
+
+    :param scene_path: Absolute path to the scene, pulled in by ``#include``.
+    :param camera: Camera to probe through.
+    :param aspect: Frame aspect ratio (width / height).
+    :param distance: Distance from the eye along the view axis.
+    :return: The wrapper scene source.
+    """
+    forward = camera.basis()[0]
+    # Plane through eye + forward*distance, normal forward:  n.p = n.eye + d.
+    offset = float(np.dot(forward, np.asarray(camera.location, dtype="d")) + distance)
+    normal = ", ".join(f"{c:.17g}" for c in forward)
+    return (
+        f'#include "{scene_path}"\n'
+        + camera_block(camera, 0.0, aspect)
+        + f"plane {{ <{normal}>, {offset:.17g}\n"
+        f"  pigment {{ color rgb <{PROBE_MARKER[0]}, {PROBE_MARKER[1]}, {PROBE_MARKER[2]}> }}\n"
+        "  finish { ambient 1 diffuse 0 } no_shadow }\n"
+    )
+
+
+def depth_sweep(
+    scene: str | Path,
+    camera: PovCamera,
+    distances: Iterable[float],
+    *,
+    include_paths: Sequence[str | Path] = (),
+    width: int = 320,
+    height: int = 180,
+    quality: int = 11,
+    threads: int | None = None,
+    binary: str | None = None,
+    extra_args: Sequence[str] = (),
+    progress: bool = True,
+) -> list[tuple[float, float]]:
+    """Trace a scene's cumulative depth histogram by plane sweep.
+
+    The depth budget wants two numbers from a scene -- where its nearest
+    content sits and where its farthest *structured* content ends -- and
+    guessing them costs a render to find out.  This measures them: an opaque,
+    self-lit plane slides along the view axis at distance ``d``, hiding
+    everything beyond it, so the fraction of the frame that is *not* the
+    marker colour is the fraction occupied by geometry nearer than ``d``::
+
+        d= 31   0.2%   <- nearest geometry appears
+        d= 47  35.1%
+        d= 96  93.9%   <- 95% of everything occludable
+        d=inf  93.9%   <- the remaining 6.1% is sky, at effective infinity
+
+    Three cautions, each learned the hard way:
+
+    *Render at the quality you will ship.*  POV-Ray disables transparency and
+    refraction below ``+Q8``, so a cheap probe at ``+Q3`` reports a room with
+    no windows and no sky at all.
+
+    *Measure through the camera you will render with.*  A hologram's eye is
+    usually not the scene's own; see :meth:`PovCamera.aimed`.
+
+    *Sky is not far content.*  A backdrop at infinity never occludes, so it
+    shows up as a residual that never closes.  Leave it out of the near/far
+    balance -- it is low-contrast and can afford the disparity.
+
+    :param scene: Scene to probe.  Not modified.
+    :param camera: Camera to measure through.
+    :param distances: Distances along the view axis to test, in scene units.
+    :param include_paths: Extra ``#include`` directories.  The scene's own
+        directory is always added.
+    :param width: Probe frame width in pixels.  Small is fine -- this is a
+        pixel *count*, not an image anyone looks at.
+    :param height: Probe frame height in pixels.
+    :param quality: POV-Ray ``+Q``.  Keep at 8 or above, or glass reads solid.
+    :param threads: POV-Ray ``+WT``.  ``None`` applies the courtesy cap
+        described in :func:`resolve_work_threads` -- a sweep is hundreds of
+        small frames back to back, and taking every core for the duration is
+        as rude as a quilt doing it.
+    :param binary: POV-Ray executable; defaults to the usual search.
+    :param extra_args: Extra POV-Ray arguments, e.g. ``["+MV3.1"]`` for a
+        pre-2000 scene carrying no ``#version`` pragma of its own.
+    :param progress: Print a one-line probe counter.
+    :return: ``(distance, fraction_in_front)`` pairs, in the order given.
+    :raises FileNotFoundError: If the scene does not exist.
+    :raises RuntimeError: If POV-Ray fails, or the calibration frame is not
+        uniformly the marker colour -- which means geometry is already inside
+        the near plane and every reading would be measured against it.
+    """
+    from PIL import Image
+
+    povray = _find_povray(binary)
+    scene_path = Path(scene).expanduser().resolve()
+    if not scene_path.is_file():
+        raise FileNotFoundError(f"scene not found: {scene_path}")
+    library_paths = [scene_path.parent, *(Path(p).expanduser().resolve() for p in include_paths)]
+    aspect = width / height
+
+    # Same courtesy cap the quilt renderers apply; an explicit +WT wins.
+    if not any(str(a).startswith("+WT") for a in extra_args):
+        capped = resolve_work_threads(threads)
+        if capped is not None:
+            extra_args = [*extra_args, f"+WT{capped}"]
+
+    with tempfile.TemporaryDirectory(prefix="qw_depth_probe_") as tmp:
+        workdir = Path(tmp)
+        wrapper = workdir / "probe.pov"
+        out_png = workdir / "probe.png"
+
+        def frame(distance: float) -> np.ndarray:
+            wrapper.write_text(_probe_wrapper(scene_path, camera, aspect, distance))
+            out_png.unlink(missing_ok=True)
+            _render_view(
+                povray,
+                wrapper,
+                out_png,
+                width,
+                height,
+                library_paths,
+                None,  # no antialiasing: this counts pixels, it does not show them
+                quality,
+                extra_args,
+                workdir,
+            )
+            return np.asarray(Image.open(out_png).convert("RGB")).astype(int)
+
+        calibration = frame(1.0)
+        if calibration.std(axis=(0, 1)).max() > 2:
+            raise RuntimeError(
+                "calibration frame is not uniform: something is in front of the "
+                "probe plane at d=1, so the sweep would measure against it. "
+                "Check the camera position."
+            )
+        marker = calibration.reshape(-1, 3).mean(0)
+
+        rows = []
+        distances = list(distances)
+        for i, d in enumerate(distances):
+            image = frame(float(d))
+            fraction = float((np.abs(image - marker).sum(-1) > 30).mean())
+            rows.append((float(d), fraction))
+            if progress:
+                print(
+                    f"\r  probe {i + 1}/{len(distances)}  d={d:.0f} {fraction * 100:5.1f}%",
+                    end="",
+                    flush=True,
+                )
+        if progress:
+            print()
+    return rows
+
+
+def summarise_depth_sweep(
+    rows: Sequence[tuple[float, float]],
+    *,
+    appear: float = 0.001,
+    structured: float = 0.95,
+) -> dict[str, float]:
+    """Reduce a :func:`depth_sweep` to the numbers the depth budget needs.
+
+    *far* is taken as a share of what the sweep actually accumulated rather
+    than of the whole frame, so a scene with sky in it is not penalised for
+    the part that never occludes.  That share is reported as
+    ``sky_fraction``: content the sweep could never hide, at effective
+    infinity, which belongs outside the near/far balance.
+
+    A backdrop that runs to the horizon needs one step more than this
+    function does.  The room's walls close a plane sweep out, so the curve
+    flattens and this rule lands on real content -- but a sea keeps eating a
+    little more of the frame at every distance and never closes, so
+    *structured* returns the end of the sweep and nothing useful.  There, fit
+    the far tail (which is pure backdrop), subtract that linear creep, and
+    take *structured* of what is left.
+
+    :param rows: Output of :func:`depth_sweep`.
+    :param appear: Frame fraction counting as "geometry has appeared".
+    :param structured: Share of occludable content that defines *far*.
+    :return: ``near``, ``far`` and ``sky_fraction``.
+    :raises ValueError: If *rows* is empty.
+    """
+    if not rows:
+        raise ValueError("no probe rows to summarise")
+    d = np.array([r[0] for r in rows], dtype="d")
+    f = np.array([r[1] for r in rows], dtype="d")
+    saturation = float(f.max())
+    return {
+        "near": float(d[int(np.argmax(f > appear))]),
+        "far": float(d[int(np.argmax(f >= structured * saturation))]),
+        "sky_fraction": 1.0 - saturation,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Rendering
 # ---------------------------------------------------------------------------
 

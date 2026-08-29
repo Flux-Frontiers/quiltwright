@@ -24,6 +24,7 @@ from quiltwright.povgen import (
     _frame_from_direction,
     coalesce_mesh2,
     fov_horizontal_to_vertical,
+    fov_vertical_to_horizontal,
     ground_slab,
     instances_by_color,
     instances_from_frames,
@@ -424,6 +425,16 @@ def test_fov_horizontal_to_vertical_is_identity_at_square():
 def test_fov_horizontal_to_vertical_matches_the_trig():
     expected = math.degrees(2 * math.atan(math.tan(math.radians(30.0)) / 1.5))
     assert fov_horizontal_to_vertical(60.0, 1.5) == pytest.approx(expected)
+
+
+def test_fov_vertical_to_horizontal_is_wider_on_wide_images():
+    assert fov_vertical_to_horizontal(44.0, 16 / 9) > 44.0
+
+
+def test_fov_vertical_to_horizontal_inverts_its_twin():
+    assert fov_horizontal_to_vertical(
+        fov_vertical_to_horizontal(44.0, 16 / 9), 16 / 9
+    ) == pytest.approx(44.0)
 
 
 # ---------------------------------------------------------------------------

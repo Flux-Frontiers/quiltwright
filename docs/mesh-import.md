@@ -1,6 +1,6 @@
 # Any 3D object file → a hologram
 
-**Script**: `scripts/render_mesh_hologram.py`
+**Command**: `quiltwright mesh`
 **Module**: `quiltwright.cycles` (`mesh_bounds`, `frame_camera`, `autoframe_camera`)
 
 > *If you have a mesh file, you have a hologram — the only missing piece is
@@ -24,7 +24,7 @@ frames them, so an arbitrary object file becomes a quilt in one command.
 ## The one command
 
 ```bash
-python scripts/render_mesh_hologram.py model.glb
+quiltwright mesh model.glb
 ```
 
 That probes the mesh's bounds, places a front-on camera at the distance that
@@ -32,13 +32,13 @@ fills the view, path-traces the sweep, and writes a quilt. Common variations:
 
 ```bash
 # Fast single-view still while you dial in lighting and view
-python scripts/render_mesh_hologram.py scan.fbx --still --lighting sky
+quiltwright mesh scan.fbx --still --lighting sky
 
 # A finished portrait quilt cast straight to the display
-python scripts/render_mesh_hologram.py asset.obj --device 27-portrait --samples 256 --cast
+quiltwright mesh asset.obj --device 27-portrait --samples 256 --cast
 
 # A three-quarter view instead of dead-on, wider lens
-python scripts/render_mesh_hologram.py statue.ply --view-direction 0.5 -1 0.3 --fov 20
+quiltwright mesh statue.ply --view-direction 0.5 -1 0.3 --fov 20
 ```
 
 | Flag | What it does |
@@ -49,7 +49,9 @@ python scripts/render_mesh_hologram.py statue.ply --view-direction 0.5 -1 0.3 --
 | `--view-direction` | Direction from the object centre to the eye (default `0 -1 0`, front-on) |
 | `--margin` | Framing headroom beyond a tight fit (`1.2` default; `1.0` is exactly tight) |
 | `--samples` | Cycles samples per pixel (128 default; 64 previews, 256 for finals) |
-| `--still` | One centre view instead of a full quilt — the fast way to check framing |
+| `--compute` | Cycles compute device: `auto` (default, GPU first), `gpu`, `cpu` |
+| `--view-transform` | OCIO view transform (`Standard` default; see [cycles.md](cycles.md)) |
+| `--still` | One centre view as a flat image at the device's aspect, instead of a full quilt — the fast way to check framing |
 | `--preview` | Quarter-size quilt, for iterating |
 | `--cast` | Send the finished quilt to Looking Glass Bridge |
 

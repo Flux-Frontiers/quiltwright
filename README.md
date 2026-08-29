@@ -327,6 +327,8 @@ quiltwright cast renders/quilts/bell-jar-holo_qs8x6a1.77778.png
 quiltwright bridge status       # is Bridge actually able to draw?
 quiltwright weave ... && quiltwright wallpaper ...   # the no-Bridge path
 quiltwright cartoon 2omf.cif.gz ompf_cartoon.inc     # molecular ribbon, via PyMOL
+quiltwright mesh model.glb                           # any mesh file, camera auto-framed
+quiltwright probe scene.pov --eye 0 35 -95 --aim 0 18 0   # measure its depth range
 
 python scripts/make_exhibit.py 7AHL --quilt          # fetch -> convert -> render
 
@@ -380,9 +382,8 @@ through in [docs/povray.md](docs/povray.md):
   Measure the corridor --
   [sweep clearance](docs/povray.md#3-sweep-clearance--the-constraint-peculiar-to-interiors).
 - **The depths themselves are measured, not guessed** --
-  [scripts/measure_depth_range.py](scripts/measure_depth_range.py) sweeps an
-  opaque plane along the view axis and reports where content actually begins
-  and ends.
+  `quiltwright probe` sweeps an opaque plane along the view axis and reports
+  where content actually begins and ends.
 
 ---
 

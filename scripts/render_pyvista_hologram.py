@@ -12,7 +12,7 @@ See ``docs/pyvista-datasets.md`` for how these subjects were chosen and
 where to find more like them.
 
 Each subject picks a view *direction* (a generic 3/4 orbit, or an explicit
-camera position where one is documented, as for Damavand); ``_frame_and_focus()``
+camera position where one is documented, as for Damavand); ``frame_and_focus()``
 then does what the POV-Ray scripts do by hand -- fit tightly to the scene and
 place the focal plane at the harmonic mean of the near/far depths -- except
 measured from exact PyVista geometry (a bounding sphere) rather than a
@@ -33,22 +33,18 @@ Author: Eric G. Suchanek, PhD
 from __future__ import annotations
 
 import argparse
-import math
 import sys
 import time
 import urllib.request
 from collections.abc import Callable
 from dataclasses import dataclass, replace
-from itertools import product
 from pathlib import Path
-
-import numpy as np
 
 from quiltwright.cache import dataset_cache_dir
 from quiltwright.lfd import (
     QUILT_PRESETS,
     QuiltSpec,
-    focal_distance_for_range,
+    frame_and_focus,
     render_quilt,
     save_quilt,
     view_disparity,
@@ -136,81 +132,6 @@ RENDER_FOV = 14.0
 #: (up to 50 deg) routinely overruns the ~4-5px ceiling. Same cap and
 #: rationale as render_still_life_hologram.py's STANDARD_VIEW_CONE.
 STANDARD_VIEW_CONE = 35.0
-
-
-def _frame_and_focus(
-    p: pv.Plotter, *, fov: float = RENDER_FOV, margin: float = 1.15
-) -> tuple[float, float, float]:
-    """Tightly frame the scene and place the focal plane by measured depth.
-
-    ``reset_camera()`` fits the *un-tilted* bounds; once ``_orbit_camera()``
-    (or an explicit ``camera_position``) tilts the view, that framing is too
-    loose and the subject reads as small with a lot of empty margin -- ask
-    for a mountain hologram and get a speck. This re-fits from scratch at the
-    final view direction: the 8 bounding-box corners are projected onto the
-    camera's own right/up/forward axes (accounting for foreshortening -- a
-    flat, elongated DEM viewed obliquely needs far less distance than its
-    bounding *sphere* would suggest), which gives the tightest distance that
-    still keeps every corner in frame at the target FOV and window aspect.
-    The focal plane then goes at the harmonic mean of the resulting near/far
-    depths -- the same balance ``focal_distance_for_range()`` gives the
-    POV-Ray scripts, just measured from exact PyVista geometry instead of a
-    rendered plane-sweep probe.
-
-    :param p: Plotter with data added, ``window_size`` already set to the
-        final render resolution (aspect matters here), and the camera
-        already pointed in the desired direction (position/focal_point set
-        by the caller; only the *direction* survives -- position, view angle
-        and focal distance are all overwritten here).
-    :param fov: Vertical field of view to lock the camera to, in degrees.
-        Must match what the render actually uses (``render_quilt``'s own
-        default) or the printed depth budget describes a different camera
-        than the one that renders.
-    :param margin: Headroom beyond the tight corner-projected fit, as a
-        fraction (1.15 = 15% clearance), so the subject doesn't touch the
-        frame edges.
-    :return: ``(near, far, focal_distance)`` in scene units, all measured
-        from the final camera position -- the numbers `view_disparity()`
-        expects.
-    """
-    camera = p.camera
-    position = np.asarray(camera.position, dtype="d")
-    focal = np.asarray(camera.focal_point, dtype="d")
-    up = np.asarray(camera.up, dtype="d")
-    forward = focal - position
-    forward /= np.linalg.norm(forward)
-    right = np.cross(forward, up)
-    right /= np.linalg.norm(right)
-    true_up = np.cross(right, forward)
-
-    bounds = p.bounds
-    lo = np.array([bounds.x_min, bounds.y_min, bounds.z_min])
-    hi = np.array([bounds.x_max, bounds.y_max, bounds.z_max])
-    center = (lo + hi) / 2.0
-    corners = np.array(list(product(*zip(lo, hi, strict=True))))
-    offsets = corners - center
-    f = offsets @ forward  # signed depth of each corner relative to center
-    r = offsets @ right
-    u = offsets @ true_up
-
-    win_w, win_h = p.window_size
-    half_v = math.tan(math.radians(fov) / 2.0)
-    half_h = half_v * (win_w / win_h)
-
-    # Smallest distance-from-center D such that every corner's angular
-    # extent |u_i|/(D+f_i) (resp. |r_i|/half_h) still fits inside the FOV.
-    d_needed = np.concatenate([np.abs(u) / half_v - f, np.abs(r) / half_h - f])
-    distance = margin * max(float(d_needed.max()), 1.0)
-
-    camera.position = tuple(center - forward * distance)
-    camera.view_angle = fov
-    depths = distance + f  # each corner's actual distance from the new camera
-    near = float(depths.min())
-    far = float(depths.max())
-
-    focal_distance = focal_distance_for_range(near, far)
-    camera.focal_point = tuple(np.asarray(camera.position) + forward * focal_distance)
-    return near, far, focal_distance
 
 
 def _load_st_helens(p: pv.Plotter) -> None:
@@ -377,7 +298,7 @@ def main() -> int:
     p = pv.Plotter(off_screen=True)
     p.window_size = (still_w, still_h)
     subject.load(p)
-    near, far, focal_distance = _frame_and_focus(p)
+    near, far, focal_distance = frame_and_focus(p, fov=RENDER_FOV)
     print(
         f"  depth budget     near {near:.0f}, focal {focal_distance:.0f}, far {far:.0f} (scene units)"
     )
@@ -398,7 +319,7 @@ def main() -> int:
         return 0
 
     started = time.time()
-    # fov=None: _frame_and_focus() already locked the exact FOV/distance/focal
+    # fov=None: frame_and_focus() already locked the exact FOV/distance/focal
     # plane render_quilt would otherwise try to recompute from scratch.
     quilt = render_quilt(p, spec, fov=None)
     p.close()

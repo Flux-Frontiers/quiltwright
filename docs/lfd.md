@@ -412,6 +412,31 @@ report. Neither touches the plotter.
 For POV-Ray scenes the equivalent is `format_depth_budget()`, which takes a
 `PovCamera` directly.
 
+### Framing a tilted view
+
+`reset_camera()` fits the *un-tilted* bounds, so as soon as the view is
+tilted -- an orbit, or an explicit `camera_position` -- that framing is too
+loose and the subject reads as small with a lot of empty margin. Ask for a
+mountain hologram and get a speck. `frame_and_focus()` re-fits at the final
+view direction and focuses in one call:
+
+```python
+from quiltwright import frame_and_focus, render_quilt
+
+near, far, focal = frame_and_focus(plotter, fov=14.0)   # camera now locked
+quilt = render_quilt(plotter, spec, fov=None)           # do not reframe
+```
+
+It projects the eight bounding-box corners onto the camera's own
+right/up/forward axes, which accounts for foreshortening -- a flat,
+elongated terrain viewed obliquely needs far less distance than its bounding
+*sphere* would suggest -- and puts the focal plane at the harmonic mean of
+the resulting depths. Unlike `scene_depths()` it **modifies the camera**:
+position, view angle and focal point are all overwritten, so pass
+`fov=None` to `render_quilt()` afterwards or it will frame the scene a
+second time from scratch. The Cycles counterpart, for a mesh rather than a
+plotter, is `frame_camera()`.
+
 Perceived depth scales with how much of each view the subject fills. A
 volume occupying a third of the frame delivers roughly a third of the
 parallax the panel can show, and wastes most of the per-view resolution --

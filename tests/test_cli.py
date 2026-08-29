@@ -36,6 +36,7 @@ from PIL import Image
 
 from quiltwright.cli import cmd_bridge, cmd_wallpaper
 from quiltwright.cli.main import cli
+from quiltwright.lfd import QUILT_PRESETS
 
 # ---------------------------------------------------------------------------
 # Doubles
@@ -606,3 +607,268 @@ class TestCartoon:
         assert "Vitrine_Mount(_2omf, _2omf_enclosing_radius)" in result.output
         assert "75792 faces" in result.output
         assert "46.970" in result.output
+
+
+# ---------------------------------------------------------------------------
+# quiltwright mesh
+# ---------------------------------------------------------------------------
+
+
+class TestMesh:
+    """``quiltwright mesh`` -- the auto-framed Cycles render.
+
+    Blender is never started here.  What this layer owes the user is that the
+    two decisions the command makes on its own -- the framing camera and the
+    quilt geometry -- follow from what was asked for, and that a missing
+    Blender reads as advice rather than a traceback.
+    """
+
+    @pytest.fixture
+    def stub(self, monkeypatch, tmp_path):
+        """Stand in for Blender: fixed bounds in, recorded call out."""
+        import numpy as np
+
+        from quiltwright.cli import cmd_mesh as mod
+
+        seen: dict = {}
+
+        def fake_bounds(source, **kwargs):
+            seen["source"] = source
+            return np.array([-1.0, -2.0, -3.0]), np.array([1.0, 2.0, 3.0])
+
+        def fake_render(source, spec, camera, **kwargs):
+            seen["spec"] = spec
+            seen["camera"] = camera
+            seen.update(kwargs)
+            return np.zeros((4, 4, 3), dtype="uint8")
+
+        def fake_save(quilt, stem, spec):
+            seen["stem"] = str(stem)
+            return tmp_path / spec.filename(Path(stem).name)
+
+        monkeypatch.setattr(mod, "mesh_bounds", fake_bounds)
+        monkeypatch.setattr(mod, "render_cycles_quilt", fake_render)
+        monkeypatch.setattr(mod, "save_quilt", fake_save)
+        return seen
+
+    def _source(self, tmp_path, name: str = "model.glb") -> Path:
+        source = tmp_path / name
+        source.write_text("")
+        return source
+
+    def test_a_blend_is_refused_with_the_reason(self, runner, tmp_path):
+        """A .blend carries its own camera, so there is nothing to frame --
+        and the message has to say what to do instead, not just "no".
+        """
+        result = runner.invoke(cli, ["mesh", str(self._source(tmp_path, "scene.blend"))])
+        assert result.exit_code != 0
+        assert "carries its own camera" in result.output
+        assert "render_cycles_quilt" in result.output
+
+    def test_the_camera_is_framed_on_the_measured_bounds(self, runner, tmp_path, stub):
+        """The whole point of the command: the eye is placed from what the
+        mesh measured, aimed at its centre, which is the focal plane.
+        """
+        result = runner.invoke(cli, ["mesh", str(self._source(tmp_path))])
+        assert result.exit_code == 0, result.output
+        camera = stub["camera"]
+        assert camera.look_at == (0.0, 0.0, 0.0)  # bounds centre
+        assert camera.location[1] < 0  # default view direction, 0 -1 0
+        assert camera.fov == 14.0
+
+    def test_view_direction_survives_negative_components(self, runner, tmp_path, stub):
+        """``--view-direction 0.5 -1 0.3`` is the documented three-quarter
+        view, and a bare ``-1`` is exactly what an option parser eats.
+        """
+        result = runner.invoke(
+            cli, ["mesh", str(self._source(tmp_path)), "--view-direction", "0.5", "-1", "0.3"]
+        )
+        assert result.exit_code == 0, result.output
+        x, y, z = stub["camera"].location
+        assert x > 0 and y < 0 and z > 0
+
+    def test_still_is_one_view_at_the_devices_aspect(self, runner, tmp_path, stub):
+        """The literal this replaced was 880x1100 whatever --device said, so
+        a landscape panel's still came out portrait.
+        """
+        result = runner.invoke(
+            cli, ["mesh", str(self._source(tmp_path)), "--device", "16-landscape", "--still"]
+        )
+        assert result.exit_code == 0, result.output
+        spec = stub["spec"]
+        assert spec.n_views == 1
+        assert spec.quilt_width > spec.quilt_height
+        assert "gallery/model" in stub["stem"]
+
+    def test_preview_quarters_the_quilt_and_says_so(self, runner, tmp_path, stub):
+        result = runner.invoke(cli, ["mesh", str(self._source(tmp_path)), "--preview"])
+        assert result.exit_code == 0, result.output
+        assert stub["spec"].quilt_width == QUILT_PRESETS["portrait"].scaled(0.25).quilt_width
+        assert "-preview" in stub["stem"]
+
+    def test_render_options_are_passed_through_unaltered(self, runner, tmp_path, stub):
+        result = runner.invoke(
+            cli,
+            [
+                "mesh",
+                str(self._source(tmp_path)),
+                "--samples",
+                "37",
+                "--compute",
+                "cpu",
+                "--view-transform",
+                "AgX",
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        assert stub["samples"] == 37
+        assert stub["device"] == "cpu"
+        assert stub["view_transform"] == "AgX"
+
+    def test_a_rig_name_stays_a_name_and_a_path_becomes_a_path(self, runner, tmp_path, stub):
+        """``--lighting`` is overloaded: three rig names, anything else an
+        environment map.  Handing Cycles the string "sky" as a filename would
+        fail deep inside Blender.
+        """
+        runner.invoke(cli, ["mesh", str(self._source(tmp_path)), "--lighting", "sky"])
+        assert stub["lighting"] == "sky"
+
+        hdri = tmp_path / "sunset.hdr"
+        hdri.write_text("")
+        runner.invoke(cli, ["mesh", str(self._source(tmp_path)), "--lighting", str(hdri)])
+        assert stub["lighting"] == hdri
+
+    def test_a_missing_blender_reads_as_advice(self, runner, tmp_path, monkeypatch):
+        """The failure every first run risks; a traceback would bury the fix."""
+        from quiltwright.cli import cmd_mesh as mod
+
+        def fake_bounds(source, **kwargs):
+            raise RuntimeError("No blender binary on PATH: brew install --cask blender")
+
+        monkeypatch.setattr(mod, "mesh_bounds", fake_bounds)
+        result = runner.invoke(cli, ["mesh", str(self._source(tmp_path))])
+        assert result.exit_code != 0
+        assert "brew install --cask blender" in result.output
+        assert "Traceback" not in result.output
+
+
+# ---------------------------------------------------------------------------
+# quiltwright probe
+# ---------------------------------------------------------------------------
+
+
+class TestProbe:
+    """``quiltwright probe`` -- the plane sweep, from the shell.
+
+    POV-Ray is never started here.  What this layer owes the user is the grid
+    it sweeps, the camera it sweeps through, and -- because the number is
+    quietly wrong on any scene with a backdrop that runs to the horizon --
+    saying so when the sweep never closed.
+    """
+
+    @pytest.fixture
+    def stub(self, monkeypatch):
+        """Stand in for POV-Ray: a curve that saturates, and a recorded call."""
+        seen: dict = {}
+
+        def fake_sweep(scene, camera, distances, **kwargs):
+            seen["scene"] = scene
+            seen["camera"] = camera
+            seen["distances"] = list(distances)
+            seen.update(kwargs)
+            return seen.get("curve", [(10.0, 0.0), (20.0, 0.5), (30.0, 0.8), (5000.0, 0.8)])
+
+        monkeypatch.setattr("quiltwright.povray.depth_sweep", fake_sweep)
+        return seen
+
+    def _scene(self, tmp_path) -> Path:
+        scene = tmp_path / "thing.pov"
+        scene.write_text("// a scene\n")
+        return scene
+
+    def _args(self, scene, *extra):
+        return ["probe", str(scene), "--eye", "0", "35", "-95", "--aim", "0", "18", "0", *extra]
+
+    def test_it_sweeps_through_the_camera_it_was_given(self, runner, tmp_path, stub):
+        result = runner.invoke(cli, self._args(self._scene(tmp_path), "--fov", "55.32"))
+        assert result.exit_code == 0, result.output
+        assert stub["camera"].location == (0.0, 35.0, -95.0)
+        assert stub["camera"].look_at == (0.0, 18.0, 0.0)
+        assert stub["camera"].fov == 55.32
+
+    def test_the_grid_ends_at_infinity(self, runner, tmp_path, stub):
+        """The last plane is what separates sky from far content; without it
+        the residual that never occludes is invisible.
+        """
+        result = runner.invoke(cli, self._args(self._scene(tmp_path), "--probes", "10"))
+        assert result.exit_code == 0, result.output
+        grid = stub["distances"]
+        assert len(grid) == 11
+        assert grid[-1] == 5000.0
+        assert grid[-2] == 400.0  # --max-distance default
+
+    def test_min_distance_moves_the_near_end(self, runner, tmp_path, stub):
+        result = runner.invoke(
+            cli,
+            self._args(
+                self._scene(tmp_path),
+                "--min-distance",
+                "700",
+                "--max-distance",
+                "1600",
+                "--probes",
+                "5",
+            ),
+        )
+        assert result.exit_code == 0, result.output
+        assert stub["distances"][0] == 700.0
+        assert stub["distances"][-2] == 1600.0
+
+    def test_an_inverted_range_is_refused(self, runner, tmp_path, stub):
+        result = runner.invoke(
+            cli, self._args(self._scene(tmp_path), "--min-distance", "900", "--max-distance", "400")
+        )
+        assert result.exit_code != 0
+        assert "must be less than" in result.output
+
+    def test_it_reports_the_measured_depths(self, runner, tmp_path, stub):
+        result = runner.invoke(cli, self._args(self._scene(tmp_path)))
+        assert "near = 20.0" in result.output
+        assert "far = 30.0" in result.output
+
+    def test_a_sweep_that_never_closed_says_so(self, runner, tmp_path, stub):
+        """A sea keeps taking a little more of the frame at every distance, so
+        the 95% rule returns the end of the sweep -- a number that reads like
+        a measurement and is not one.
+        """
+        stub["curve"] = [(100.0, 0.1), (200.0, 0.2), (300.0, 0.3), (400.0, 0.4), (5000.0, 0.4)]
+        result = runner.invoke(cli, self._args(self._scene(tmp_path)))
+        assert result.exit_code == 0, result.output
+        assert "never closed" in result.output
+        assert "knee" in result.output
+
+    def test_a_closed_sweep_stays_quiet(self, runner, tmp_path, stub):
+        result = runner.invoke(cli, self._args(self._scene(tmp_path)))
+        assert "never closed" not in result.output
+
+    def test_a_low_quality_probe_is_warned_about(self, runner, tmp_path, stub):
+        """Below +Q8 POV-Ray disables transparency, so glass reads solid and
+        the sweep closes early on a scene that has windows.
+        """
+        result = runner.invoke(cli, self._args(self._scene(tmp_path), "--quality", "3"))
+        assert result.exit_code == 0, result.output
+        assert "disables transparency" in result.output
+
+    def test_rows_prints_the_curve_to_fit(self, runner, tmp_path, stub):
+        result = runner.invoke(cli, self._args(self._scene(tmp_path), "--rows"))
+        assert "20.00   50.00%" in result.output
+
+    def test_povray_failures_read_as_advice(self, runner, tmp_path, monkeypatch):
+        def fake_sweep(*args, **kwargs):
+            raise RuntimeError("calibration frame is not uniform")
+
+        monkeypatch.setattr("quiltwright.povray.depth_sweep", fake_sweep)
+        result = runner.invoke(cli, self._args(self._scene(tmp_path)))
+        assert result.exit_code != 0
+        assert "calibration frame is not uniform" in result.output
+        assert "Traceback" not in result.output

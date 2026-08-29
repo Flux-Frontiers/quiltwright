@@ -23,6 +23,7 @@ from quiltwright.lfd import (
     depth_report,
     find_ffmpeg,
     focal_distance_for_range,
+    frame_and_focus,
     pause_quilt,
     resume_quilt,
     save_and_cast_quilt,
@@ -206,6 +207,28 @@ class TestQuiltSpec:
         with pytest.raises(ValueError, match="too small"):
             portrait.scaled(0.0001)
 
+    def test_still_is_a_single_view(self, portrait):
+        still = portrait.still()
+        assert (still.columns, still.rows) == (1, 1)
+        assert still.n_views == 1
+        assert view_offsets(still, 10.0).tolist() == [0.0]
+
+    def test_still_follows_the_devices_aspect(self):
+        """The bug this replaced: a fixed 880x1100 framed a landscape
+        panel's still in portrait, whatever --device asked for."""
+        for name, spec in QUILT_PRESETS.items():
+            still = spec.still()
+            assert still.quilt_width / still.quilt_height == pytest.approx(spec.aspect, rel=1e-3), (
+                name
+            )
+
+    def test_still_takes_a_height(self, portrait):
+        assert portrait.still(400).quilt_height == 400
+
+    def test_still_rejects_a_nonpositive_height(self, portrait):
+        with pytest.raises(ValueError, match="must be positive"):
+            portrait.still(0)
+
 
 # ---------------------------------------------------------------------------
 # Gen3 16" Landscape -- the device these renders target
@@ -336,7 +359,7 @@ class TestSixteenLandscape:
         """The published museum figures, on this device's real 720 px tiles.
 
         Anchors the whole chain -- preset, cone, focal plane, tile height -- to
-        the depth range measured by scripts/measure_depth_range.py: nearest
+        the depth range measured by `quiltwright probe`: nearest
         geometry at 31 units, 95% of occludable content within 96, and the
         remaining ~6% of frame sky left out of the balance on purpose
         (docs/povray.md section 4).
@@ -951,9 +974,10 @@ class _StubPlotter:
     copies, and lets them run without a GL stack.
     """
 
-    def __init__(self, camera, bounds):
+    def __init__(self, camera, bounds, window_size=(800, 800)):
         self.camera = camera
         self.bounds = bounds
+        self.window_size = window_size
 
 
 def _stub(view_angle=30.0, distance=10.0):
@@ -1024,6 +1048,125 @@ class TestSceneDepths:
         scene_depths(plotter, fov=14.0, zoom=1.5)
 
         assert (plotter.camera.position, plotter.camera.view_angle) == before
+
+
+class TestFrameAndFocus:
+    """The tight fit, which is what stops a subject reading as a speck."""
+
+    def _tilted(self, bounds=(-1.0, 1.0, -1.0, 1.0, -1.0, 1.0), window=(800, 800)):
+        """A camera on an oblique axis -- the case reset_camera() frames loosely."""
+        camera = _StubCamera(
+            position=(-6.0, -8.0, 5.0),
+            focal_point=(0.0, 0.0, 0.0),
+            up=(0.0, 0.0, 1.0),
+            view_angle=30.0,
+        )
+        return _StubPlotter(camera, bounds, window_size=window)
+
+    def _direction(self, plotter):
+        d = np.asarray(plotter.camera.focal_point) - np.asarray(plotter.camera.position)
+        return d / np.linalg.norm(d)
+
+    def test_the_view_direction_survives(self):
+        """Only the direction is the caller's; everything else is recomputed."""
+        plotter = self._tilted()
+        before = self._direction(plotter)
+        frame_and_focus(plotter, fov=14.0)
+        assert np.allclose(self._direction(plotter), before)
+
+    def test_the_camera_is_locked_to_the_requested_fov(self):
+        """A budget computed at a FOV the render does not use describes a
+        picture nobody is going to make.
+        """
+        plotter = self._tilted()
+        frame_and_focus(plotter, fov=14.0)
+        assert plotter.camera.view_angle == 14.0
+
+    def test_every_corner_still_fits_the_frame(self):
+        plotter = self._tilted()
+        frame_and_focus(plotter, fov=14.0, margin=1.0)
+
+        position = np.asarray(plotter.camera.position)
+        forward = self._direction(plotter)
+        right = np.cross(forward, (0.0, 0.0, 1.0))
+        right /= np.linalg.norm(right)
+        up = np.cross(right, forward)
+        half = math.tan(math.radians(7.0))
+        xmin, xmax, ymin, ymax, zmin, zmax = plotter.bounds
+        for x in (xmin, xmax):
+            for y in (ymin, ymax):
+                for z in (zmin, zmax):
+                    offset = np.array([x, y, z]) - position
+                    depth = offset @ forward
+                    assert abs(offset @ up) <= half * depth + 1e-9
+                    assert abs(offset @ right) <= half * depth * 1.0 + 1e-9
+
+    def test_the_fit_is_tight_to_within_the_margin(self):
+        """Tight means tight: at margin 1.0 some corner touches the frame."""
+        plotter = self._tilted()
+        frame_and_focus(plotter, fov=14.0, margin=1.0)
+
+        position = np.asarray(plotter.camera.position)
+        forward = self._direction(plotter)
+        right = np.cross(forward, (0.0, 0.0, 1.0))
+        right /= np.linalg.norm(right)
+        up = np.cross(right, forward)
+        half = math.tan(math.radians(7.0))
+        xmin, xmax, ymin, ymax, zmin, zmax = plotter.bounds
+        worst = max(
+            max(abs(o @ up), abs(o @ right)) / (half * (o @ forward))
+            for o in (
+                np.array([x, y, z]) - position
+                for x in (xmin, xmax)
+                for y in (ymin, ymax)
+                for z in (zmin, zmax)
+            )
+        )
+        assert worst == pytest.approx(1.0, abs=0.01)
+
+    def test_margin_backs_the_camera_off(self):
+        tight, loose = self._tilted(), self._tilted()
+        frame_and_focus(tight, fov=14.0, margin=1.0)
+        frame_and_focus(loose, fov=14.0, margin=1.15)
+
+        centre = np.zeros(3)  # the stub's bounds are centred on the origin
+        assert np.linalg.norm(np.asarray(loose.camera.position) - centre) == pytest.approx(
+            np.linalg.norm(np.asarray(tight.camera.position) - centre) * 1.15
+        )
+
+    def test_the_focal_plane_is_the_harmonic_mean_of_the_depths(self):
+        """Same balance the POV-Ray path gets from focal_distance_for_range."""
+        plotter = self._tilted()
+        near, far, focal = frame_and_focus(plotter, fov=14.0)
+
+        assert focal == pytest.approx(focal_distance_for_range(near, far))
+        assert near < focal < far
+        moved = np.asarray(plotter.camera.focal_point) - np.asarray(plotter.camera.position)
+        assert np.linalg.norm(moved) == pytest.approx(focal)
+
+    def test_a_flat_subject_is_framed_closer_than_its_bounding_sphere(self):
+        """The reason corners are projected rather than a radius used: an
+        elongated subject normalised by its enclosing sphere reads small.
+        """
+        plate = self._tilted(bounds=(-10.0, 10.0, -10.0, 10.0, -0.1, 0.1))
+        _near, _far, _focal = frame_and_focus(plate, fov=14.0, margin=1.0)
+
+        distance = np.linalg.norm(np.asarray(plate.camera.position))
+        radius = math.sqrt(10.0**2 + 10.0**2 + 0.1**2)
+        sphere_fit = radius / math.sin(math.radians(7.0))
+        assert distance < sphere_fit
+
+    def test_a_wide_window_frames_from_the_vertical(self):
+        """The FOV is vertical, so a wider window buys horizontal room and
+        cannot change the distance a tall subject needs.
+        """
+        square = self._tilted(window=(800, 800))
+        wide = self._tilted(window=(1600, 800))
+        frame_and_focus(square, fov=14.0)
+        frame_and_focus(wide, fov=14.0)
+        assert np.linalg.norm(np.asarray(wide.camera.position)) <= np.linalg.norm(
+            np.asarray(square.camera.position)
+        )
 
 
 class TestDepthReport:

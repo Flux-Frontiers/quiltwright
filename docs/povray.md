@@ -223,7 +223,7 @@ It is near-ideal light-field content: a foreground pedestal, mid-depth framed
 art, and an arched window onto terrain and sky at infinity.
 
 **Measured scene properties.** The depth range comes from
-[`scripts/measure_depth_range.py`](../scripts/measure_depth_range.py), which
+`quiltwright probe`, which
 slides an opaque plane along the view axis and scores how much of the frame
 stays in front of it -- a cumulative depth histogram of the shot. Run it
 through the camera you will render with, at the quality you will ship: POV-Ray

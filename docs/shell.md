@@ -114,6 +114,11 @@ quiltwright wallpaper bell-jar-holo_native_LKG-J00332.png
 
 quiltwright cartoon 2omf.cif.gz ompf_cartoon.inc   # a molecular ribbon, via PyMOL
 quiltwright cartoon --check     # is PyMOL reachable, and by which route?
+
+quiltwright mesh model.glb      # any mesh file -> a quilt, camera measured from it
+quiltwright mesh scan.fbx --lighting sky --still
+
+quiltwright probe pov-scenes/bell_jar/bj.pov --eye 0 35 -95 --aim 0 18 0
 ```
 
 For a structure you have not downloaded yet, one command covers the whole
@@ -127,6 +132,21 @@ Structures land in `$PDB` (default `~/pdb`), and nothing already there is
 fetched twice.
 
 ### What each command is for
+
+`probe` is the measurement every POV-Ray depth budget starts from: it slides
+an opaque plane along the view axis and reports where content actually begins
+and ends, which is what `focal_distance_for_range()` wants.  Two cautions come
+with it -- probe through the camera you will *render* with, and at `+Q8` or
+above, since below that POV-Ray disables transparency and a room reports no
+windows at all.  On a scene whose backdrop runs to the horizon the sweep never
+closes and the printed *far* is the end of it; the command says so, and
+`--rows` prints the curve to fit the knee from.
+
+`mesh` is the exception to "downstream": it is a whole render, not a step
+after one.  Hand it any file Blender can import and it measures the object's
+bounds, frames a camera on them and path-traces the sweep -- the only command
+here that needs no scene of ours at all.  It wants a `blender` binary; see
+[docs/mesh-import.md](mesh-import.md).
 
 `cartoon` is the one command that reaches outside the pipeline: it drives
 PyMOL to draw the representations `pypdb2pov` cannot -- ribbons and surfaces --

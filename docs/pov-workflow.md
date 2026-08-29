@@ -181,16 +181,16 @@ gives you a lens 10° too narrow, and every disparity downstream is wrong.
 ## 4. Measure the depth range
 
 Guessing the near and far depths costs a render to discover; measuring them
-costs a few minutes. [`scripts/measure_depth_range.py`](../scripts/measure_depth_range.py)
+costs a few minutes. `quiltwright probe` (and
+[`depth_sweep()`](povray.md), the function under it)
 slides an opaque, self-lit plane along the view axis and scores each frame for
 how much geometry remains in front of it -- a cumulative depth histogram of the
 shot.
 
 ```bash
-python scripts/measure_depth_range.py \
-    --scene pov-scenes/porin/3porin.pov \
+quiltwright probe pov-scenes/porin/3porin.pov \
     --include-path pov-scenes/myinclude \
-    --eye 0,0,-1100 --aim 0,0,0 --fov 53.13 \
+    --eye 0 0 -1100 --aim 0 0 0 --fov 53.13 \
     --min-distance 700 --max-distance 1600 \
     --pov-arg +MV3.1
 ```

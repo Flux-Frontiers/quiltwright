@@ -140,7 +140,7 @@ python scripts/render_museum_hologram.py --preview                  # the interi
 Both default to the 16" landscape panel, matching `render_museum_hologram.py`.
 Their focal planes come from measured depth ranges rather than the scenes' own
 composed aim points -- see the script's docstring for how the sea is kept out of
-the disparity budget, and `scripts/measure_depth_range.py` for the plane sweep
+the disparity budget, and `quiltwright probe` for the plane sweep
 that produces the numbers.
 
 ### Framing
