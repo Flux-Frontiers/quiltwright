@@ -79,6 +79,7 @@ from quiltwright.quilt import (
     sweep_spec,
     view_disparity,
     view_offsets,
+    window_shear,
 )
 
 # Re-exports: fleet and tests import these from lfd.  Names in __all__ are
@@ -104,6 +105,7 @@ __all__ = [
     "scene_depths",
     "stop_quilt",
     "sweep_spec",
+    "camera_frame",
     "view_disparity",
     "view_offsets",
 ]
@@ -252,7 +254,7 @@ def scene_depths(
     """
     _require_pyvista("scene_depths")
     camera = plotter.camera
-    pos, focal, _right, _up, distance = _camera_frame(camera)
+    pos, focal, _right, _up, distance = camera_frame(camera)
     forward = (focal - pos) / distance
 
     # Mirror render_quilt's framing: narrow the FOV, dolly back to preserve
@@ -320,7 +322,7 @@ def depth_report(
         depths.update(extra_depths)
 
     camera = plotter.camera
-    pos, focal, _right, up, distance = _camera_frame(camera)
+    pos, focal, _right, up, distance = camera_frame(camera)
     forward = (focal - pos) / distance
     focal_distance = depths[labels[1]]
     pov_camera = PovCamera(
@@ -332,8 +334,12 @@ def depth_report(
     return format_depth_budget(spec, pov_camera, depths, soft_px=soft_px)
 
 
-def _camera_frame(camera) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, float]:
-    """Decompose a vtkCamera into position, focal point, right/up basis, distance."""
+def camera_frame(camera) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, float]:
+    """Decompose a vtkCamera into position, focal point, right/up basis, distance.
+
+    :param camera: A ``pv.Camera`` / vtkCamera.
+    :return: ``(position, focal_point, right, up, distance)``.
+    """
     pos = np.asarray(camera.position, dtype="d")
     focal = np.asarray(camera.focal_point, dtype="d")
     up = np.asarray(camera.up, dtype="d")
@@ -344,6 +350,9 @@ def _camera_frame(camera) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarra
     right /= np.linalg.norm(right)
     true_up = np.cross(right, forward)
     return pos, focal, right, true_up, distance
+
+
+_camera_frame = camera_frame  # alias: cycles imported the private name until this PR
 
 
 def _apply_off_axis_view(camera, base, offset: float, tile_aspect: float) -> None:
@@ -358,7 +367,7 @@ def _apply_off_axis_view(camera, base, offset: float, tile_aspect: float) -> Non
     exactly -- the standard Looking Glass off-axis recipe.
 
     :param camera: ``pv.Camera`` / vtkCamera to mutate.
-    :param base: Tuple from :func:`_camera_frame` of the *original* camera.
+    :param base: Tuple from :func:`camera_frame` of the *original* camera.
     :param offset: Lateral world-space offset for this view.
     :param tile_aspect: Width/height of the render viewport.
     """
@@ -366,9 +375,7 @@ def _apply_off_axis_view(camera, base, offset: float, tile_aspect: float) -> Non
     camera.position = tuple(pos + right * offset)
     camera.focal_point = tuple(focal + right * offset)
     camera.up = tuple(true_up)
-    half_height = distance * math.tan(math.radians(camera.view_angle) / 2.0)
-    half_width = half_height * tile_aspect
-    camera.SetWindowCenter(-offset / half_width, 0.0)
+    camera.SetWindowCenter(window_shear(offset, distance, camera.view_angle, tile_aspect), 0.0)
 
 
 # ---------------------------------------------------------------------------
@@ -429,7 +436,7 @@ def render_quilt(
     if fov is not None:
         # Narrow the FOV and dolly back so the focal plane stays the same
         # size in frame: new_distance = half_height / tan(fov/2).
-        pos, focal, _, _, distance = _camera_frame(camera)
+        pos, focal, _, _, distance = camera_frame(camera)
         half_height = distance * math.tan(math.radians(camera.view_angle) / 2.0)
         new_distance = half_height / math.tan(math.radians(fov) / 2.0)
         forward = (focal - pos) / distance
@@ -442,7 +449,7 @@ def render_quilt(
         # display surface.  view_offsets() rescales with the new distance,
         # so the angular look-around is unchanged.
         camera.Dolly(zoom)
-    base = _camera_frame(camera)
+    base = camera_frame(camera)
     distance = base[4]
     offsets = view_offsets(spec, distance)
     render_aspect = render_w / render_h

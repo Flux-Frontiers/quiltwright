@@ -7,18 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-### Changed
-
-- **Quilt geometry and Bridge HTTP no longer live inside the PyVista
-  backend.** `QuiltSpec`, presets, `assemble_quilt`, `save_quilt` and the
-  view-offset arithmetic moved to `quiltwright.quilt` (numpy + pillow).
-  `cast_quilt` and the transport controls moved to `quiltwright.bridge`
-  (stdlib). `quiltwright.lfd` re-exports every moved name, so
-  `from quiltwright.lfd import QuiltSpec` is unchanged. Package-level lazy
-  imports now resolve `QuiltSpec` without loading VTK. Plan:
-  [docs/architecture-plan.md](docs/architecture-plan.md).
-
 ### Added
+
+- **`QuiltCamera` protocol and `window_shear()`.** The three backends
+  (VTK `SetWindowCenter`, Blender `shift_x`, POV-Ray `direction` shear)
+  are unit conversions of one dimensionless window shift, now in
+  `quiltwright.quilt`. Named `QuiltCamera` so it does not collide with
+  layer 1's `CameraFrame`. `lfd.camera_frame` is the public name for the
+  vtkCamera decomposition (the private `_camera_frame` remains as an
+  alias). The courtesy core cap lives in `quiltwright.runtime` so Cycles
+  no longer imports it from the POV-Ray module.
 
 - **A general-purpose "any 3D object file → quilt" path, with the camera
   auto-framed from the mesh.** The Cycles backend already imported glTF/GLB,
@@ -81,6 +79,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   worked-example scripts each carried their own hard-coded `880x1100`
   literal, which ignored `--device` and framed a landscape panel's still in
   portrait.
+
+### Changed
+
+- **Quilt geometry and Bridge HTTP no longer live inside the PyVista
+  backend.** `QuiltSpec`, presets, `assemble_quilt`, `save_quilt` and the
+  view-offset arithmetic moved to `quiltwright.quilt` (numpy + pillow).
+  `cast_quilt` and the transport controls moved to `quiltwright.bridge`
+  (stdlib). `quiltwright.lfd` re-exports every moved name, so
+  `from quiltwright.lfd import QuiltSpec` is unchanged. Package-level lazy
+  imports now resolve `QuiltSpec` without loading VTK. Plan:
+  [docs/architecture-plan.md](docs/architecture-plan.md).
 
 ## [0.9.0] - 2026-08-26
 

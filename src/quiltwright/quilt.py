@@ -26,6 +26,7 @@ import math
 from collections.abc import Iterable
 from dataclasses import dataclass, replace
 from pathlib import Path
+from typing import Protocol, runtime_checkable
 
 import numpy as np
 
@@ -234,6 +235,59 @@ LITIHOLO_SWEEP: QuiltSpec = sweep_spec(
 # ---------------------------------------------------------------------------
 # Off-axis camera math
 # ---------------------------------------------------------------------------
+
+
+@runtime_checkable
+class QuiltCamera(Protocol):
+    """Look-at camera that can feed a quilt sweep.
+
+    :class:`~quiltwright.povray.PovCamera` and
+    :class:`~quiltwright.cycles.CyclesCamera` both satisfy this.  Named
+    ``QuiltCamera`` rather than ``CameraFrame`` so it does not collide with
+    ``kg_utils.viz3d.layout.CameraFrame`` in the growth engine.
+
+    Handedness is the camera's own: POV-Ray is left-handed, Cycles and VTK
+    are right-handed.  :meth:`basis` returns ``(forward, right, up)`` in
+    that convention.  Callers that emit a renderer-specific frustum convert
+    :func:`window_shear` into the units that renderer takes.
+    """
+
+    location: tuple[float, float, float]
+    look_at: tuple[float, float, float]
+    fov: float
+
+    @property
+    def focal_distance(self) -> float:
+        """Distance from the eye to the look-at point, in scene units."""
+        ...
+
+    def basis(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Orthonormal ``(forward, right, up)`` in this camera's handedness."""
+        ...
+
+
+def window_shear(offset: float, focal_distance: float, fov: float, aspect: float) -> float:
+    """Dimensionless horizontal window shift that pins the look-at point.
+
+    The eye has translated *offset* along the camera's right vector.  This
+    is the shear that slides the frustum window back so the original look-at
+    point stays centred -- the off-axis projection, never a toe-in.
+
+    VTK's ``SetWindowCenter`` takes this value directly (units of half the
+    image width).  Blender's ``shift_x`` is this value divided by 2
+    (fractions of the full frame width).  POV-Ray slides the image-plane
+    centre by ``window_shear * (aspect / 2)`` along ``right``, which is
+    ``-offset * D / Z`` for image-plane distance ``D``.
+
+    :param offset: Lateral eye offset along the camera's right vector, in
+        scene units, from :func:`view_offsets`.
+    :param focal_distance: Camera-to-focal-plane distance, in scene units.
+    :param fov: Vertical field of view in degrees.
+    :param aspect: Width / height of the rendered view.
+    :return: The dimensionless window centre.  Zero at the centre view;
+        negative when the eye has moved right.
+    """
+    return -offset / (focal_distance * math.tan(math.radians(fov) / 2.0) * aspect)
 
 
 def view_offsets(spec: QuiltSpec, distance: float) -> np.ndarray:

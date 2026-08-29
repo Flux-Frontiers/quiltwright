@@ -72,6 +72,7 @@ _LAZY: dict[str, str] = {
     "PovScene": "povgen",
     "Primitive": "povgen",
     "QUILT_PRESETS": "quilt",
+    "QuiltCamera": "quilt",
     "QuiltSpec": "quilt",
     "REGION_MAPPINGS": "tvb_data",
     "SENSORS": "tvb_data",
@@ -85,6 +86,7 @@ _LAZY: dict[str, str] = {
     "apply_safe_area": "hld",
     "assemble_quilt": "quilt",
     "camera_block": "povray",
+    "camera_frame": "lfd",
     "cast_quilt": "bridge",
     "connectome_polydata": "tvb_data",
     "depth_budget": "povray",
@@ -141,6 +143,7 @@ _LAZY: dict[str, str] = {
     "view_disparity": "quilt",
     "view_offsets": "quilt",
     "view_shift_x": "cycles",
+    "window_shear": "quilt",
     "weave_quilt": "weave",
 }
 
@@ -171,9 +174,11 @@ __version__ = "0.9.0"
 __all__ = [
     # Quilt geometry
     "QuiltSpec",
+    "QuiltCamera",
     "QUILT_PRESETS",
     "assemble_quilt",
     "view_offsets",
+    "window_shear",
     # View sweeps (hologram printers, lenticular interlacers)
     "sweep_spec",
     "LITIHOLO_SWEEP",
@@ -191,6 +196,7 @@ __all__ = [
     # PyVista backend
     "render_quilt",
     "render_quilt_video",
+    "camera_frame",
     # POV-Ray backend
     "PovCamera",
     "render_pov_quilt",

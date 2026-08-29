@@ -84,7 +84,8 @@ from pathlib import Path
 
 import numpy as np
 
-from quiltwright.quilt import QuiltSpec, assemble_quilt, view_disparity, view_offsets
+from quiltwright.quilt import QuiltSpec, assemble_quilt, view_disparity, view_offsets, window_shear
+from quiltwright.runtime import COURTESY_CORES_HELD_BACK
 
 #: Environment variable overriding which POV-Ray binary is used.
 POVRAY_ENV = "POVRAY_BINARY"
@@ -300,12 +301,14 @@ def camera_block(camera: PovCamera, offset: float, aspect: float) -> str:
     """
     forward, right, up = camera.basis()
     dist = camera.image_plane_distance()
-    focal = camera.focal_distance
     eye = np.asarray(camera.location, dtype="d") + right * offset
     # Shear: slide the image-plane centre back onto the original view axis so
-    # the focal plane stays pinned across the sweep.  Never emit `angle` here
-    # -- it would override |direction| and silently undo this.
-    direction = forward * dist - right * (offset * dist / focal)
+    # the focal plane stays pinned across the sweep.  window_shear is in
+    # half-widths; the image plane is ``aspect`` wide, so the world-space
+    # slide along ``right`` is ``shear * aspect / 2``.  Never emit `angle`
+    # here -- it would override |direction| and silently undo this.
+    shear = window_shear(offset, camera.focal_distance, camera.fov, aspect)
+    direction = forward * dist + right * (shear * aspect / 2.0)
     return (
         "camera {\n"
         f"  location  {_vec(eye)}\n"
@@ -735,12 +738,6 @@ def _render_view(
             f"POV-Ray reported success but wrote no image for {wrapper.name}.\n"
             f"{result.stderr[-2000:]}"
         )
-
-
-#: Cores held back from a render by default, so a multi-minute quilt does not
-#: make the rest of the machine unusable.  POV-Ray's own default is every
-#: core it can see.
-COURTESY_CORES_HELD_BACK = 2
 
 
 def resolve_work_threads(requested: int | None = None) -> int | None:
