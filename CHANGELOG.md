@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- **CI stopped running the whole matrix twice per push.** `tests.yml`
+  triggered on pushes to `main` and `develop` *and* on `pull_request`, so
+  every push to `develop` while its PR was open ran five jobs twice against
+  the same commit -- 8 of today's 20 runs were exact duplicates. `push` is
+  now `main` only; `develop` keeps its coverage through the PR it opens
+  anyway, with the pre-push pytest hook covering a push with no PR yet. A
+  `concurrency` group cancels superseded runs, which nothing did before: a
+  burst of pushes used to leave every run going to completion. The group is
+  keyed on the PR number where there is one, so a force-push does not cancel
+  the PR's own run.
+
 ### Added
 
 - **`--sweep` on `scripts/render_still_life_hologram.py`.** `LITIHOLO_SWEEP`
