@@ -134,11 +134,13 @@ exported, never rendered -- so this path runs on headless machines where
 Two modes:
 
 **Explicit** -- a `CyclesCamera`, the right-handed Z-up twin of `PovCamera`:
-`location`, `look_at` (the focal plane), `up`, vertical `fov`. It exposes the
-same `fov`/`focal_distance` pair, so `format_depth_budget()` and the
-`Clearance` arithmetic from the POV-Ray backend apply unchanged -- run the
-depth budget before committing Cycles to a 48-view render, exactly as you
-would for POV-Ray.
+`location`, `look_at` (the focal plane), `up`, vertical `fov`. Both satisfy
+the `QuiltCamera` protocol and expose the same `fov`/`focal_distance` pair,
+so `format_depth_budget()` and the `Clearance` arithmetic apply unchanged --
+run the depth budget before committing Cycles to a 48-view render, exactly
+as you would for POV-Ray. The off-axis shear itself is
+`window_shear(...) / 2` in Blender `shift_x` units
+(`quiltwright.quilt.window_shear`).
 
 **The scene's own** -- pass `camera=None` with a `.blend`, and the file's
 active camera becomes the centre view. The focal plane is taken from the
@@ -157,7 +159,7 @@ the kind of arithmetic that looks right and ghosts on glass.
 ## Usage
 
 ```python
-from quiltwright.lfd import QUILT_PRESETS, save_quilt
+from quiltwright.quilt import QUILT_PRESETS, save_quilt
 from quiltwright.cycles import CyclesCamera, render_cycles_quilt
 
 camera = CyclesCamera(location=(0, -35, 8), look_at=(0, 0, 5), fov=14)

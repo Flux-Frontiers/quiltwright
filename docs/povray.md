@@ -46,7 +46,7 @@ The driver does four things:
    assembler the PyVista path uses.
 
 ```python
-from quiltwright.lfd import QUILT_PRESETS, save_quilt
+from quiltwright.quilt import QUILT_PRESETS, save_quilt
 from quiltwright.povray import PovCamera, render_pov_quilt
 
 camera = PovCamera(location=(15, 20, 6), look_at=(44, 19.2, 45.1), fov=53.13)
@@ -185,7 +185,7 @@ cone = 2 · atan((corridor_half_width − margin) / focal_distance)
 ```python
 from dataclasses import replace
 
-from quiltwright.lfd import QUILT_PRESETS, focal_distance_for_range
+from quiltwright.quilt import QUILT_PRESETS, focal_distance_for_range
 from quiltwright.povray import Clearance, PovCamera, format_depth_budget
 
 room = Clearance(left=-18.0, right=8.0, margin=2.0)   # measured, in scene units
@@ -343,8 +343,11 @@ camera's right vector.
 
 - `sweep_extent(spec, focal_distance)` -- half-width of the lateral eye travel
   the sweep needs, i.e. the largest `view_offsets()` magnitude in closed form.
+  Lives in `quiltwright.quilt`; re-exported here.
 - `depth_budget(spec, camera, depths)` -- `(label, depth, disparity_px)` per
-  labelled depth; `math.inf` is accepted for sky.
+  labelled depth; `math.inf` is accepted for sky. `camera` is any
+  `QuiltCamera` (or anything with `fov` and `focal_distance`), not only a
+  `PovCamera`.
 - `format_depth_budget(spec, camera, depths, *, clearance=None, soft_px=5.5)` --
   the same as a printable report, flagging depths above `soft_px` and warning
   when the sweep leaves `clearance`.
@@ -362,8 +365,9 @@ camera's right vector.
 | `extra_args` | Raw POV-Ray flags, e.g. radiosity cache options |
 | `keep_views` | Directory to retain per-view PNGs and wrapper scenes for inspection |
 
-Returns a `uint8` RGB array; pair with `save_quilt()` and `cast_quilt()` from
-[`quiltwright.lfd`](lfd.md).
+Returns a `uint8` RGB array; pair with `save_quilt()` from
+`quiltwright.quilt` and `cast_quilt()` from `quiltwright.bridge`
+(re-exported from `quiltwright.lfd` as well).
 
 ### `render_pov_views(scene, spec, camera, out_dir, ...)`
 
@@ -382,9 +386,9 @@ It takes `render_pov_quilt`'s arguments minus the quilt-assembly ones, plus:
 
 That is the form consumers other than a light-field panel ask for: a hologram
 printer slicing views into hogels, or a lenticular interlacer. Pair it with
-`sweep_spec()` / `LITIHOLO_SWEEP` from [`quiltwright.lfd`](lfd.md) when the view
-count is not a convenient rectangle -- a quilt grid cannot express a prime count,
-and a single-row sweep can.
+`sweep_spec()` / `LITIHOLO_SWEEP` from `quiltwright.quilt` when the view
+count is not a convenient rectangle -- a quilt grid cannot express a prime
+count, and a single-row sweep can.
 
 ```python
 from quiltwright import LITIHOLO_SWEEP, render_pov_views
@@ -400,12 +404,18 @@ between adjacent views against a Portrait quilt's 0.74°, so it has *less* margi
 than a quilt -- see [lfd.md](lfd.md) for what that does and does not establish
 about the printer.
 
-### Supporting helpers in `quiltwright.lfd`
+### Supporting helpers in `quiltwright.quilt`
 
 - `assemble_quilt(views, spec)` -- renderer-agnostic tiling; consumes views
   lazily and validates the count.
+- `view_offsets(spec, distance)` / `window_shear(...)` -- the sweep and the
+  dimensionless off-axis window shift every backend converts into its own units.
 - `view_disparity(spec, fov, focal_distance, depth)` -- adjacent-view shift in px.
 - `focal_distance_for_range(near, far)` -- harmonic-mean focal distance.
+- `sweep_extent(spec, focal_distance)` -- closed-form half-width of the sweep.
+
+`from quiltwright.lfd import ...` still works for these names: `lfd` re-exports
+them. New code should import from `quiltwright.quilt`.
 
 ---
 

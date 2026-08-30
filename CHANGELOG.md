@@ -9,12 +9,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
-- **`sweep_extent()` lives next to `QuiltSpec`.** The closed-form half-width
-  of a view sweep is quilt geometry, not POV-Ray-specific; `povray` re-exports
-  it. `depth_budget` / `format_depth_budget` take any camera with `fov` and
-  `focal_distance` (`QuiltCamera`, `CyclesCamera`, or a two-field lens), so
-  `lfd.depth_report` no longer builds a throwaway `PovCamera`.
-
 - **`QuiltCamera` protocol and `window_shear()`.** The three backends
   (VTK `SetWindowCenter`, Blender `shift_x`, POV-Ray `direction` shear)
   are unit conversions of one dimensionless window shift, now in
@@ -88,22 +82,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- **Quilt geometry and Bridge HTTP no longer live inside the PyVista
+  backend.** `QuiltSpec`, presets, `assemble_quilt`, `save_quilt`,
+  `view_offsets`, `view_disparity`, `focal_distance_for_range`, and
+  `sweep_extent` live in `quiltwright.quilt` (numpy + pillow).
+  `cast_quilt` and the transport controls live in `quiltwright.bridge`
+  (stdlib). `quiltwright.lfd` is the PyVista backend and re-exports every
+  moved name, so `from quiltwright.lfd import QuiltSpec` is unchanged.
+  Package-level lazy imports resolve `QuiltSpec` without loading VTK.
+  `depth_budget` / `format_depth_budget` take any camera with `fov` and
+  `focal_distance`, so `lfd.depth_report` no longer builds a throwaway
+  `PovCamera`. Docs and examples import from the new homes. Plan:
+  [docs/architecture-plan.md](docs/architecture-plan.md).
+
 - **The CLI is hardware and tooling; `scripts/` is the gallery.** There is
   no generic `quiltwright render`. `cast` / `weave` / `wallpaper` / `bridge`
   operate on a finished quilt; `mesh` / `cartoon` / `probe` take arbitrary
   input. Composed exhibits for the bundled scenes (museum, vitrine,
   still-life, DNA helix, cartoon comparison) stay in `scripts/`. `tvb_data`
   stays in the default public API: NumPy-only loader, GPL archive fetched
-  at runtime. Plan: [docs/architecture-plan.md](docs/architecture-plan.md).
-
-- **Quilt geometry and Bridge HTTP no longer live inside the PyVista
-  backend.** `QuiltSpec`, presets, `assemble_quilt`, `save_quilt` and the
-  view-offset arithmetic moved to `quiltwright.quilt` (numpy + pillow).
-  `cast_quilt` and the transport controls moved to `quiltwright.bridge`
-  (stdlib). `quiltwright.lfd` re-exports every moved name, so
-  `from quiltwright.lfd import QuiltSpec` is unchanged. Package-level lazy
-  imports now resolve `QuiltSpec` without loading VTK. Plan:
-  [docs/architecture-plan.md](docs/architecture-plan.md).
+  at runtime.
 
 ## [0.9.0] - 2026-08-26
 

@@ -56,7 +56,7 @@ and ``PovCamera.fov`` are both *vertical* degrees, so that maps one-to-one.
 
 Typical usage::
 
-    from quiltwright.lfd import QUILT_PRESETS, save_quilt
+    from quiltwright.quilt import QUILT_PRESETS, save_quilt
     from quiltwright.povgen import PovScene, Sphere, Texture, sphere_sweeps_from_paths
     from quiltwright.povray import render_pov_quilt
 

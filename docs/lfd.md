@@ -414,8 +414,10 @@ make. `depth_report()` models that reframing; reading the camera yourself
 does not. Use `scene_depths()` if you want the numbers rather than the
 report. Neither touches the plotter.
 
-For POV-Ray scenes the equivalent is `format_depth_budget()`, which takes a
-`PovCamera` directly.
+For POV-Ray (or Cycles) scenes the equivalent is `format_depth_budget()`,
+which takes any camera with `fov` and `focal_distance` -- a `PovCamera`, a
+`CyclesCamera`, or the same two-field lens `depth_report` builds for
+PyVista.
 
 ### Framing a tilted view
 

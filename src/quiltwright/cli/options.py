@@ -18,7 +18,7 @@ import click
 from quiltwright.quilt import QUILT_PRESETS
 
 #: Looking Glass filename convention: ``stem_qs<cols>x<rows>a<aspect>.ext``
-#: (see :meth:`~quiltwright.lfd.QuiltSpec.filename`).  Recovers the tiling
+#: (see :meth:`~quiltwright.quilt.QuiltSpec.filename`).  Recovers the tiling
 #: grid from a quilt saved by :func:`~quiltwright.lfd.save_quilt` when
 #: neither ``--preset`` nor ``--grid`` is given.
 QS_SUFFIX = re.compile(r"_qs(\d+)x(\d+)a([\d.]+)$")
