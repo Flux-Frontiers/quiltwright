@@ -1,12 +1,12 @@
 # porin hologram
 
-**Generated:** 2026-08-26 16:51:24  
-**Machine:** x86_64  
-**Repository:** quiltwright @ `abba706` (main)  
-**Commit:** 2026-08-26 16:22:11 +0000 -- docs: bring the README intro past the two-backend era  
+**Generated:** 2026-08-30 19:27:22  
+**Machine:** Apple M5 Max, 64 GB RAM  
+**Repository:** quiltwright @ `b4a7b0f` (develop) **+ uncommitted changes**  
+**Commit:** 2026-08-30 19:15:21 -0400 -- chore(renders): publish the landscape quilt set as release assets  
 **Scene:** `pov-scenes/porin/3porin.pov` sha256 `2c97fadb3306a4e8`  
-**Python:** 3.13.12  |  **quiltwright:** 0.9.0  |  **numpy:** 2.5.2  |  **POV-Ray:** povray: cannot open the user configuration file /root/.povray/3.7/povray.conf: No such file or directory  
-**Host:** vm  |  **OS:** Linux-6.18.44-fc-v21-x86_64-with-glibc2.39  
+**Python:** 3.12.13  |  **quiltwright:** 0.10.0  |  **numpy:** 2.5.2  |  **POV-Ray:** POV-Ray 3.7.0.10.unofficial  
+**Host:** turing  |  **OS:** macOS-27.0-arm64-arm-64bit  
 **Command:** `scripts/render_still_life_hologram.py porin --jobs 1 --report`
 
 ---
@@ -29,11 +29,11 @@
 
 | Parameter | Value |
 |---|---|
-| CPU cores | 4 |
+| CPU cores | 18 |
 | POV-Ray processes (--jobs) | 1 |
-| threads per process | 2 |
-| thread count set by | Work_Threads in /home/user/quiltwright/renders/.threads.ini |
-| cores in use | 2 of 4 |
+| threads per process | 16 |
+| thread count set by | Work_Threads in /Users/egs/repos/quiltwright/renders/.threads.ini |
+| cores in use | 16 of 18 |
 
 ## Camera
 
@@ -64,13 +64,13 @@
 
 | Parameter | Value |
 |---|---|
-| wall clock | 2421 s |
-| per view | 50.4 s |
+| wall clock | 232 s |
+| per view | 4.8 s |
 
 ## Output
 
 | Field | Value |
 |---|---|
 | File | `renders/quilts/porin_qs8x6a1.77778.png` |
-| Size | 31.8 MB |
-| SHA-256 | `75531b68a9b9900fc67dfe691842315dc4902ef200176596b4a1a976332f53c5` |
+| Size | 31.2 MB |
+| SHA-256 | `684891dd65c5a308d9044e1ef78045856022871accbb51f100144395cc3a7cd8` |
