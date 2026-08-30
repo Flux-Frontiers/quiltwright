@@ -1,9 +1,9 @@
 # Vitrine: hemoglobin
 
-**Generated:** 2026-08-30 15:32:42  
+**Generated:** 2026-08-30 15:34:23  
 **Machine:** Apple M5 Max, 64 GB RAM  
-**Repository:** quiltwright @ `063061a` (develop)  
-**Commit:** 2026-08-30 15:31:34 -0400 -- chore(renders): refresh the hemoglobin run report at the corrected lens  
+**Repository:** quiltwright @ `7eb420a` (develop)  
+**Commit:** 2026-08-30 15:32:47 -0400 -- chore(renders): refresh the hemoglobin run report at the corrected lens  
 **Scene:** `pov-scenes/vitrine/exhibit_hemoglobin.pov` sha256 `1d89629d152d82ac`  
 **Python:** 3.12.13  |  **quiltwright:** 0.10.0  |  **numpy:** 2.5.2  |  **POV-Ray:** POV-Ray 3.7.0.10.unofficial  
 **Host:** turing  |  **OS:** macOS-27.0-arm64-arm-64bit  
