@@ -278,7 +278,7 @@ date, and this removes it.
 
 ```python
 from dataclasses import replace
-from quiltwright.lfd import QUILT_PRESETS, focal_distance_for_range, save_quilt
+from quiltwright.quilt import QUILT_PRESETS, focal_distance_for_range, save_quilt
 from quiltwright.povray import PovCamera, render_pov_quilt
 
 # Both numbers come from pdb2pov's own header comment.
@@ -317,7 +317,7 @@ from pathlib import Path
 
 import pypdb2pov
 from pypdb2pov import ParseOptions, SceneOptions, find_bonds, prepare_structure, write_scene
-from quiltwright.lfd import QUILT_PRESETS, focal_distance_for_range, save_quilt
+from quiltwright.quilt import QUILT_PRESETS, focal_distance_for_range, save_quilt
 from quiltwright.povray import PovCamera, render_pov_quilt
 
 # Straight from the wwPDB: compressed mmCIF, one chain, no waters.

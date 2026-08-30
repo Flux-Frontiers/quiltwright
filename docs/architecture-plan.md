@@ -6,9 +6,9 @@ hardware and tooling; `scripts/` is the gallery). PR 5 leaves `tvb_data`
 in the default public API.
 
 The shared middle of this package -- quilt geometry, view offsets, assembly,
-saving, Bridge control -- currently lives inside `quiltwright.lfd`, the
-PyVista backend. Three backends and the CLI already import those pieces from
-there, including two private names. This plan moves that middle into modules
+saving, Bridge control -- used to live inside `quiltwright.lfd`, the
+PyVista backend. Three backends and the CLI imported those pieces from
+there, including two private names. This plan moved that middle into modules
 that match how the code is used, without breaking the public import graph.
 
 It does not add a renderer, a display, or a CLI command. It makes the
@@ -341,37 +341,23 @@ Leave in `lfd.py`:
   at `lfd.py:554` and the cycle it exists to break.
 
 `format_depth_budget` already only needs `camera.fov` and
-`camera.focal_distance`. After PR 2 that is `CameraFrame`.
+`camera.focal_distance`. After PR 2 that is `QuiltCamera` (or anything
+with those two attributes).
 
-### PR 4 -- CLI versus scripts (blocked on open question 1)
+### PR 4 -- CLI versus scripts (decided: option B)
 
-Two options; do not pick in this document.
+CLI stays hardware and tooling (`cast`, `weave`, `wallpaper`, `bridge`)
+plus three commands that take arbitrary input (`mesh`, `cartoon`,
+`probe`). `scripts/` is the gallery of composed exhibits. There is no
+generic `quiltwright render`. The museum does not become a subcommand.
+Documented in [shell.md](shell.md) and the README.
 
-**A.** A generic `quiltwright render SCENE --backend pov|cycles|pyvista`
-plus keep museum / vitrine / still-life as demos. Extract the shared
-preset / depth-budget / `save_quilt` / optional `cast_quilt` /
-`RunReport` loop that every `scripts/render_*.py` currently copies.
+### PR 5 -- `tvb_data` (decided: leave it)
 
-**B.** CLI stays hardware and tooling (`cast`, `weave`, `bridge`, `mesh`,
-`cartoon`, `probe`). `scripts/` is the gallery. Say so in the README
-and in [docs/shell.md](shell.md), because right now it reads as
-unfinished.
-
-Either way, `render_museum_hologram.py` is a composed exhibit, not a
-tool. It does not become a subcommand.
-
-### PR 5 -- `tvb_data` (blocked on open question 2)
-
-`tvb_data.py` is SIR rank 4 and a downloader for The Virtual Brain.
-`cache.py` exists to serve it. That is domain glue in an output library,
-the same category the visualization stack forbids for KG packages.
-
-Options: `quiltwright[tvb]` extra; drop the names from default `__all__`
-but keep the module importable; leave it. Do not silently pick.
-
-`pymol.py` stays. It is a scene source that emits SDL / OBJ for the two
-ray tracers, which is the job [docs/pdb2pov.md](pdb2pov.md) already
-describes.
+`tvb_data` stays in the default public API. Loading is NumPy only; the
+GPL-3.0 archive is fetched at runtime and never vendored. Documented in
+[tvb-data.md](tvb-data.md). `pymol.py` stays as a scene source for the
+same reason -- see [pdb2pov.md](pdb2pov.md).
 
 ---
 
@@ -571,7 +557,9 @@ Follow-up outside this repo: refresh
 - [docs/povgen.md](povgen.md) -- array-to-SDL composer
 - [docs/hld.md](hld.md) / [docs/shell.md](shell.md) -- HLD video; CLI
 - `src/quiltwright/__init__.py` -- PEP 562 lazy re-exports
-- `src/quiltwright/lfd.py` -- current hub (QuiltSpec at line 82, Bridge at 919)
-- `src/quiltwright/cycles.py:88` -- private `_camera_frame` import
-- `src/quiltwright/cli/cmd_cast.py:54` -- private Bridge helper import
-- `~/repos/kgrag_priv/docs/VISUALIZATION_STACK.md` -- fleet layering
+- `src/quiltwright/quilt.py` -- QuiltSpec, window_shear, QuiltCamera, sweep_extent
+- `src/quiltwright/bridge.py` -- cast_quilt and transport control
+- `src/quiltwright/lfd.py` -- PyVista backend; re-exports quilt and bridge names
+- `src/quiltwright/runtime.py` -- COURTESY_CORES_HELD_BACK
+- `~/repos/kgrag_priv/docs/VISUALIZATION_STACK.md` -- fleet layering (stale:
+  still says two renderers / 0.6.0; refresh outside this repo)

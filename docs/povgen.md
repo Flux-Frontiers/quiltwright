@@ -74,7 +74,7 @@ export needs no VTK at all.
 ## 1. A minimal scene
 
 ```python
-from quiltwright.lfd import QUILT_PRESETS, save_quilt
+from quiltwright.quilt import QUILT_PRESETS, save_quilt
 from quiltwright.povgen import PovScene, Sphere, Texture, lights_from_bounds, to_pov
 from quiltwright.povray import render_pov_quilt, PovCamera
 
@@ -107,7 +107,7 @@ leaving to be discovered on a scene where it matters.
 one-to-one:
 
 ```python
-from quiltwright.lfd import render_quilt
+from quiltwright.lfd import render_quilt  # PyVista backend
 from quiltwright.povgen import pov_camera_from_plotter
 
 camera = pov_camera_from_plotter(plotter, fov=None)   # keep the scene's own FOV

@@ -57,7 +57,7 @@ plus pillow for quilt assembly (``poetry install --with viz``).
 
 Typical usage::
 
-    from quiltwright.lfd import QUILT_PRESETS, save_quilt
+    from quiltwright.quilt import QUILT_PRESETS, save_quilt
     from quiltwright.povray import PovCamera, render_pov_quilt
 
     camera = PovCamera(location=(35, 18.5, 0), look_at=(35, 20, 58), fov=14)

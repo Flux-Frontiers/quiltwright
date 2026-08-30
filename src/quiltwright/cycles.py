@@ -58,7 +58,7 @@ plus pillow for quilt assembly.  Blender 4.x or later.
 
 Typical usage::
 
-    from quiltwright.lfd import QUILT_PRESETS, save_quilt
+    from quiltwright.quilt import QUILT_PRESETS, save_quilt
     from quiltwright.cycles import CyclesCamera, render_cycles_quilt
 
     camera = CyclesCamera(location=(0, -35, 8), look_at=(0, 0, 5), fov=14)
