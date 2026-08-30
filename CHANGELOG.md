@@ -7,7 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **`--sweep` on `scripts/render_still_life_hologram.py`.** `LITIHOLO_SWEEP`
+  has been in the package since the sweep work landed, but nothing in the
+  repository rendered one: producing a sweep meant writing a script against
+  the library by hand, and what came out carried no run report. The flag
+  swaps the device preset for the 23-view, 45-degree, single-row spec and
+  otherwise goes through the same budget, render, save and report path as a
+  quilt, so a sweep is now a provenanced artifact rather than a one-off. It
+  keeps the 23 frames as separate files by default, since that is what a
+  printer consumes and the tiled image is the by-product; `--device` is
+  ignored, `--view-cone` still overrides, and `--cast` declines rather than
+  handing Bridge a layout no panel can fuse.
+
 ### Fixed
+
+- **A preview overwrote the frames of a full sweep.** `--preview` already
+  guarded the quilt filename with a `-preview` suffix, for exactly the reason
+  that iterating on one must not destroy the other, but the kept-views
+  directory had no such guard. It does now.
+
+- **The README claimed a preview "prints the same depth budget the full
+  render will use".** It does not: disparity scales with tile height, so a
+  quarter-size preview reports a quarter of the figure -- 0.83 px where porin
+  at 16-landscape actually produces 3.30. Reading a preview's disparity as
+  the real one credits the render with four times the headroom it has, which
+  is the failure the depth budget exists to prevent. The README now says to
+  read a preview's framing and not its disparity.
 
 - **The vitrine exhibits rendered at a 71.4-degree lens instead of the 44
   they are composed at.** `scripts/render_vitrine.py` converted its vertical

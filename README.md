@@ -371,8 +371,10 @@ Worth knowing before the details:
 
 - **Renders never take the whole machine.** `RENDER_THREADS` defaults to
   `ncpu - 2`; override it deliberately.
-- **Preview first.** A quarter-size quilt costs seconds per view and prints
-  the same depth budget the full render will use.
+- **Preview first.** A quarter-size quilt costs seconds per view and frames
+  the shot for a fraction of the time. Read its *geometry*, not its
+  disparity: pixel disparity scales with tile height, so a quarter-size
+  preview reports a quarter of the figure the full render will produce.
 - **Every full quilt writes a provenance report** to `renders/reports/` --
   scene hash, commit, camera, measured depths -- because the quilt itself is a
   gitignored 25-40 MB PNG that says nothing about where it came from.
