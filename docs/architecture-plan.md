@@ -1,8 +1,9 @@
 # Quiltwright module split
 
 **Eric G. Suchanek, PhD** -- 29 August 2026
-**Status:** Proposed. PR 1 is the first code change; PRs 4 and 5 wait on the
-open questions at the end.
+**Status:** PRs 1-3 landed on `develop`. PR 4 is option B (CLI stays
+hardware and tooling; `scripts/` is the gallery). PR 5 leaves `tvb_data`
+in the default public API.
 
 The shared middle of this package -- quilt geometry, view offsets, assembly,
 saving, Bridge control -- currently lives inside `quiltwright.lfd`, the
@@ -471,11 +472,17 @@ a `PovCamera`.
 
 ## Open questions
 
-These block PRs 4 and 5. They do not block PRs 1--3.
+Resolved.
 
-1. **CLI versus scripts.** Generic `quiltwright render` (option A), or
-   document that `scripts/` is the gallery (option B)?
-2. **`tvb_data`.** Extra, drop from `__all__`, or leave?
+1. **CLI versus scripts.** Option B. The CLI is hardware and tooling
+   (`cast`, `weave`, `wallpaper`, `bridge`) plus three commands that take
+   arbitrary input (`mesh`, `cartoon`, `probe`). `scripts/` is the gallery
+   of composed exhibits. There is no generic `quiltwright render`. The
+   museum stays a script.
+2. **`tvb_data`.** Leave it. Loading is NumPy only; the GPL-3.0 archive is
+   fetched at runtime and never vendored. An extra would tax the one
+   consumer that already imports it, and dropping it from `__all__` is a
+   break for no packaging gain.
 
 ---
 
@@ -495,8 +502,11 @@ These block PRs 4 and 5. They do not block PRs 1--3.
    the shear; convert units at the boundary. A wrong-handed merge ghosts.
 5. **Do not split `povgen` or the large test files.** Cohesion, not
    line count.
-6. **CLI shape and `tvb_data` stay questions.** Picking either silently
-   is a product decision, not a refactor.
+6. **CLI is hardware and tooling; `scripts/` is the gallery.**
+   `mesh` / `cartoon` / `probe` already cover arbitrary input. A composed
+   exhibit (museum, vitrine) is not a subcommand.
+7. **`tvb_data` stays in the default public API.** Scene source, NumPy
+   loader, GPL data fetched at runtime. Not an extra.
 
 ---
 
@@ -535,17 +545,17 @@ These block PRs 4 and 5. They do not block PRs 1--3.
 - **Verify:** `tests/test_povray.py` depth-budget cases, `tests/test_lfd.py`
   `TestSceneDepths` / `depth_report`
 
-### PR 4 -- CLI versus scripts
+### PR 4 -- CLI versus scripts (option B)
 
-- **Title:** depends on open question 1
-- **Depends on:** PR 1 (uses `quilt` / `bridge` directly)
-- **Blocked on:** open question 1
+- **Title:** `docs: CLI is hardware and tooling; scripts/ is the gallery`
+- **Depends on:** nothing
+- **Files:** [docs/shell.md](shell.md), README shell section, CLI group
+  docstring, this plan
 
-### PR 5 -- `tvb_data` packaging
+### PR 5 -- `tvb_data` stays
 
-- **Title:** depends on open question 2
-- **Depends on:** nothing (orthogonal to 1--3)
-- **Blocked on:** open question 2
+- **Title:** folded into PR 4
+- **Decision:** leave in `__all__`. Documented in [tvb-data.md](tvb-data.md).
 
 Follow-up outside this repo: refresh
 `kgrag_priv/docs/VISUALIZATION_STACK.md` for three backends and

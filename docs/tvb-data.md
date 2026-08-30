@@ -10,7 +10,9 @@ demand and turned into PyVista meshes ready for the
 This is a **scene source**, not an output backend -- the same role POV-Ray
 scenes and the PyVista example datasets in
 [pyvista-datasets.md](pyvista-datasets.md) play. It produces geometry and
-says nothing about how that geometry reaches a display.
+says nothing about how that geometry reaches a display. Loading is NumPy
+only; the GPL-3.0 archive is fetched at runtime and never vendored, so the
+module stays in the default public API rather than behind a `tvb` extra.
 
 Module: `quiltwright.tvb_data`
 

@@ -88,6 +88,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- **The CLI is hardware and tooling; `scripts/` is the gallery.** There is
+  no generic `quiltwright render`. `cast` / `weave` / `wallpaper` / `bridge`
+  operate on a finished quilt; `mesh` / `cartoon` / `probe` take arbitrary
+  input. Composed exhibits for the bundled scenes (museum, vitrine,
+  still-life, DNA helix, cartoon comparison) stay in `scripts/`. `tvb_data`
+  stays in the default public API: NumPy-only loader, GPL archive fetched
+  at runtime. Plan: [docs/architecture-plan.md](docs/architecture-plan.md).
+
 - **Quilt geometry and Bridge HTTP no longer live inside the PyVista
   backend.** `QuiltSpec`, presets, `assemble_quilt`, `save_quilt` and the
   view-offset arithmetic moved to `quiltwright.quilt` (numpy + pillow).
