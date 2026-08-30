@@ -2,9 +2,17 @@ name: tests
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
   pull_request:
   workflow_dispatch:
+
+# Two pushes in quick succession used to run the whole matrix twice over,
+# and neither run cancelled the other.  Superseded runs are now cancelled;
+# the key is the PR number where there is one, so a force-push to a branch
+# does not cancel the PR's own run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read

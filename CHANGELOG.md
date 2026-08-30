@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- **The three committed quilts are release assets now, not repo content.**
+  `bell-jar`, `museum` and `porin` at 16" landscape were negated by name in
+  `.gitignore` so a clone carried the landscape set without a 40-minute
+  render first. The reasoning held; the cost did not. 97 MB of PNG in the
+  working tree put `.git` at 300 MB, which every clone and every CI checkout
+  pays, and git history does not forget. All three are attached to the
+  v0.10.0 release, alongside the porin LitiHolo reference sweep and its 23
+  frames, and one `gh release download` fetches the set. The blanket
+  `*_qs...` rules now hold at every depth with no exceptions, which is what
+  the rest of the documentation already claimed. Untracking stops the growth;
+  it does not reclaim the 300 MB, which would need a history rewrite.
+
+- **CI stopped running the whole matrix twice per push.** `tests.yml`
+  triggered on pushes to `main` and `develop` *and* on `pull_request`, so
+  every push to `develop` while its PR was open ran five jobs twice against
+  the same commit -- 8 of today's 20 runs were exact duplicates. `push` is
+  now `main` only; `develop` keeps its coverage through the PR it opens
+  anyway, with the pre-push pytest hook covering a push with no PR yet. A
+  `concurrency` group cancels superseded runs, which nothing did before: a
+  burst of pushes used to leave every run going to completion. The group is
+  keyed on the PR number where there is one, so a force-push does not cancel
+  the PR's own run.
+
 ### Added
 
 - **`--sweep` on `scripts/render_still_life_hologram.py`.** `LITIHOLO_SWEEP`
