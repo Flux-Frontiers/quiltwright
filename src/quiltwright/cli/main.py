@@ -19,7 +19,12 @@ import click
 @click.group()
 @click.version_option(version=importlib.metadata.version("quiltwright"), prog_name="quiltwright")
 def cli() -> None:
-    """quiltwright -- holographic output for Looking Glass displays."""
+    """quiltwright -- holographic output for Looking Glass displays.
+
+    Hardware and tooling on a finished quilt (cast, weave, wallpaper,
+    bridge), plus mesh / cartoon / probe for arbitrary input. Composed
+    exhibits for the bundled scenes live in scripts/, not here.
+    """
 
 
 # Import subcommands to register them

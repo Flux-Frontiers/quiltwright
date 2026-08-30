@@ -4,6 +4,11 @@
 **Downstream CLI**: `waverider-voxel-viz --quilt <device>` (see note below)
 **Source**: `src/quiltwright/lfd.py`
 
+Quilt geometry (`QuiltSpec`, presets, `assemble_quilt`, `save_quilt`) lives
+in `quiltwright.quilt` and is re-exported here. Bridge HTTP (`cast_quilt`)
+lives in `quiltwright.bridge` and is re-exported here. See
+[architecture-plan.md](architecture-plan.md).
+
 > *"A manifold you can slice with a mouse is good. A manifold floating
 > behind glass is better."*
 
@@ -409,8 +414,10 @@ make. `depth_report()` models that reframing; reading the camera yourself
 does not. Use `scene_depths()` if you want the numbers rather than the
 report. Neither touches the plotter.
 
-For POV-Ray scenes the equivalent is `format_depth_budget()`, which takes a
-`PovCamera` directly.
+For POV-Ray (or Cycles) scenes the equivalent is `format_depth_budget()`,
+which takes any camera with `fov` and `focal_distance` -- a `PovCamera`, a
+`CyclesCamera`, or the same two-field lens `depth_report` builds for
+PyVista.
 
 ### Framing a tilted view
 

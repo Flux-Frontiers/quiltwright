@@ -1,0 +1,134 @@
+{
+  "key": "e3a3d763e8cbfb6d8c043860a57572f57c6db330",
+  "branch": "develop",
+  "timestamp": "2026-08-30T02:30:36.925882+00:00",
+  "version": "0.21.4",
+  "metrics": {
+    "db_path": ".pycodekg/graph.sqlite",
+    "total_nodes": 3975,
+    "meaningful_nodes": 279,
+    "total_edges": 3522,
+    "node_counts": {
+      "class": 27,
+      "function": 172,
+      "method": 56,
+      "module": 24,
+      "symbol": 3696
+    },
+    "edge_counts": {
+      "ATTR_ACCESS": 969,
+      "CALLS": 1391,
+      "CONTAINS": 255,
+      "IMPORTS": 220,
+      "INHERITS": 11,
+      "RESOLVES_TO": 676
+    },
+    "module_count": 24,
+    "class_count": 27,
+    "function_count": 172,
+    "method_count": 56,
+    "docstring_coverage": 0.935,
+    "snapshot_count": 1,
+    "critical_issues": 2,
+    "complexity_median": 5,
+    "module_node_counts": {
+      "src/quiltwright/__init__.py": 17,
+      "src/quiltwright/bridge.py": 63,
+      "src/quiltwright/cache.py": 22,
+      "src/quiltwright/cli/__init__.py": 1,
+      "src/quiltwright/cli/cmd_bridge.py": 111,
+      "src/quiltwright/cli/cmd_cartoon.py": 32,
+      "src/quiltwright/cli/cmd_cast.py": 60,
+      "src/quiltwright/cli/cmd_mesh.py": 50,
+      "src/quiltwright/cli/cmd_probe.py": 34,
+      "src/quiltwright/cli/cmd_wallpaper.py": 78,
+      "src/quiltwright/cli/cmd_weave.py": 38,
+      "src/quiltwright/cli/main.py": 2,
+      "src/quiltwright/cli/options.py": 30,
+      "src/quiltwright/cycles.py": 364,
+      "src/quiltwright/hld.py": 116,
+      "src/quiltwright/lfd.py": 242,
+      "src/quiltwright/povgen.py": 729,
+      "src/quiltwright/povray.py": 417,
+      "src/quiltwright/pymol.py": 265,
+      "src/quiltwright/quilt.py": 148,
+      "src/quiltwright/runreport.py": 162,
+      "src/quiltwright/runtime.py": 2,
+      "src/quiltwright/tvb_data.py": 355,
+      "src/quiltwright/weave.py": 107
+    }
+  },
+  "hotspots": [
+    {
+      "name": "fn:src/quiltwright/povgen.py:to_pov",
+      "callers": 9,
+      "callees": 2,
+      "risk_level": "low"
+    },
+    {
+      "name": "fn:src/quiltwright/povgen.py:_texture_suffix",
+      "callers": 7,
+      "callees": 2,
+      "risk_level": "low"
+    },
+    {
+      "name": "fn:src/quiltwright/povgen.py:_vec",
+      "callers": 7,
+      "callees": 2,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/quiltwright/povgen.py:PovScene.sdl",
+      "callers": 7,
+      "callees": 7,
+      "risk_level": "low"
+    },
+    {
+      "name": "fn:src/quiltwright/bridge.py:_bridge_post",
+      "callers": 6,
+      "callees": 7,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/quiltwright/povray.py:PovCamera.focal_distance",
+      "callers": 6,
+      "callees": 3,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/quiltwright/povray.py:_HasLens.focal_distance",
+      "callers": 6,
+      "callees": 0,
+      "risk_level": "low"
+    },
+    {
+      "name": "fn:src/quiltwright/bridge.py:_enter_orchestration",
+      "callers": 5,
+      "callees": 4,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/quiltwright/runreport.py:RunReport.render",
+      "callers": 5,
+      "callees": 8,
+      "risk_level": "low"
+    },
+    {
+      "name": "fn:src/quiltwright/povgen.py:parse_color",
+      "callers": 4,
+      "callees": 8,
+      "risk_level": "low"
+    }
+  ],
+  "issues": [
+    "[WARN] `povgen.py` has 61 functions/methods/classes -- consider splitting into focused submodules",
+    "[WARN] `povray.py` has 31 functions/methods/classes -- consider splitting into focused submodules"
+  ],
+  "vs_previous": null,
+  "vs_baseline": {
+    "nodes": -6765,
+    "edges": -8346,
+    "coverage_delta": 0.385,
+    "critical_issues_delta": -5
+  }
+}

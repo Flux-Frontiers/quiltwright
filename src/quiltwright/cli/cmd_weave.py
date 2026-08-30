@@ -13,7 +13,7 @@ import numpy as np
 
 from quiltwright.cli.main import cli
 from quiltwright.cli.options import resolve_grid
-from quiltwright.lfd import QUILT_PRESETS, QuiltSpec
+from quiltwright.quilt import QUILT_PRESETS, QuiltSpec
 from quiltwright.weave import Calibration, weave_quilt
 
 

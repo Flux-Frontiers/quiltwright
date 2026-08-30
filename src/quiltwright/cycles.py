@@ -58,7 +58,7 @@ plus pillow for quilt assembly.  Blender 4.x or later.
 
 Typical usage::
 
-    from quiltwright.lfd import QUILT_PRESETS, save_quilt
+    from quiltwright.quilt import QUILT_PRESETS, save_quilt
     from quiltwright.cycles import CyclesCamera, render_cycles_quilt
 
     camera = CyclesCamera(location=(0, -35, 8), look_at=(0, 0, 5), fov=14)
@@ -85,8 +85,8 @@ from pathlib import Path
 
 import numpy as np
 
-from quiltwright.lfd import QuiltSpec, _camera_frame, assemble_quilt
-from quiltwright.povray import COURTESY_CORES_HELD_BACK
+from quiltwright.quilt import QuiltSpec, assemble_quilt, window_shear
+from quiltwright.runtime import COURTESY_CORES_HELD_BACK
 
 #: Environment variable overriding which Blender binary is used.
 BLENDER_ENV = "BLENDER_BINARY"
@@ -309,7 +309,7 @@ def view_shift_x(offset: float, focal_distance: float, fov: float, aspect: float
     :param aspect: Width / height of the rendered view.
     :return: The ``shift_x`` value for this view.
     """
-    return -offset / (2.0 * focal_distance * math.tan(math.radians(fov) / 2.0) * aspect)
+    return window_shear(offset, focal_distance, fov, aspect) / 2.0
 
 
 # ---------------------------------------------------------------------------
@@ -1348,7 +1348,9 @@ def cycles_camera_from_plotter(plotter, *, fov: float | None = 14.0, zoom: float
         perceived depth.
     :return: The centre-view :class:`CyclesCamera`.
     """
-    pos, focal, _, true_up, distance = _camera_frame(plotter.camera)
+    from quiltwright.lfd import camera_frame
+
+    pos, focal, _, true_up, distance = camera_frame(plotter.camera)
     forward = (focal - pos) / distance
     if fov is None:
         fov = float(plotter.camera.view_angle)

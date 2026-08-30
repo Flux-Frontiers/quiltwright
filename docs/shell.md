@@ -4,9 +4,17 @@
 which carries the summary this page expands.
 
 Everything in the library docs is where a scene arrives from whichever
-pipeline built it. Two things sit around that: a `Makefile` for the scenes
-this repository happens to ship, and a CLI for the stage *after* the
-assembler, which does not care what produced the quilt.
+pipeline built it. Three things sit around that:
+
+| | What it is | What it is not |
+|---|---|---|
+| **Library** | `render_quilt` / `render_pov_quilt` / `render_cycles_quilt` from Python | a CLI |
+| **`quiltwright` CLI** | Hardware and tooling on a finished quilt (`cast`, `weave`, `wallpaper`, `bridge`), plus three commands that take *arbitrary* input (`mesh`, `cartoon`, `probe`) | a generic `quiltwright render museum.pov` |
+| **`scripts/`** | Composed exhibits for the scenes this repo ships -- museum, vitrine, still-life, DNA helix, cartoon comparison, `make_exhibit.py` | unfinished CLI |
+
+The museum is a composed exhibit. It does not become a subcommand. A WaveRider
+manifold or a freshly converted structure comes through the library, or
+through `quiltwright mesh` if it is a file Blender can import.
 
 ---
 
@@ -95,12 +103,15 @@ Pass `--report` to either render script to get one outside `make`.
 
 ---
 
-## `quiltwright` -- the CLI, downstream of both backends
+## `quiltwright` -- the CLI
 
-Installed as `quiltwright`, core-only (numpy, pillow, click). Everything here
-operates on a *quilt*, which is where the two scene sources have already met:
-a manifold swept out of PyVista and a molecular scene ray-traced from POV-Ray
-produce the same artifact, and these commands treat them identically.
+Installed as `quiltwright`, core-only (numpy, pillow, click). Most commands
+operate on a *quilt*, which is where the backends have already met: a
+manifold swept out of PyVista and a molecular scene ray-traced from POV-Ray
+produce the same artifact, and `cast` / `weave` / `wallpaper` treat them
+identically. Three commands are a whole pipeline rather than a step after
+one: `mesh`, `cartoon`, `probe`. None of them is a generic renderer for the
+bundled scenes -- those stay in `scripts/`.
 
 ```bash
 quiltwright bridge status       # is Bridge actually able to draw?

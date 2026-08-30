@@ -81,7 +81,7 @@ want the pieces:
 
 ```python
 from quiltwright.cycles import mesh_bounds, frame_camera, render_cycles_quilt
-from quiltwright.lfd import QUILT_PRESETS, save_quilt
+from quiltwright.quilt import QUILT_PRESETS, save_quilt
 
 lo, hi = mesh_bounds("dragon.glb")              # world-space (min, max) corners
 camera = frame_camera(lo, hi, fov=14.0)         # a CyclesCamera aimed at the centre

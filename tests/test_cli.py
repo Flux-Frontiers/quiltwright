@@ -191,7 +191,7 @@ class TestCast:
             seen["spec"] = spec
             seen["kwargs"] = kwargs
 
-        monkeypatch.setattr("quiltwright.lfd.cast_quilt", fake_cast)
+        monkeypatch.setattr("quiltwright.bridge.cast_quilt", fake_cast)
         result = runner.invoke(cli, ["cast", str(_quilt(tmp_path))])
         assert result.exit_code == 0, result.output
         assert (seen["spec"].columns, seen["spec"].rows) == (8, 6)
@@ -200,7 +200,7 @@ class TestCast:
     def test_head_reaches_cast_quilt(self, runner, tmp_path, monkeypatch):
         """--head is the knob for a Bridge that picks the laptop screen."""
         seen = {}
-        monkeypatch.setattr("quiltwright.lfd.cast_quilt", lambda p, s, **kw: seen.update(kw))
+        monkeypatch.setattr("quiltwright.bridge.cast_quilt", lambda p, s, **kw: seen.update(kw))
         result = runner.invoke(cli, ["cast", str(_quilt(tmp_path)), "--head", "1"])
         assert result.exit_code == 0, result.output
         assert seen["head_index"] == 1

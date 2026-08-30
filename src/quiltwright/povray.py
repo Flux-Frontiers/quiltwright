@@ -57,7 +57,7 @@ plus pillow for quilt assembly (``poetry install --with viz``).
 
 Typical usage::
 
-    from quiltwright.lfd import QUILT_PRESETS, save_quilt
+    from quiltwright.quilt import QUILT_PRESETS, save_quilt
     from quiltwright.povray import PovCamera, render_pov_quilt
 
     camera = PovCamera(location=(35, 18.5, 0), look_at=(35, 20, 58), fov=14)
@@ -81,10 +81,19 @@ from collections.abc import Iterable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, replace
 from pathlib import Path
+from typing import Protocol
 
 import numpy as np
 
-from quiltwright.lfd import QuiltSpec, assemble_quilt, view_disparity, view_offsets
+from quiltwright.quilt import (
+    QuiltSpec,
+    assemble_quilt,
+    sweep_extent,
+    view_disparity,
+    view_offsets,
+    window_shear,
+)
+from quiltwright.runtime import COURTESY_CORES_HELD_BACK
 
 #: Environment variable overriding which POV-Ray binary is used.
 POVRAY_ENV = "POVRAY_BINARY"
@@ -300,12 +309,14 @@ def camera_block(camera: PovCamera, offset: float, aspect: float) -> str:
     """
     forward, right, up = camera.basis()
     dist = camera.image_plane_distance()
-    focal = camera.focal_distance
     eye = np.asarray(camera.location, dtype="d") + right * offset
     # Shear: slide the image-plane centre back onto the original view axis so
-    # the focal plane stays pinned across the sweep.  Never emit `angle` here
-    # -- it would override |direction| and silently undo this.
-    direction = forward * dist - right * (offset * dist / focal)
+    # the focal plane stays pinned across the sweep.  window_shear is in
+    # half-widths; the image plane is ``aspect`` wide, so the world-space
+    # slide along ``right`` is ``shear * aspect / 2``.  Never emit `angle`
+    # here -- it would override |direction| and silently undo this.
+    shear = window_shear(offset, camera.focal_distance, camera.fov, aspect)
+    direction = forward * dist + right * (shear * aspect / 2.0)
     return (
         "camera {\n"
         f"  location  {_vec(eye)}\n"
@@ -317,25 +328,8 @@ def camera_block(camera: PovCamera, offset: float, aspect: float) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Framing: sweep extent, wall clearance, depth budget
+# Framing: wall clearance, depth budget
 # ---------------------------------------------------------------------------
-
-
-def sweep_extent(spec: QuiltSpec, focal_distance: float) -> float:
-    """Half-width of the lateral eye travel the quilt's view sweep needs.
-
-    The outermost views sit ``focal_distance * tan(cone/2)`` to either side
-    of the centre view -- the largest magnitude in
-    :func:`~quiltwright.lfd.view_offsets`, in closed form.  For an object on
-    a turntable that space is empty; inside a room it is furniture and
-    walls, so compare it against a measured :class:`Clearance` before
-    committing to a render.
-
-    :param spec: Quilt specification (supplies the view cone).
-    :param focal_distance: Camera-to-focal-plane distance, in scene units.
-    :return: Half the total eye sweep, in scene units.
-    """
-    return focal_distance * math.tan(math.radians(spec.view_cone) / 2.0)
 
 
 @dataclass(frozen=True)
@@ -415,18 +409,35 @@ class Clearance:
         return sweep <= self.half_width or math.isclose(sweep, self.half_width, rel_tol=1e-9)
 
 
+class _HasLens(Protocol):
+    """``fov`` and ``focal_distance`` -- all the depth budget reads.
+
+    :class:`~quiltwright.quilt.QuiltCamera` satisfies this, as does a tiny
+    namespace with those two attributes.  The PyVista
+    :func:`~quiltwright.lfd.depth_report` uses the latter so it does not
+    have to construct a throwaway :class:`PovCamera`.
+    """
+
+    @property
+    def fov(self) -> float: ...
+
+    @property
+    def focal_distance(self) -> float: ...
+
+
 def depth_budget(
-    spec: QuiltSpec, camera: PovCamera, depths: Mapping[str, float]
+    spec: QuiltSpec, camera: _HasLens, depths: Mapping[str, float]
 ) -> list[tuple[str, float, float]]:
     """Adjacent-view disparity at each depth of interest.
 
-    A thin pairing of :func:`~quiltwright.lfd.view_disparity` with the
+    A thin pairing of :func:`~quiltwright.quilt.view_disparity` with the
     labelled depths measured from a scene, kept separate from
     :func:`format_depth_budget` so the numbers can be asserted on rather
     than only printed.
 
     :param spec: Quilt specification.
-    :param camera: Centre-view camera; supplies the focal distance and FOV.
+    :param camera: Centre-view camera; a :class:`~quiltwright.quilt.QuiltCamera`
+        or anything with ``fov`` and ``focal_distance``.
     :param depths: Labelled distances from the camera, in scene units.  Use
         ``math.inf`` for sky or a backdrop at infinity.
     :return: ``(label, depth, disparity_px)`` in the order given.
@@ -439,7 +450,7 @@ def depth_budget(
 
 def format_depth_budget(
     spec: QuiltSpec,
-    camera: PovCamera,
+    camera: _HasLens,
     depths: Mapping[str, float],
     *,
     clearance: Clearance | None = None,
@@ -453,7 +464,8 @@ def format_depth_budget(
     than after the ray-tracer has spent an hour on it.
 
     :param spec: Quilt specification.
-    :param camera: Centre-view camera.
+    :param camera: Centre-view camera; a :class:`~quiltwright.quilt.QuiltCamera`
+        or anything with ``fov`` and ``focal_distance``.
     :param depths: Labelled depths, as for :func:`depth_budget`.
     :param clearance: Measured lateral corridor, if the scene is enclosed.
         When given, the sweep is checked against it and a warning emitted if
@@ -735,12 +747,6 @@ def _render_view(
             f"POV-Ray reported success but wrote no image for {wrapper.name}.\n"
             f"{result.stderr[-2000:]}"
         )
-
-
-#: Cores held back from a render by default, so a multi-minute quilt does not
-#: make the rest of the machine unusable.  POV-Ray's own default is every
-#: core it can see.
-COURTESY_CORES_HELD_BACK = 2
 
 
 def resolve_work_threads(requested: int | None = None) -> int | None:
@@ -1029,7 +1035,7 @@ def render_pov_views(
     Pair it with :func:`~quiltwright.lfd.sweep_spec` when the view count is
     not a convenient rectangle::
 
-        from quiltwright.lfd import LITIHOLO_SWEEP
+        from quiltwright.quilt import LITIHOLO_SWEEP
         render_pov_views("risedronate.pov", LITIHOLO_SWEEP, camera, "sweep/")
         # -> sweep/view000.png ... sweep/view022.png
 

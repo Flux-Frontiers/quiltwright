@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **`QuiltCamera` protocol and `window_shear()`.** The three backends
+  (VTK `SetWindowCenter`, Blender `shift_x`, POV-Ray `direction` shear)
+  are unit conversions of one dimensionless window shift, now in
+  `quiltwright.quilt`. Named `QuiltCamera` so it does not collide with
+  layer 1's `CameraFrame`. `lfd.camera_frame` is the public name for the
+  vtkCamera decomposition. The courtesy core cap lives in `quiltwright.runtime` so Cycles
+  no longer imports it from the POV-Ray module.
+
 - **A general-purpose "any 3D object file → quilt" path, with the camera
   auto-framed from the mesh.** The Cycles backend already imported glTF/GLB,
   OBJ, STL, PLY, USD, FBX and Alembic, but every worked example so far
@@ -70,6 +78,85 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   worked-example scripts each carried their own hard-coded `880x1100`
   literal, which ignored `--device` and framed a landscape panel's still in
   portrait.
+
+- **Knowledge-graph tooling for maintainers, wired into the repo rather
+  than the machine.** A new optional `kg` Poetry group installs `pycode-kg`
+  and `doc-kg` into `.venv/bin` (`poetry install --with kg`), and
+  `.grok/config.toml` points both MCP servers at those paths, so an agent
+  working here talks to the pinned versions instead of whatever the global
+  `~/.local/bin` install has drifted to. A group and not an extra on
+  purpose: an extra reaches the published wheel metadata and would hand
+  every `pip install quiltwright` a torch and sentence-transformers install
+  for tooling the package never runs. `[tool.pycodekg]` indexes `src` only,
+  since `tests/` and `scripts/` are twice its size and would set the
+  analysis grade; `[tool.dockg]` and `[tool.memorykg]` index the prose and
+  skip generated render reports, which are near-identical per run and
+  invent spurious `SIMILAR_TO` edges. The first graph snapshot and an
+  architecture report ([analysis/quiltwright_analysis_20260830.md](analysis/quiltwright_analysis_20260830.md))
+  are committed as the baseline the next one is diffed against.
+  `detect-secrets` now skips `.pycodekg/`, whose snapshot keys are git tree
+  hashes and read as high-entropy strings that no baseline entry could
+  cover, since every snapshot mints a new one.
+
+- **Install recipes in the `pyproject.toml` header.** The comment block now
+  lists every group and extra combination, including the comma-with-no-space
+  form Poetry requires (`--with viz,video,dev`), so the working command does
+  not have to be rediscovered.
+
+### Changed
+
+- **`git push` no longer waits on the ray tracer.** The pre-push pytest hook
+  runs `-m "not slow"`, which takes the local gate from 96 s to 16 s while
+  still running 557 of 588 tests. The marker existed and was declared in
+  `pyproject.toml`, but carried only 13 tests: the three classes in
+  `tests/test_povray.py` that shell out to a real `povray` binary were the
+  bulk of the cost and were unmarked, so deselecting slow tests used to save
+  16 s of 96. They are marked now. Nothing is skipped rather than deferred --
+  CI runs the suite unfiltered on both interpreters, and it now runs on
+  `develop` as well as `main`, which previously got no CI at all.
+
+- **`TestDepthSweep` ray-traces once instead of once per test.** Its `scene`
+  and `curve` fixtures were function-scoped, so a sweep that three tests read
+  different properties of was rendered three times: 18 s of the suite's 96.
+  Both are class-scoped now, which is 12 s off every full run, CI included.
+  The camera moves to a `PROBE_CAMERA` module constant, since a class-scoped
+  fixture cannot depend on the function-scoped `camera` fixture, and both
+  fixtures are `@staticmethod` -- pytest 10 removes class-scoped fixtures
+  declared as instance methods.
+
+- **The last private cross-module imports are gone.** `cli/cmd_cast.py`
+  reached into `bridge._bridge_post` and `bridge._enter_orchestration` to
+  list output devices; both are public as `bridge_post` and
+  `enter_orchestration`, which is what a fan-in of 6 and 5 already made
+  them. `lfd._camera_frame` was left as an alias for the promoted
+  `camera_frame` and had no callers, so it is deleted.
+
+- **`find_ffmpeg` moved to `quiltwright.runtime`.** It is binary discovery,
+  not rendering, and both the quilt-video encoder and `hld` call it. Living
+  in `lfd` meant `from quiltwright import find_ffmpeg` loaded PyVista on a
+  core install, and made `hld` import the PyVista backend for one function.
+  `quiltwright.lfd.find_ffmpeg` still resolves via re-export.
+
+- **Quilt geometry and Bridge HTTP no longer live inside the PyVista
+  backend.** `QuiltSpec`, presets, `assemble_quilt`, `save_quilt`,
+  `view_offsets`, `view_disparity`, `focal_distance_for_range`, and
+  `sweep_extent` live in `quiltwright.quilt` (numpy + pillow).
+  `cast_quilt` and the transport controls live in `quiltwright.bridge`
+  (stdlib). `quiltwright.lfd` is the PyVista backend and re-exports every
+  moved name, so `from quiltwright.lfd import QuiltSpec` is unchanged.
+  Package-level lazy imports resolve `QuiltSpec` without loading VTK.
+  `depth_budget` / `format_depth_budget` take any camera with `fov` and
+  `focal_distance`, so `lfd.depth_report` no longer builds a throwaway
+  `PovCamera`. Docs and examples import from the new homes. Plan:
+  [docs/architecture-plan.md](docs/architecture-plan.md).
+
+- **The CLI is hardware and tooling; `scripts/` is the gallery.** There is
+  no generic `quiltwright render`. `cast` / `weave` / `wallpaper` / `bridge`
+  operate on a finished quilt; `mesh` / `cartoon` / `probe` take arbitrary
+  input. Composed exhibits for the bundled scenes (museum, vitrine,
+  still-life, DNA helix, cartoon comparison) stay in `scripts/`. `tvb_data`
+  stays in the default public API: NumPy-only loader, GPL archive fetched
+  at runtime.
 
 ## [0.9.0] - 2026-08-26
 

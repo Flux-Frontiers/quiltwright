@@ -1,0 +1,34 @@
+# MCP servers run from this repo's own venv, not from ~/.local/bin, so the
+# `kg` group in pyproject.toml decides which pycodekg/dockg the agent talks to.
+# The global installs drift: ~/.local/bin/pycodekg was 0.21.4 while the group
+# pins >=0.24.1.  Same reasoning as the ty hook in .pre-commit-config.yaml --
+# an explicit venv path needs nothing on PATH and cannot resolve elsewhere.
+#
+#   poetry install --with kg      puts both CLIs in .venv/bin
+
+[paths]
+extra_skill_dirs = ["/Users/egs/repos/quiltwright/.claude/skills"]
+
+[mcp_servers.pycodekg]
+command = "/Users/egs/repos/quiltwright/.venv/bin/pycodekg"
+args = [
+    "mcp",
+    "--repo",
+    "/Users/egs/repos/quiltwright",
+    "--db",
+    "/Users/egs/repos/quiltwright/.pycodekg/graph.sqlite",
+]
+enabled = true
+
+[mcp_servers.dockg]
+command = "/Users/egs/repos/quiltwright/.venv/bin/dockg"
+args = [
+    "mcp",
+    "--repo",
+    "/Users/egs/repos/quiltwright",
+    "--db",
+    "/Users/egs/repos/quiltwright/.dockg/graph.sqlite",
+    "--vectors-path",
+    "/Users/egs/repos/quiltwright/.dockg/vectors.sqlite",
+]
+enabled = true

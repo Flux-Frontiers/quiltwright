@@ -314,9 +314,11 @@ slicer expects off-axis frusta or a toe-in arc, and whether 2.05° is too coarse
 ## Driving it from the shell
 
 Two things sit around the library: a `Makefile` for the bundled 1993-99
-scenes, and a CLI for the stage after the assembler, which does not care what
-produced the quilt. The full tour -- every target, the parallelism model, run
-reports, and what each CLI command is for -- is [docs/shell.md](docs/shell.md).
+scenes, and a CLI for hardware and tooling -- `cast`, `weave`, `wallpaper`,
+`bridge` -- plus `mesh` / `cartoon` / `probe` for arbitrary input. The
+worked exhibits for the scenes this repo ships (museum, vitrine, still-life,
+DNA helix, cartoon comparison) stay in `scripts/`; they are not unfinished
+CLI. The full tour is [docs/shell.md](docs/shell.md).
 
 ```bash
 make gallery                    # every reference still -> gallery/
@@ -406,6 +408,7 @@ QUILT_PRESETS["16-landscape"]      # 8x6 views, 7680x4320, aspect 1.7778
 |----------|----------|
 | [docs/install.md](docs/install.md) | Installing the full stack: package extras, POV-Ray, ffmpeg, Bridge, pypdb2pov |
 | [docs/shell.md](docs/shell.md) | Driving it from the shell: every make target, the parallelism model, run reports, and the CLI command by command |
+| [docs/architecture-plan.md](docs/architecture-plan.md) | Module split: `quiltwright.quilt` / `.bridge` / `.lfd`, `QuiltCamera`, `window_shear`. Landed on `develop` |
 | [docs/lfd.md](docs/lfd.md) | Light-field output, Bridge/Studio setup, device presets, the PyVista path, view sweeps for hologram printers |
 | [docs/pyvista-datasets.md](docs/pyvista-datasets.md) | PyVista dataset ideas for holograms: topography, the Allen mouse brain atlas, other strong-depth candidates |
 | [docs/tvb-data.md](docs/tvb-data.md) | Brain geometry from The Virtual Brain: cortical surfaces, connectomes, parcellations, downloaded on demand |
