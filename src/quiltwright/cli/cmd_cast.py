@@ -51,11 +51,11 @@ def _describe_heads(bridge_url: str, timeout: float) -> list[tuple[str, str, str
     :raises click.ClickException: If Bridge cannot be reached or refuses a
         session.
     """
-    from quiltwright.bridge import _bridge_post, _enter_orchestration
+    from quiltwright.bridge import bridge_post, enter_orchestration
 
     try:
-        token = _enter_orchestration(bridge_url, timeout)
-        payload = _bridge_post(
+        token = enter_orchestration(bridge_url, timeout)
+        payload = bridge_post(
             bridge_url, "available_output_devices", {"orchestration": token}, timeout
         )
     except Exception as exc:  # noqa: BLE001 -- surfaced verbatim to the user

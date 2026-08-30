@@ -14,8 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   are unit conversions of one dimensionless window shift, now in
   `quiltwright.quilt`. Named `QuiltCamera` so it does not collide with
   layer 1's `CameraFrame`. `lfd.camera_frame` is the public name for the
-  vtkCamera decomposition (the private `_camera_frame` remains as an
-  alias). The courtesy core cap lives in `quiltwright.runtime` so Cycles
+  vtkCamera decomposition. The courtesy core cap lives in `quiltwright.runtime` so Cycles
   no longer imports it from the POV-Ray module.
 
 - **A general-purpose "any 3D object file → quilt" path, with the camera
@@ -80,7 +79,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   literal, which ignored `--device` and framed a landscape panel's still in
   portrait.
 
+- **Knowledge-graph tooling for maintainers, wired into the repo rather
+  than the machine.** A new optional `kg` Poetry group installs `pycode-kg`
+  and `doc-kg` into `.venv/bin` (`poetry install --with kg`), and
+  `.grok/config.toml` points both MCP servers at those paths, so an agent
+  working here talks to the pinned versions instead of whatever the global
+  `~/.local/bin` install has drifted to. A group and not an extra on
+  purpose: an extra reaches the published wheel metadata and would hand
+  every `pip install quiltwright` a torch and sentence-transformers install
+  for tooling the package never runs. `[tool.pycodekg]` indexes `src` only,
+  since `tests/` and `scripts/` are twice its size and would set the
+  analysis grade; `[tool.dockg]` and `[tool.memorykg]` index the prose and
+  skip generated render reports, which are near-identical per run and
+  invent spurious `SIMILAR_TO` edges. The first graph snapshot and an
+  architecture report ([analysis/quiltwright_analysis_20260830.md](analysis/quiltwright_analysis_20260830.md))
+  are committed as the baseline the next one is diffed against.
+  `detect-secrets` now skips `.pycodekg/`, whose snapshot keys are git tree
+  hashes and read as high-entropy strings that no baseline entry could
+  cover, since every snapshot mints a new one.
+
+- **Install recipes in the `pyproject.toml` header.** The comment block now
+  lists every group and extra combination, including the comma-with-no-space
+  form Poetry requires (`--with viz,video,dev`), so the working command does
+  not have to be rediscovered.
+
 ### Changed
+
+- **The last private cross-module imports are gone.** `cli/cmd_cast.py`
+  reached into `bridge._bridge_post` and `bridge._enter_orchestration` to
+  list output devices; both are public as `bridge_post` and
+  `enter_orchestration`, which is what a fan-in of 6 and 5 already made
+  them. `lfd._camera_frame` was left as an alias for the promoted
+  `camera_frame` and had no callers, so it is deleted.
+
+- **`find_ffmpeg` moved to `quiltwright.runtime`.** It is binary discovery,
+  not rendering, and both the quilt-video encoder and `hld` call it. Living
+  in `lfd` meant `from quiltwright import find_ffmpeg` loaded PyVista on a
+  core install, and made `hld` import the PyVista backend for one function.
+  `quiltwright.lfd.find_ffmpeg` still resolves via re-export.
 
 - **Quilt geometry and Bridge HTTP no longer live inside the PyVista
   backend.** `QuiltSpec`, presets, `assemble_quilt`, `save_quilt`,

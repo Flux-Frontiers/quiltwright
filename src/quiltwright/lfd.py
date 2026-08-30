@@ -81,6 +81,7 @@ from quiltwright.quilt import (
     view_offsets,
     window_shear,
 )
+from quiltwright.runtime import find_ffmpeg
 
 # Re-exports: fleet and tests import these from lfd.  Names in __all__ are
 # used, so ruff F401 does not treat the imports above as dead.
@@ -347,9 +348,6 @@ def camera_frame(camera) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray
     return pos, focal, right, true_up, distance
 
 
-_camera_frame = camera_frame  # alias: cycles imported the private name until this PR
-
-
 def _apply_off_axis_view(camera, base, offset: float, tile_aspect: float) -> None:
     """Position *camera* for one quilt view using an off-axis projection.
 
@@ -472,28 +470,6 @@ def render_quilt(
 # ---------------------------------------------------------------------------
 # Quilt video (turntable / animated holograms)
 # ---------------------------------------------------------------------------
-
-
-def find_ffmpeg() -> str:
-    """Locate an ffmpeg binary: system PATH first, then imageio-ffmpeg's.
-
-    :return: Path to an ffmpeg executable.
-    :raises RuntimeError: If no ffmpeg can be found.
-    """
-    import shutil
-
-    found = shutil.which("ffmpeg")
-    if found:
-        return found
-    try:
-        import imageio_ffmpeg
-
-        return imageio_ffmpeg.get_ffmpeg_exe()
-    except ImportError as exc:
-        raise RuntimeError(
-            "Quilt video encoding requires ffmpeg.\n"
-            "Install it system-wide, or:  pip install imageio-ffmpeg"
-        ) from exc
 
 
 def _encode_args(spec: QuiltSpec, crf: int) -> list[str]:

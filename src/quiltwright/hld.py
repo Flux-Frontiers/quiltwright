@@ -49,7 +49,7 @@ from pathlib import Path
 
 import numpy as np
 
-from quiltwright.lfd import find_ffmpeg
+from quiltwright.runtime import find_ffmpeg
 
 try:
     import pyvista as pv  # noqa: F401

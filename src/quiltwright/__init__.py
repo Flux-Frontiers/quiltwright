@@ -92,7 +92,7 @@ _LAZY: dict[str, str] = {
     "depth_budget": "povray",
     "depth_sweep": "povray",
     "depth_report": "lfd",
-    "find_ffmpeg": "lfd",
+    "find_ffmpeg": "runtime",
     "focal_distance_for_range": "quilt",
     "frame_and_focus": "lfd",
     "format_depth_budget": "povray",

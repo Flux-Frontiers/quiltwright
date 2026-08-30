@@ -58,6 +58,11 @@ repos:
           - '^docs/.*\.png$'
           - '--exclude-files'
           - '^\.venv/'
+          # Snapshot keys are git tree hashes, which read as high-entropy hex.
+          # A baseline entry would go stale on the next snapshot, since every
+          # snapshot has a new key.
+          - '--exclude-files'
+          - '^\.pycodekg/'
 
   - repo: local
     hooks:

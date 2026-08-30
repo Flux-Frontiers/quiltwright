@@ -33,7 +33,7 @@ from quiltwright.quilt import QuiltSpec, save_quilt
 BRIDGE_URL = "http://localhost:33334"
 
 
-def _bridge_post(bridge_url: str, endpoint: str, payload: dict, timeout: float) -> dict:
+def bridge_post(bridge_url: str, endpoint: str, payload: dict, timeout: float) -> dict:
     """Send a JSON payload to a Bridge endpoint and decode the response.
 
     Bridge's HTTP API expects ``PUT``.  It answers ``POST`` with ``200 OK``
@@ -51,7 +51,7 @@ def _bridge_post(bridge_url: str, endpoint: str, payload: dict, timeout: float) 
     return json.loads(body) if body else {}
 
 
-def _enter_orchestration(bridge_url: str, timeout: float) -> str:
+def enter_orchestration(bridge_url: str, timeout: float) -> str:
     """Enter (or rejoin) the default Bridge orchestration session.
 
     Bridge scopes all playback control to an orchestration session; calling
@@ -61,7 +61,7 @@ def _enter_orchestration(bridge_url: str, timeout: float) -> str:
 
     :return: The orchestration token required by every other Bridge call.
     """
-    resp = _bridge_post(bridge_url, "enter_orchestration", {"name": "default"}, timeout)
+    resp = bridge_post(bridge_url, "enter_orchestration", {"name": "default"}, timeout)
     token = resp.get("payload", {}).get("value", "")
     if not token:
         raise RuntimeError(
@@ -101,21 +101,21 @@ def cast_quilt(
         lists the indices; ``quiltwright cast --check`` prints them.
     :return: Decoded JSON response of the final ``play_playlist`` call.
     """
-    token = _enter_orchestration(bridge_url, timeout)
+    token = enter_orchestration(bridge_url, timeout)
 
-    _bridge_post(
+    bridge_post(
         bridge_url,
         "show_window",
         {"orchestration": token, "show_window": True, "head_index": head_index},
         timeout,
     )
-    _bridge_post(
+    bridge_post(
         bridge_url,
         "instance_playlist",
         {"orchestration": token, "name": playlist, "loop": True},
         timeout,
     )
-    _bridge_post(
+    bridge_post(
         bridge_url,
         "insert_playlist_entry",
         {
@@ -132,7 +132,7 @@ def cast_quilt(
         },
         timeout,
     )
-    return _bridge_post(
+    return bridge_post(
         bridge_url,
         "play_playlist",
         {"orchestration": token, "name": playlist, "head_index": head_index},
@@ -200,8 +200,8 @@ def pause_quilt(*, bridge_url: str = BRIDGE_URL, timeout: float = 10.0) -> dict:
     :param timeout: HTTP timeout in seconds.
     :return: Decoded JSON response of the ``transport_control_pause`` call.
     """
-    token = _enter_orchestration(bridge_url, timeout)
-    return _bridge_post(bridge_url, "transport_control_pause", {"orchestration": token}, timeout)
+    token = enter_orchestration(bridge_url, timeout)
+    return bridge_post(bridge_url, "transport_control_pause", {"orchestration": token}, timeout)
 
 
 def resume_quilt(*, bridge_url: str = BRIDGE_URL, timeout: float = 10.0) -> dict:
@@ -211,8 +211,8 @@ def resume_quilt(*, bridge_url: str = BRIDGE_URL, timeout: float = 10.0) -> dict
     :param timeout: HTTP timeout in seconds.
     :return: Decoded JSON response of the ``transport_control_play`` call.
     """
-    token = _enter_orchestration(bridge_url, timeout)
-    return _bridge_post(bridge_url, "transport_control_play", {"orchestration": token}, timeout)
+    token = enter_orchestration(bridge_url, timeout)
+    return bridge_post(bridge_url, "transport_control_play", {"orchestration": token}, timeout)
 
 
 def stop_quilt(*, bridge_url: str = BRIDGE_URL, timeout: float = 10.0) -> dict:
@@ -233,9 +233,9 @@ def stop_quilt(*, bridge_url: str = BRIDGE_URL, timeout: float = 10.0) -> dict:
     :param timeout: HTTP timeout in seconds.
     :return: Decoded JSON response of the final ``show_window`` call.
     """
-    token = _enter_orchestration(bridge_url, timeout)
-    _bridge_post(bridge_url, "transport_control_pause", {"orchestration": token}, timeout)
-    return _bridge_post(
+    token = enter_orchestration(bridge_url, timeout)
+    bridge_post(bridge_url, "transport_control_pause", {"orchestration": token}, timeout)
+    return bridge_post(
         bridge_url,
         "show_window",
         {"orchestration": token, "show_window": False, "head_index": -1},

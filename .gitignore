@@ -105,3 +105,4 @@ grants/
 .pycodekg/graph.sqlite
 .pycodekg/vectors.sqlite
 docs/quiltwright_brand.md
+.grok/config.toml

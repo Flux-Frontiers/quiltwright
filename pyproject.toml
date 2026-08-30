@@ -6,16 +6,32 @@
 # ----------------------
 #   poetry install                     core (quilt geometry + Bridge control)
 #   poetry install --with viz          + pyvista/VTK rendering backend
+#   poetry install --with molecules    + pypdb2pov, for the molecular scenes
 #   poetry install --with video        + bundled ffmpeg for video encoding
 #   poetry install --with dev          + test and lint tooling
+#   poetry install --with kg           + pycodekg/dockg, maintainer tooling
+#   poetry install --all-extras --with dev,kg + everything
+#
+# Groups combine, and every group is optional -- a bare `poetry install` skips
+# all of them.  No space after the comma: Poetry reads the name following it as
+# a positional argument and refuses the command.
+#
+#   poetry install --with viz,video,dev
 #
 # Quick install (pip)
 # -------------------
 #   pip install -e .                   core
 #   pip install -e ".[viz]"            + pyvista rendering backend
+#   pip install -e ".[viz,video]"      + ffmpeg as well
+#   pip install -e ".[molecules]"      + pypdb2pov, for the molecular scenes
+#
+# `kg` has no pip equivalent on purpose.  It is tooling this repo runs, not a
+# feature of the package, so it is a Poetry group only and never reaches the
+# published wheel metadata.
 #
 # Run tests
 # ---------
+#   poetry install --with dev          prerequisite
 #   pytest                             uses [tool.pytest.ini_options]
 #
 # The POV-Ray backend needs a `povray` binary on PATH (brew install povray),
@@ -75,12 +91,14 @@ viz = ["pyvista>=0.44"]
 # ffmpeg makes the extra redundant.  It also stays optional on licence
 # grounds: see docs/install.md section 4.
 video = ["imageio-ffmpeg>=0.4"]
+
 # Molecular scenes.  pypdb2pov turns PDB and PDBx/mmCIF structures into
 # POV-Ray scenes and ships the atom textures inside the package, so installing
 # it is the whole setup for pov-scenes/vitrine/ -- `pypdb2pov --include-dir`
 # reports where they landed, and scripts/render_vitrine.py asks the package
 # rather than being told a path.
 #
+
 # Optional for the same reason `viz` is: only the molecular scenes need it,
 # and a machine that renders anything else should not carry it.  (It is
 # BSD-3-Clause, like this project -- the 0.1.0 metadata on PyPI says
@@ -139,6 +157,32 @@ imageio-ffmpeg = ">=0.4"
 ty = ">=0.0.41"
 pre-commit = ">=4.5.1"
 
+# Maintainer tooling, not a dependency of this package.  Both CLIs index this
+# repo for agents -- `pycodekg` the package source, `dockg` the prose -- and
+# `.grok/config.toml` serves each as an MCP server.  Nothing under src/ imports
+# either one.
+#
+# A Poetry group, not an extra: an extra is a feature of the package and lands
+# in the published wheel metadata, which would hand every `pip install
+# quiltwright` a torch and sentence-transformers install for tooling it will
+# never run.  A group is locked and installable but stays out of that metadata.
+#
+#   poetry install --with kg      # pycodekg and dockg into .venv/bin
+#   poetry install                # default -- the group is optional, skipped
+#
+# `kg` is the fleet-wide name for this group so there is one command to
+# remember; contents are per-repo and cover only what this repo invokes.  Safe
+# to lock despite quiltwright being layer 2 of the visualization stack: the
+# only path back to this package is `kgmodule-utils[viz3d-qt]`, and pycode-kg
+# asks for `kgmodule-utils[semantic,viz3d]`, which does not pull it in.  Should
+# that change, `poetry lock` fails here rather than downstream.
+[tool.poetry.group.kg]
+optional = true
+
+[tool.poetry.group.kg.dependencies]
+pycode-kg = ">=0.24.1"
+doc-kg = ">=0.22.0"
+
 
 # ---------------------------------------------------------------------------
 # Tooling
@@ -159,3 +203,28 @@ ignore = ["E501"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["B011"]
+
+# Knowledge graphs.  Both tools also accept these as repeatable CLI flags
+# (--include-dir / --exclude-dir); the values here are the defaults so a bare
+# `pycodekg build` / `dockg build` indexes the same thing every time.
+
+# The code graph is the package, not the harness around it.  tests/ and
+# scripts/ are twice the size of src/ and would set the analysis grade:
+# 162 test functions read as a "module to split", and undocumented test
+# bodies drag docstring coverage from 94% to 55%.
+[tool.pycodekg]
+exclude = ["tests"]
+include = ["src"]
+
+# The doc graph is prose a reader would look for: docs/, the README, the
+# changelog, the scene notes.  Render run-reports are generated per render
+# and near-identical, so they crowd the graph and invent SIMILAR_TO edges.
+[tool.dockg]
+exclude = [
+    "benchmarks", "bundles", "dist", "src", "scripts", "tests", "gallery", "molecules", "renders"
+]
+
+[tool.memorykg]
+exclude = [
+    "benchmarks", "bundles", "dist", "src", "scripts", "tests"
+]
