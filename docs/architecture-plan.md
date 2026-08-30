@@ -16,7 +16,7 @@ architecture the README already describes into modules.
 
 Companion: the fleet layering note in
 `~/repos/kgrag_priv/docs/VISUALIZATION_STACK.md` (stale as of this writing:
-it still says two renderers and PyPI 0.6.0; this package is 0.9.0 with a
+it still says two renderers and PyPI 0.6.0; this package is 0.10.0 with a
 Cycles backend). Refresh that file in `kgrag_priv`, not here.
 
 ---
