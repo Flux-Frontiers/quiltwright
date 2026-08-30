@@ -44,7 +44,7 @@ same pattern `pyvista.examples` uses for its own downloads. That keeps the
 GPL data out of this repository and out of any Quiltwright distribution.
 
 This is the same line [install.md](install.md) draws around ffmpeg: a
-GPL-licensed artefact is something the package fetches on request, never
+GPL-licensed artifact is something the package fetches on request, never
 something it ships or pulls in by default.
 
 If you publish work using these datasets, TVB asks that you cite the
@@ -117,7 +117,7 @@ clear_cache()
 
 `connectivity_66`, `_68`, `_76`, `_80`, `_96`, `_192`, `_998`, and
 `macaque_84`. Each carries a weights matrix, a tract-length matrix, and
-named 3-D region centres.
+named 3-D region centers.
 
 ### Region mappings -- `load_region_mapping`
 
@@ -131,7 +131,7 @@ Per-vertex parcellation labels, paired by vertex count:
 | `regionMapping_16k_192` | 16,500 | *no surface in the archive matches* |
 
 `surface_polydata` validates the pairing and raises rather than producing a
-mis-coloured mesh.
+mis-colored mesh.
 
 ### Sensors -- `load_sensors`
 
@@ -150,8 +150,8 @@ vertices, triangles, normals = load_surface("cortex_16384")   # downloads once
 conn = load_connectivity("connectivity_76")
 
 conn.weights.shape        # (76, 76) structural connection strengths
-conn.tract_lengths.shape  # (76, 76) fibre lengths in mm
-conn.centres.shape        # (76, 3)  region centres in mm
+conn.tract_lengths.shape  # (76, 76) fiber lengths in mm
+conn.centres.shape        # (76, 3)  region centers in mm
 conn.labels[:3]           # ['rA1', 'rA2', 'rAMYG']
 conn.degree               # weighted degree per region
 ```
@@ -174,8 +174,8 @@ spec = QUILT_PRESETS["portrait"]
 save_quilt(render_quilt(p, spec), "cortex", spec)
 ```
 
-A connectome -- region centres sized by weighted degree, strongest tracts as
-weight-coloured tubes, inside a translucent cortex:
+A connectome -- region centers sized by weighted degree, strongest tracts as
+weight-colored tubes, inside a translucent cortex:
 
 ```python
 from quiltwright.tvb_data import connectome_polydata, surface_polydata
@@ -201,10 +201,10 @@ Use `decimate` for quilts, and keep it low for HLD video, which is one
 ordinary render per frame.
 
 Decimating a parcellated surface is safe: region labels are re-assigned to
-the decimated vertices by nearest neighbour, because interpolating between
+the decimated vertices by nearest neighbor, because interpolating between
 region 3 and region 70 would be meaningless.
 
-### Colour on an HLD
+### Color on an HLD
 
 White is transparent on a Hololuminescent Display, so avoid pure white for
 any surface meant to be visible. `turbo` is safe for parcellations; clamp

@@ -2,7 +2,7 @@
 
 `quiltwright.povgen` writes `.pov` scenes from analytic primitives, so a scene
 composed in Python -- or grown by a geometry engine such as `kg_utils.viz3d` --
-can be **ray-traced** by [`render_pov_quilt`](povray.md) instead of rasterised
+can be **ray-traced** by [`render_pov_quilt`](povray.md) instead of rasterized
 by VTK.
 
 It is the bridge between quiltwright's two existing backends, which until now
@@ -167,8 +167,8 @@ Two consequences worth knowing:
 
 **Opacity becomes POV-Ray `transmit`, not `filter`.** This matters: `transmit`
 passes light through unchanged, which is the correct analogue of VTK's alpha.
-`filter` tints everything seen through the surface by the surface's own colour,
-and using it will quietly recolour your whole scene.
+`filter` tints everything seen through the surface by the surface's own color,
+and using it will quietly recolor your whole scene.
 
 Lighting is *not* transcoded. VTK's default is a headlight at the camera, which
 POV-Ray does not reproduce and which looks flat when ray-traced anyway.

@@ -31,7 +31,7 @@ reason to bother is content. Decades of POV-Ray scenes exist that were composed
 for depth -- interiors, still lifes, molecular sets -- and they were built with
 global illumination, real refraction through glass, and correct shadows. That
 is exactly what a holographic display flatters, and it is expensive to
-reproduce in a rasteriser.
+reproduce in a rasterizer.
 
 The driver does four things:
 
@@ -64,9 +64,9 @@ not obvious, because the feature is a side effect of how its camera is
 specified rather than a documented capability.
 
 POV-Ray builds the frustum from four vectors: `location` is the eye,
-`direction` places the **centre of the image plane** relative to it, and
+`direction` places the **center of the image plane** relative to it, and
 `right`/`up` **span** that plane. Critically, POV-Ray does *not*
-re-orthogonalise them. Tilting `direction` while holding `right` and `up`
+re-orthogonalize them. Tilting `direction` while holding `right` and `up`
 fixed leaves the image plane parallel to itself and shears the frustum -- an
 asymmetric-frustum projection, which is precisely what a light-field display
 requires.
@@ -86,9 +86,9 @@ right     = aspect · r
 up        = u
 ```
 
-The subtracted term slides the image-plane centre back onto the original view
+The subtracted term slides the image-plane center back onto the original view
 axis. Deriving it takes one line: a ray from the shifted eye through the
-image-plane centre reaches the original axis at f-distance `Z` when
+image-plane center reaches the original axis at f-distance `Z` when
 `s + Z·c/D = 0`, hence `c = −s·D/Z`.
 
 Two rules follow, and both are enforced in code:
@@ -107,7 +107,7 @@ warning *is* the shear; it is expected and benign.
 ### Verification
 
 A three-marker scene -- spheres at depths 6, 10 and 14, focal plane at 10 --
-renders with the on-plane marker pinned to the centre pixel across the whole
+renders with the on-plane marker pinned to the center pixel across the whole
 sweep while the others separate in opposite directions. Measured against
 theory:
 
@@ -125,8 +125,8 @@ pin and the view ordering.
 ## 2. The depth budget
 
 The number that decides whether a hologram fuses is the **adjacent-view
-disparity**: how far a feature moves between neighbouring quilt views. The
-display blends neighbours optically, so a pixel or two reads as solid depth
+disparity**: how far a feature moves between neighboring quilt views. The
+display blends neighbors optically, so a pixel or two reads as solid depth
 while larger shifts read as ghosting or a visible stack of copies. Scenes that
 look fine flat routinely blow this budget.
 
@@ -140,7 +140,7 @@ disparity = [tan(cone/2) / tan(fov/2)] · |1 − Z/z| · tile_height / (n_views 
 The aspect ratio cancels. `view_disparity()` implements it; the ray-traced
 measurements above anchor it to within 2%.
 
-Three consequences are worth internalising:
+Three consequences are worth internalizing:
 
 - **Content at the focal plane has zero disparity.** It is welded to the glass.
 - **A narrower FOV *increases* disparity.** This is the counterintuitive one.
@@ -151,7 +151,7 @@ Three consequences are worth internalising:
   Keep the scene's own wide angle.
 - **The focal plane belongs at the harmonic mean of the depth range**, not the
   midpoint. Disparity grows with `|1 − Z/z|`, which is asymmetric in depth, so
-  the arithmetic midpoint leaves near content far worse off. Equalising the
+  the arithmetic midpoint leaves near content far worse off. Equalizing the
   two ends gives `Z = 2/(1/near + 1/far)` -- `focal_distance_for_range()`. With
   the far plane at infinity it reduces to `2 × near`.
 
@@ -171,9 +171,9 @@ room's usable lateral corridor, measured by rendering at candidate offsets and
 watching for the frame to collapse to the unlit back face of a wall, is only
 −18 to +8. The first full render of this scene therefore had **11 of its 48
 views showing the outside of a wall** -- and the failure is quiet, because the
-centre view (the one you preview) is perfect.
+center view (the one you preview) is perfect.
 
-The fix is to probe the corridor, recentre the eye within it, and derive the
+The fix is to probe the corridor, recenter the eye within it, and derive the
 cone from the clearance that remains:
 
 ```
@@ -247,7 +247,7 @@ can afford the disparity anyway.
 | Parameter | Value | Source |
 |-----------|-------|--------|
 | Focal plane | 46.9 units | harmonic mean of 31 and 96 |
-| Eye shift | −5 units along `r` | centres the lateral corridor |
+| Eye shift | −5 units along `r` | centers the lateral corridor |
 | View cone | 26.4° | clearance-limited, 2-unit margin |
 | FOV | 53.13° | the scene's own lens, unchanged |
 
@@ -260,9 +260,9 @@ can afford the disparity anyway.
 | Far interior | 96 | 3.68 px |
 | Sky | ∞ | 7.19 px (soft, low contrast) |
 
-![Museum centre view](museum_centre_view.png)
+![Museum center view](museum_centre_view.png)
 
-*Centre view (view 24) of the finished quilt, 960×720.*
+*Center view (view 24) of the finished quilt, 960×720.*
 
 **Verification on the finished quilt.** Near and far features must shift in
 *opposite* directions about a stationary focal plane -- the signature of a
@@ -345,7 +345,7 @@ camera's right vector.
   the sweep needs, i.e. the largest `view_offsets()` magnitude in closed form.
   Lives in `quiltwright.quilt`; re-exported here.
 - `depth_budget(spec, camera, depths)` -- `(label, depth, disparity_px)` per
-  labelled depth; `math.inf` is accepted for sky. `camera` is any
+  labeled depth; `math.inf` is accepted for sky. `camera` is any
   `QuiltCamera` (or anything with `fov` and `focal_distance`), not only a
   `PovCamera`.
 - `format_depth_budget(spec, camera, depths, *, clearance=None, soft_px=5.5)` --

@@ -36,9 +36,9 @@ make help                 # every target, and the still names
 
 ### The gallery
 
-One full-quality frame per scene, into [`gallery/`](../gallery/), catalogued in
+One full-quality frame per scene, into [`gallery/`](../gallery/), cataloged in
 [gallery.md](gallery.md). These are committed: they are the diffable record of
-what each scene looks like, and the presented work rather than a build artefact
+what each scene looks like, and the presented work rather than a build artifact
 -- which is why they sit at the top level and not under `renders/`, where
 everything is output and only `reports/` is kept.
 

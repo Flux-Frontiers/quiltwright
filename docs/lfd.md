@@ -35,13 +35,13 @@ Studio and Bridge configure playback automatically.
 
 `quiltwright.lfd` turns **any PyVista scene** into a quilt:
 
-1. The plotter's camera defines the centre view; its **focal point becomes
+1. The plotter's camera defines the center view; its **focal point becomes
    the plane of the physical glass**.
 2. The camera sweeps the device's view cone (35° default; the Gen3 16"
    landscape reports 50°) in N steps -- *translating*, never rotating
    ("toe-in" breaks the optics).
 3. Each view uses an **off-axis (asymmetric-frustum) projection** via VTK's
-   window-centre shear, so the focal plane is pixel-identical across all
+   window-center shear, so the focal plane is pixel-identical across all
    views -- the geometric requirement for the display to fuse them.
 4. Views are captured at ~14° FOV (camera dollied back to compensate),
    matching real-world parallax at typical viewing distance.
@@ -243,7 +243,7 @@ curl -s -X PUT -H 'Content-Type: application/json' \
 ```
 
 > **There is no `stop_playlist` or `pause_playlist` endpoint.** Guessing
-> plausible names here is a trap: Bridge answers an *unrecognised* endpoint
+> plausible names here is a trap: Bridge answers an *unrecognized* endpoint
 > the same way it answers a wrong HTTP verb -- `200 OK` with an empty body --
 > so a wrong guess looks identical to a slow success until you check that
 > the response has no `status` field. The real control group is
@@ -468,7 +468,7 @@ waverider-voxel-viz --dataset iris --quilt 16-landscape --out iris \
     --quilt-zoom 1.0 --quilt-scalar-bar
 ```
 
-The **colour scale bar is off by default** for quilts. Any 2-D overlay
+The **color scale bar is off by default** for quilts. Any 2-D overlay
 renders identically in every view, which pins it to the focal plane -- it
 reads as a flat pane cutting through the hologram rather than a label. It
 stays legible, so `--quilt-scalar-bar` is there when you need the values
@@ -490,7 +490,7 @@ only if you notice stepping artifacts in deep scenes.
 
 ## Composition tips
 
-- Centre the most important structure at the camera's **focal point** -- it
+- Center the most important structure at the camera's **focal point** -- it
   sits at the glass surface and stays sharpest.
 - Depth budget is asymmetric: content can recede far behind the glass, but
   pop-out in front degrades quickly.

@@ -85,7 +85,7 @@ anything you intend to measure from.
 ## 2. Render the still at the scene's own aspect
 
 This one is worth its own step because it fails silently and looks like a
-modelling error.
+modeling error.
 
 POV-Ray builds its frame from `right` and `up`. It maps `right` to the image
 width and `up` to the image height **regardless of the pixel dimensions you
@@ -269,11 +269,11 @@ so it does not ghost, it **leaves the frame**, and it is gone by the second
 view of the sweep.
 
 The cure is geometric: scaling an overlay *about the camera* preserves its
-apparent size and position in the centre view exactly while moving it to any
+apparent size and position in the center view exactly while moving it to any
 depth you choose. Porin's texts are now scaled ×90 and ×75 out to **900 units**
 -- just ahead of the barrel's leading loops, floating at the waterline -- so
 they ride the sweep with everything else and the quilt carries them. The bell
-jar's "DNA Under Glass" lettering never needed this: it is modelled on the
+jar's "DNA Under Glass" lettering never needed this: it is modeled on the
 pedestal at scene depth.
 
 **The general check**: if a scene has a title, a signature, a logo or a border,
@@ -289,7 +289,7 @@ hour when skipped.
 
 The quilt sweeps the eye laterally by `focal_distance · tan(cone/2)`. For an
 open subject that space is empty and the display's own view cone is fine. Inside
-a room it is furniture and walls, and the failure is quiet -- the centre view,
+a room it is furniture and walls, and the failure is quiet -- the center view,
 the one you preview, is perfect while the outer views render the unlit back of
 a wall. Measure the corridor and derive the cone from it; povray.md section 3 has the
 procedure and `Clearance` implements it.

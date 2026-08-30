@@ -26,6 +26,7 @@ Requires Python 3.12 or 3.13.
 pip install quiltwright              # core: quilt geometry + Bridge control
 pip install "quiltwright[viz]"       # + PyVista/VTK rendering backend
 pip install "quiltwright[video]"     # + bundled ffmpeg for video encoding
+pip install "quiltwright[molecules]" # + PDB and mmCIF, via pypdb2pov
 ```
 
 Core deliberately depends on nothing but numpy, pillow and click, so a
@@ -37,6 +38,33 @@ From source (for the example scenes, scripts, and tests):
 git clone https://github.com/suchanek/quiltwright
 cd quiltwright
 pip install -e ".[viz,video]"
+```
+
+Or with Poetry, which is how this repo is developed. Every extra above has a
+Poetry group of the same name, so `poetry install --with viz` and `pip install
+".[viz]"` produce the same environment. All groups are optional, so a bare
+`poetry install` gives you the core package alone:
+
+```bash
+poetry install                       # core: quilt geometry + Bridge control
+poetry install --with viz            # + PyVista/VTK rendering backend
+poetry install --with video          # + bundled ffmpeg for video encoding
+poetry install --with molecules      # + PDB and mmCIF, via pypdb2pov
+poetry install --with dev            # + pytest, pytest-cov, ruff, ty, pre-commit
+poetry install --with viz,video,dev  # groups combine
+```
+
+No space after the comma: Poetry reads the name following it as a positional
+argument and refuses the command.
+
+One group has no pip equivalent, deliberately. `kg` installs the `pycodekg`
+and `dockg` CLIs that index this repo for agents -- maintainer tooling this
+repo runs, not a feature of the package, so it is a group only and never
+reaches the published wheel metadata:
+
+```bash
+poetry install --with kg
+poetry install --all-extras --with dev,kg   # everything
 ```
 
 The `[viz]` extra pulls in VTK, which needs a working OpenGL stack. On a
@@ -157,15 +185,14 @@ brew install ffmpeg                  # system ffmpeg
 pip install "quiltwright[video]"     # or the bundled one
 ```
 
-**Why this is an extra and not a core dependency.** Three reasons, and the
-first is the one that matters:
+**Why this is an extra and not a core dependency.** The license, mostly:
 
-- **Licence.** The `imageio-ffmpeg` wrapper is BSD-2-Clause, but the binary it
+- **License.** The `imageio-ffmpeg` wrapper is BSD-2-Clause, but the binary it
   bundles is built `--enable-gpl --enable-version3` -- a GPLv3 ffmpeg. Calling
   it as a subprocess does not affect Quiltwright's own BSD-3-Clause terms, but
   anyone *redistributing* a bundled environment (a Docker image, a conda pack,
   a PyInstaller app) inherits GPLv3 obligations. That should be a choice, not
-  a default. A system ffmpeg -- whose build and licence you control -- avoids
+  a default. A system ffmpeg -- whose build and license you control -- avoids
   the question entirely, which is why `PATH` is searched first.
 - **Size.** ~21-31 MB to download, ~80 MB installed, against a core of numpy
   and pillow.
@@ -176,7 +203,7 @@ Encoding uses `libx264` and `libx265` (HEVC above 6000 px); a minimal or
 LGPL-only ffmpeg build may lack them, and fails at encode time rather than at
 install time. Check with `ffmpeg -h encoder=libx265`.
 
-## 7. pdb2pov (molecular scenes)
+## 7. pypdb2pov (molecular scenes)
 
 Optional; feeds the POV-Ray backend with molecular structures. There are two
 implementations, writing byte-identical scenes.
@@ -199,7 +226,7 @@ pip install pypdb2pov
 
 **Why an extra and not a core dependency.** Only the molecular scenes need
 it, and a machine rendering anything else should not carry it -- the same
-ground the `viz` extra stands on. There is no licence obstacle: pypdb2pov is
+ground the `viz` extra stands on. There is no license obstacle: pypdb2pov is
 BSD-3-Clause like quiltwright itself.
 
 **`pdb2pov`, the C program** -- the 1993 original, whose portability fixes now
@@ -241,7 +268,7 @@ The test suite is layered the same way -- tests skip cleanly for layers that
 are absent, and report what they skipped:
 
 ```bash
-pip install pytest
+poetry install --with dev            # or: pip install pytest
 pytest -v
 ```
 
@@ -250,11 +277,11 @@ install the layers too. Everything runs green with:
 
 ```bash
 sudo apt install xvfb libgl1 libglx-mesa0 libxrender1 povray   # or brew
-pip install -e ".[viz,video]" pytest
+poetry install --with viz,video,dev     # or: pip install -e ".[viz,video]" pytest
 xvfb-run -a pytest
 ```
 
-`poetry install --with dev` pulls `imageio-ffmpeg` for the same reason -- it is
-the only skip condition a Python dependency can lift, since the PyVista tests
-additionally need a GL stack and an X server. Add `--with viz,video` for the
-rest.
+The `dev` group pulls `imageio-ffmpeg` itself, for the same reason -- it is the
+only skip condition a Python dependency can lift, since the PyVista tests
+additionally need a GL stack and an X server, and the POV-Ray and Cycles tests
+need their binaries.

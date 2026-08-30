@@ -84,7 +84,7 @@ touched, and a rig always defers to any light the import carries.
 
 | `lighting=` | Rig |
 |---|---|
-| `"soft"` *(default)* | Neutral grey world plus a sun -- the studio-clay look |
+| `"soft"` *(default)* | Neutral gray world plus a sun -- the studio-clay look |
 | `"studio"` | Camera-relative three-point rig (key/fill/rim area lights) over a near-black world -- the product-shot look |
 | `"sky"` | Blender's physical (Nishita) sky with the sun over the camera's left shoulder -- outdoor daylight |
 | a `.hdr`/`.exr` path | Equirectangular HDRI environment world |
@@ -121,7 +121,7 @@ rotation, so scene and camera agree and the render matches what the plotter
 framed -- an invariant the end-to-end tests pin with depth markers, because
 a wrong hop renders perfectly plausible frames whose *sweep* is tilted.
 
-Scalar-mapped colours survive: VTK bakes them into a glTF base-colour
+Scalar-mapped colors survive: VTK bakes them into a glTF base-color
 texture that Blender wires into the material on import. Lights do not
 exist in the export, which is what the `lighting` rigs are for -- pass
 `lighting="studio"` through the bridge for the product-shot look. Notably, the
@@ -143,7 +143,7 @@ as you would for POV-Ray. The off-axis shear itself is
 (`quiltwright.quilt.window_shear`).
 
 **The scene's own** -- pass `camera=None` with a `.blend`, and the file's
-active camera becomes the centre view. The focal plane is taken from the
+active camera becomes the center view. The focal plane is taken from the
 camera's depth-of-field **focus distance** (or focus object): that is
 Blender's native "this distance matters" annotation, and setting it blurs
 nothing unless DoF rendering is actually enabled. The camera's lens, sensor
@@ -182,7 +182,7 @@ Knobs that matter:
   since 4.0 is `"AgX"`, whose filmic highlight compression noticeably
   desaturates and flattens a render side by side with POV-Ray or a reference
   photo -- deliberately not the default here. Any OCIO transform name
-  Blender recognises works (`"Filmic"`, `"False Color"`, ...).
+  Blender recognizes works (`"Filmic"`, `"False Color"`, ...).
 - `device` -- `"auto"` (GPU first, Metal first), `"gpu"` (error if none),
   `"cpu"`.
 - `threads` -- CPU renders get the same courtesy cap as the POV-Ray backend
@@ -196,7 +196,7 @@ macOS (the standard `/Applications` install is found automatically), or
 ## Worked example: one scene, both backends
 
 `scripts/render_dna_helix_hologram.py` composes a B-DNA double helix -- sphere
-glyphs for the backbones, base-pair rungs coloured A/T/G/C -- and renders it
+glyphs for the backbones, base-pair rungs colored A/T/G/C -- and renders it
 with either backend from the same generating code:
 
 ```bash
@@ -231,9 +231,9 @@ python scripts/render_cartoon_hologram.py 2omf.cif.gz --backend povray --still #
 
 `quiltwright.pymol.cartoon_obj()` is the mesh twin of `cartoon_inc()`: the
 identical PyMOL export and coalescing, written as a plain OBJ instead of a
-POV-Ray include -- geometry only, no per-vertex colour, since OBJ carries
+POV-Ray include -- geometry only, no per-vertex color, since OBJ carries
 none reliably -- so a "which backend wins on a mesh this size" comparison
-starts from one triangulation, not two independently modelled scenes. It
+starts from one triangulation, not two independently modeled scenes. It
 carries the same coordinate flip as everywhere else meshes cross from
 PyMOL's POV-Ray-native output into this package's right-handed convention:
 negate *z*, reverse each face's winding to compensate -- worth rereading its

@@ -42,7 +42,7 @@ Today the "shared middle" column is functions in `src/quiltwright/lfd.py`.
 `_camera_frame`. `cli/cmd_cast.py` imports `_bridge_post` and
 `_enter_orchestration`. `lfd.depth_report` imports `PovCamera` from
 `povray` to format a report, which is the cycle the comment at
-`lfd.py:552` already apologises for.
+`lfd.py:552` already apologizes for.
 
 The proposed shape:
 

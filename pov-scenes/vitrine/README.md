@@ -16,7 +16,7 @@ still fits the budget.
 
 ## What makes it standard
 
-**Exhibit units.** The molecule is normalised to a unit sphere using the
+**Exhibit units.** The molecule is normalized to a unit sphere using the
 enclosing radius `pdb2pov` writes into every scene it produces, and the room is
 built around that. So the camera, the lighting and the depth budget are the
 same for every structure, whatever its size:
@@ -38,7 +38,7 @@ per-molecule numbers, where `render_museum_hologram.py` needs a measured
 corridor, a measured depth range and a derived cone specific to that room.
 
 **The jar is derived, not tuned.** `Vitrine_Case()` builds a hemisphere of
-radius `VIT_FILL * VIT_JAR_GAP` centred on the molecule, on a tube down to the
+radius `VIT_FILL * VIT_JAR_GAP` centered on the molecule, on a tube down to the
 plinth. It is a concentric shell, so it cannot clip a structure the enclosing
 sphere describes correctly.
 
@@ -60,7 +60,7 @@ Measured on the 16" Landscape preset at quarter scale:
 Balanced disparity at both extremes, well under the 5.5 px soft limit, and the
 display's **full native 50 degree cone** fits with 9.6 degrees to spare. The
 museum, by comparison, is clearance-limited to 26.4 degrees. Brightness across
-all 48 rendered tiles spreads by 2.0 grey levels out of 255, against the
+all 48 rendered tiles spreads by 2.0 gray levels out of 255, against the
 museum's 7.3: no view collapses to the back of a wall.
 
 ---
@@ -105,7 +105,7 @@ python ../../scripts/render_vitrine.py hemoglobin --cast
 Name the output for the molecule, not the PDB ID. `pypdb2pov` derives the POV
 identifier from the *output stem*, and a stem beginning with a digit gets a
 leading underscore (`_2hhb`) -- legal, but easy to get wrong by hand. The
-library API does not sanitise at all: `SceneOptions(name="2hhb")` emits
+library API does not sanitize at all: `SceneOptions(name="2hhb")` emits
 `#declare 2hhb_obj = ...`, which POV-Ray rejects outright.
 
 Keep `+Q` at 8 or above. Below it POV-Ray disables refraction, and the bell jar
@@ -118,7 +118,7 @@ renders as a solid dome.
 `pdb2pov` writes atoms and bonds; it has no ribbon and never had one.
 [`quiltwright.pymol`](../../src/quiltwright/pymol.py) supplies that, by driving
 PyMOL headless and emitting an include on **this same contract** -- origin
-centred, `_enclosing_radius` beside it, no camera. So a cartoon mounts exactly
+centered, `_enclosing_radius` beside it, no camera. So a cartoon mounts exactly
 like an atom scene:
 
 ```sh
@@ -166,7 +166,7 @@ Set any of these before `#include "vitrine.inc"`.
 | `VIT_BACK` | 3.40 | Back wall; this sets the far depth |
 | `VIT_CAM_D` / `VIT_CAM_Y` / `VIT_AIM_Y` | 8.00 / 0.78 / -0.42 | Eye and aim |
 | `VIT_FOV_V` / `VIT_ASPECT` | 38.5 / 16:9 | Lens and frame |
-| `VIT_WALL_HUE` | `<0.30,0.33,0.34>` | Gallery wall colour |
+| `VIT_WALL_HUE` | `<0.30,0.33,0.34>` | Gallery wall color |
 | `VIT_KEY` | 1.00 | Overall light level |
 | `VIT_SOFT` | 0 | Area key light: soft shadows, much slower |
 
@@ -195,7 +195,7 @@ drift apart, the render log says so.
 | `*.inc` | `pypdb2pov -o -v` output, van der Waals spheres |
 
 Textures are defined inline rather than pulled from `marble2.inc`, whose
-POV-1.0 dither warns on every render and cannot be modernised pixel-exactly.
+POV-1.0 dither warns on every render and cannot be modernized pixel-exactly.
 The glass has a real `interior` with `ior 1.52`, so unlike the 1993 bell jar it
 refracts twice and reads as glass rather than as a soap film.
 
