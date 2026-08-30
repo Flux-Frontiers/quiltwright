@@ -1342,10 +1342,13 @@ def fov_horizontal_to_vertical(fov_h: float, aspect: float) -> float:
 def fov_vertical_to_horizontal(fov_v: float, aspect: float) -> float:
     """Convert a vertical FOV to POV-Ray's horizontal ``angle``.
 
-    The inverse of :func:`fov_horizontal_to_vertical`, and needed in the
-    other direction: a scene composed from ``right``/``up`` vectors states
-    its lens vertically, while :class:`PovCamera` and POV-Ray's ``angle``
-    keyword both want the horizontal one.
+    The inverse of :func:`fov_horizontal_to_vertical`, for writing a scene
+    that states its lens with the ``angle`` keyword, which is horizontal.
+
+    **Not** for :class:`~quiltwright.povray.PovCamera`, whose ``fov`` is
+    vertical: it emits ``up <0,1,0>`` with ``direction = 0.5 / tan(fov/2)``
+    and scales ``right`` by the tile aspect, so a vertical angle is what it
+    wants and converting first renders the scene at the wrong lens.
 
     :param fov_v: Vertical field of view in degrees.
     :param aspect: Image width divided by height.
