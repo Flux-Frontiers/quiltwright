@@ -5,8 +5,8 @@ scripts, but regeneration needs a POV-Ray install and patience, so what is
 kept where follows weight.
 
 The presented set is **not** here: it lives at the top level in
-[`gallery/`](../gallery/), catalogued in [docs/gallery.md](../docs/gallery.md).
-It is the work, not a build artefact, and keeping it under `renders/` made it
+[`gallery/`](../gallery/), cataloged in [docs/gallery.md](../docs/gallery.md).
+It is the work, not a build artifact, and keeping it under `renders/` made it
 look like one. Everything in *this* directory is output.
 
 | Directory | Contents | Kept |

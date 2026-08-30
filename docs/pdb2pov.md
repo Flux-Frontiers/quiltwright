@@ -132,11 +132,11 @@ vanish from a scene while the header atom count still looked plausible:
 
 | Record | Element | Through 2.0 | 2.1 and later |
 |--------|---------|-------------|---------------|
-| `NA` | sodium | **nitrogen** | sodium, own colour |
-| `CL` | chlorine | **carbon** | chlorine, own colour |
-| `F` | fluorine | **iron** | fluorine, own colour |
-| `ZN` | zinc | **silently dropped** | zinc, own colour |
-| `MG` | magnesium | **silently dropped** | magnesium, own colour |
+| `NA` | sodium | **nitrogen** | sodium, own color |
+| `CL` | chlorine | **carbon** | chlorine, own color |
+| `F` | fluorine | **iron** | fluorine, own color |
+| `ZN` | zinc | **silently dropped** | zinc, own color |
+| `MG` | magnesium | **silently dropped** | magnesium, own color |
 
 **The palette covers 33 elements as of 2.2**, up from eight:
 
@@ -150,23 +150,23 @@ vanish from a scene while the header atom count still looked plausible:
 
 That covers the biological metals, halogen ligands and phasing heavy atoms,
 so a zinc finger, a selenomethionine structure and a mercury derivative all
-come out correctly coloured and sized rather than as identical grey spheres.
-Anything still unrecognised renders as `Atom_X`, a neutral grey sphere, and
+come out correctly colored and sized rather than as identical gray spheres.
+Anything still unrecognized renders as `Atom_X`, a neutral gray sphere, and
 the conversion reports how many atoms landed there and which elements they
 were. Nothing disappears silently.
 
-The original eight keep their 1994 colours, which are **not** the CPK
+The original eight keep their 1994 colors, which are **not** the CPK
 convention -- carbon is green, phosphorus yellow, iron dark purple, calcium
-white. Elements added in 2.2 use Jmol/CPK colours, so a scene mixing old and
+white. Elements added in 2.2 use Jmol/CPK colors, so a scene mixing old and
 new elements mixes two conventions. That is deliberate: changing the original
 eight would alter every existing render.
 
 **Alternate conformations are now filtered** to the blank and `A` altLoc
-indicators. Keeping all of them -- the behaviour through 2.0 -- puts both
+indicators. Keeping all of them -- the behavior through 2.0 -- puts both
 conformers in the scene: overlapping spheres at nearly identical positions,
 plus spurious bonds between the A and B copies. A 7-record test file with
 three side-chain atoms in two conformations gave 7 atoms and 13 bonds where
-the correct answer is 4 and 3. `--keep-altlocs` restores the old behaviour.
+the correct answer is 4 and 3. `--keep-altlocs` restores the old behavior.
 
 The blank-or-`A` rule is not always the right answer, and the Python port
 offers `--altloc {a,first,occupancy,all}` instead. 1CBN is the cautionary
@@ -176,14 +176,14 @@ higher resolution:
 | `--altloc` | 1CBN | |
 |------------|------|--|
 | `a` | 640 atoms | the C's rule; loses fourteen atoms outright |
-| `first` | 640 atoms | keeps side chains labelled only `C` |
+| `first` | 640 atoms | keeps side chains labeled only `C` |
 | `occupancy` | 644 atoms | keeps the conformer the crystallographer weighted |
 | `all` | 777 atoms | overlapping spheres and spurious bonds |
 
 Two things go wrong under blank-or-`A`. The side chains of Pro 22 and Leu 25
 carry only altLoc `C` -- there is no `A` copy -- so fourteen atoms vanish from
 the scene with no message. And residue 22 is *microheterogeneous*: it is
-modelled as serine at 0.20 occupancy **and** proline at 0.60, sharing one
+modeled as serine at 0.20 occupancy **and** proline at 0.60, sharing one
 sequence position. The port therefore chooses one altLoc letter per residue
 rather than per atom, since picking atom by atom would take proline's ring
 and serine's hydroxyl from the same place and draw a residue that does not
@@ -327,7 +327,7 @@ structure, stats = pypdb2pov.read_structure(
 print("\n".join(stats.lines()) or "  nothing skipped")
 
 options = SceneOptions(ball_stick=True, object_only=True, name="hemoglobin_a")
-prepare_structure(structure, options)                     # rotate, centre, flip
+prepare_structure(structure, options)                     # rotate, center, flip
 write_scene(structure, options, "hemoglobin_a.inc",
             find_bonds(structure, options.bond_threshold))
 
@@ -434,7 +434,7 @@ the atom count, the coordinate extents, and the enclosing sphere radius:
 ```
 
 The depth budget needs exactly two numbers -- nearest and farthest content --
-and for a centred object those are `camera_distance ∓ radius`. No plane-sweep
+and for a centered object those are `camera_distance ∓ radius`. No plane-sweep
 probing required, unlike an interior.
 
 **The subject floats in empty space.** The sweep-clearance trap that cost the
@@ -491,7 +491,7 @@ rendering. Only pdb2pov's own bundled includes were updated to 3.7.
 
 `pdb2pov` (1993) and `proteusPy.DisulfideVisualization` (2024) are the same
 program written thirty years apart: read atoms, emit a sphere per atom scaled
-by element radius, emit split-coloured cylinders per bond, colour by element.
+by element radius, emit split-colored cylinders per bond, color by element.
 One targets a ray-tracer and one targets VTK. Both now terminate at the same
 place -- [`assemble_quilt`](povray.md#5-api) -- by different routes.
 

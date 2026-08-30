@@ -9,7 +9,7 @@
 [![Tests](https://github.com/suchanek/quiltwright/actions/workflows/tests.yml/badge.svg)](https://github.com/suchanek/quiltwright/actions/workflows/tests.yml)
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.21798503-blue.svg)](https://doi.org/10.5281/zenodo.21798503)
 
-**Quiltwright** -- holographic output for scientific visualisation.
+**Quiltwright** -- holographic output for scientific visualization.
 
 *Eric G. Suchanek, PhD -- Flux-Frontiers*
 
@@ -52,7 +52,7 @@ arrive with no lights of their own. Two worked examples put the backends head
 to head on identical geometry -- a DNA helix (POV-Ray's analytic primitives
 win outright) and a real PyMOL Richardson cartoon (Cycles' turn, on real
 triangle counts) -- and running the second against a real PyMOL install
-caught three real bugs: every POV-Ray colour in the package was rendering
+caught three real bugs: every POV-Ray color in the package was rendering
 2-3x too bright, `cartoon_obj()`'s OBJ import came in rotated 90 degrees
 against its own camera, and a failed PyMOL export used to surface as a bare
 `FileNotFoundError` far from its actual cause.
@@ -89,7 +89,7 @@ the scene once for the whole sweep rather than once per view. All converge at
 a shared, renderer-agnostic assembler, so everything downstream remains
 indifferent to which backend produced the views.
 
-What feeds the backends is open. WaveRider's voxel and manifold visualiser and
+What feeds the backends is open. WaveRider's voxel and manifold visualizer and
 pypdb2pov's PDB conversion are the two that drove the design, but
 `quiltwright.tvb_data` pulls real brain geometry from
 [The Virtual Brain](docs/tvb-data.md), PyVista's own example datasets work
@@ -97,7 +97,7 @@ as-is, `quiltwright.povgen` writes POV-Ray from analytic primitives, and a
 plain `.pov` file off your disk needs no pipeline at all. The backends also
 bridge: `render_cycles_quilt_from_plotter()` takes the same composed PyVista
 plotter `render_quilt()` does and path-traces it instead -- scene exported to
-glTF once, camera translated, scalar colours intact.
+glTF once, camera translated, scalar colors intact.
 
 **Two display technologies.** *Light-field displays* (LFD -- Portrait, Go,
 16"/27"/32"/65") are lenticular panels that consume **quilts**: N views of the
@@ -129,7 +129,7 @@ Each view must use an **off-axis (asymmetric-frustum) projection**: the camera
 slides sideways while continuing to face the same direction, with the image
 plane sheared back onto the original view axis.
 
-The intuitive alternative is to swivel each camera to keep the subject centred.
+The intuitive alternative is to swivel each camera to keep the subject centered.
 This "toe-in" approach introduces vertical parallax and keystone distortion, so
 the display cannot fuse the views: you get ghosting instead of depth. It is the
 single most common way light-field renders go wrong, and it produces output
@@ -144,7 +144,36 @@ to predict whether a scene will fuse.
 ```bash
 pip install quiltwright                 # core: quilt geometry + Bridge control
 pip install "quiltwright[viz]"          # + PyVista/VTK rendering backend
+pip install "quiltwright[video]"        # + a bundled ffmpeg for video encoding
 pip install "quiltwright[molecules]"    # + PDB and mmCIF, via pypdb2pov
+```
+
+### From a clone, with Poetry
+
+Each extra above has a Poetry group of the same name, so the two produce the
+same environment. Every group is optional -- a bare `poetry install` skips all
+of them.
+
+```bash
+poetry install                          # core: quilt geometry + Bridge control
+poetry install --with viz               # + PyVista/VTK rendering backend
+poetry install --with video             # + a bundled ffmpeg for video encoding
+poetry install --with molecules         # + PDB and mmCIF, via pypdb2pov
+poetry install --with dev               # + pytest, ruff, ty, pre-commit
+poetry install --with viz,video,dev     # groups combine
+```
+
+No space after the comma: Poetry reads the name following it as a positional
+argument and refuses the command.
+
+There is one group with no pip equivalent, on purpose. `kg` installs the
+`pycodekg` and `dockg` CLIs that index this repo for agents -- tooling this
+repo runs rather than a feature of the package, so it stays out of the
+published wheel metadata:
+
+```bash
+poetry install --with kg
+poetry install --all-extras --with dev,kg    # everything
 ```
 
 ### Prerequisites
@@ -214,7 +243,7 @@ each, and how to render them directly, is in
 
 ### From a Cycles scene
 
-Same plotter, path-traced instead of rasterised -- with GPU hardware ray
+Same plotter, path-traced instead of rasterized -- with GPU hardware ray
 tracing where it's available (Metal on Apple Silicon; OptiX/HIP/oneAPI
 elsewhere, CPU as the fallback):
 
@@ -358,7 +387,7 @@ Worth knowing before the details:
 ## The depth budget
 
 Whether a hologram fuses comes down to **adjacent-view disparity**: how far a
-feature moves between neighbouring views. Roughly 4-5 px is the practical
+feature moves between neighboring views. Roughly 4-5 px is the practical
 ceiling; past ~8 px, hard edges ghost. Quiltwright gives you the arithmetic
 before the render:
 
@@ -415,7 +444,7 @@ QUILT_PRESETS["16-landscape"]      # 8x6 views, 7680x4320, aspect 1.7778
 | [docs/povray.md](docs/povray.md) | The POV-Ray backend: off-axis camera derivation, depth budget, sweep clearance, a worked case study |
 | [docs/cycles.md](docs/cycles.md) | The Blender Cycles backend: hardware ray tracing (Metal/OptiX/HIP), mesh and .blend scenes, one process per sweep |
 | [docs/mesh-import.md](docs/mesh-import.md) | Any 3D object file (glTF/GLB, OBJ, FBX, USD, …) to a quilt in one command, with the camera auto-framed from the mesh's bounds |
-| [docs/povgen.md](docs/povgen.md) | Writing POV-Ray scenes from analytic primitives, so a scene composed in Python can be ray-traced rather than rasterised |
+| [docs/povgen.md](docs/povgen.md) | Writing POV-Ray scenes from analytic primitives, so a scene composed in Python can be ray-traced rather than rasterized |
 | [docs/pov-workflow.md](docs/pov-workflow.md) | The procedure: taking an archive scene from "won't parse" to a quilt that fuses, step by step |
 | [docs/pdb2pov.md](docs/pdb2pov.md) | Rendering molecular structures as holograms with pypdb2pov, from the shell or in-process |
 | [docs/hld.md](docs/hld.md) | Hololuminescent Displays, which play ordinary 2-D video rather than quilts |
@@ -427,7 +456,7 @@ QUILT_PRESETS["16-landscape"]      # 8x6 views, 7680x4320, aspect 1.7778
 ## Testing
 
 ```bash
-pip install -e ".[viz]" && pip install pytest
+poetry install --with viz,dev    # or: pip install -e ".[viz]" && pip install pytest
 pytest
 ```
 
@@ -442,7 +471,7 @@ exercise the OpenGL ones.
 ## The pipelines this serves
 
 - [WaveRider](https://github.com/Flux-Frontiers/waverider) -- manifold-aware
-  geometric ML. Its voxel and manifold visualiser builds the PyVista scenes
+  geometric ML. Its voxel and manifold visualizer builds the PyVista scenes
   that `render_quilt()` sweeps.
 - [pypdb2pov](https://github.com/Flux-Frontiers/pypdb2pov) -- PDB and mmCIF to
   POV-Ray, and the converter this pipeline actually calls. It reads mmCIF and

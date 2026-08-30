@@ -35,7 +35,7 @@ shape their scene is composed for.
 ## Museum
 
 `pov-scenes/museum/` -- "Eric's Science Museum," 1995-99. The room the README's
-hologram is rendered from; what's on the walls is catalogued in
+hologram is rendered from; what's on the walls is cataloged in
 [about-the-image.md](about-the-image.md).
 
 ![Museum, canonical cut](../gallery/museum.png)
@@ -54,7 +54,7 @@ the Risedronate exhibit and a tree outside the window.*
 1999 cut at 16:9 with three changes and nothing else: the oval mirror hangs
 where the Risedronate picture did (the scene's own object, on a branch that
 was already there), and both pedestals move inward to flank the alcove, the
-left one centred under Lambda Repressor. `museum_pg.pov` is untouched.*
+left one centered under Lambda Repressor. `museum_pg.pov` is untouched.*
 
 *`museum_970211.pov` (the 1997 cut), `museum_dark.pov` and `worldmap.pov` are
 in the tree and render; none is carried here.*
@@ -136,7 +136,7 @@ titling.*
 ## Vitrine -- the standard exhibit case
 
 `pov-scenes/vitrine/` -- a museum case built in *exhibit units*: the molecule
-is normalised to a unit sphere by the enclosing radius `pdb2pov` writes into
+is normalized to a unit sphere by the enclosing radius `pdb2pov` writes into
 every file, and the room is built around that. These four are one set, not
 four scenes. The same camera, lighting and depth budget hold a 2.5x range of
 molecular radius with no per-structure tuning, which is the entire claim --
@@ -175,7 +175,7 @@ for one trimer -- so the wrapper carries the command that makes it.*
 *The same subject, the same room, the same camera, thirty-two years apart.
 Left: `3porin.inc`, 7,835 triangles from the lost 1994 exporter, brought onto
 the `pdb2pov -o` contract by `pov-scenes/vitrine/porin_1994.inc`, which
-measures and centres the original geometry without altering it. Right: 2OMF
+measures and centers the original geometry without altering it. Right: 2OMF
 from the RCSB, 75,792 triangles through `quiltwright.pymol`.*
 
 *They are not quite the same molecule, which is the honest reading of the

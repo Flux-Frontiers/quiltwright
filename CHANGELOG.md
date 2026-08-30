@@ -158,6 +158,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   stays in the default public API: NumPy-only loader, GPL archive fetched
   at runtime.
 
+- **The docs document the Poetry install path, and use US spellings.**
+  `README.md` and [docs/install.md](docs/install.md) now give the Poetry
+  commands alongside the pip ones: every extra has a dependency group of the
+  same name, and `kg` -- the `pycodekg`/`dockg` maintainer tooling -- is a
+  group with no pip equivalent, so it never reaches the published wheel
+  metadata. British spellings are gone from the prose across `docs/`, the
+  READMEs and this repo's scene notes. Identifiers keep theirs, since they
+  name real code: `summarise_depth_sweep`, `SweepClearance.centre`, TVB's
+  `Connectome.centres`, and the `museum_centre_view.png` asset.
+
 ## [0.9.0] - 2026-08-26
 
 ### Added

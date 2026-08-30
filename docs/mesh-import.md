@@ -10,7 +10,7 @@ Quiltwright's [Cycles backend](cycles.md) already imports every mesh format
 Blender can read — glTF/GLB, OBJ, STL, PLY, USD, FBX, Alembic — and renders the
 textures and PBR materials the file carries. What it does *not* get from an
 imported mesh is a camera: a `.blend` can carry its own, but an OBJ or a GLB
-off a modelling tool, a photogrammetry scan, an asset library, or an AI
+off a modeling tool, a photogrammetry scan, an asset library, or an AI
 generator such as [Meshy](https://www.meshy.ai/) cannot. Its scale, origin and
 up-axis after import are all unknown, so a hand-written `CyclesCamera` is
 guesswork — and the wrong guess renders an empty frame or a subject jammed
@@ -46,12 +46,12 @@ quiltwright mesh statue.ply --view-direction 0.5 -1 0.3 --fov 20
 | `--device` | Target display preset (`portrait` default; `27-portrait`, `go`, …) |
 | `--lighting` | `studio` (default), `soft`, `sky`, or a path to an `.hdr`/`.exr` — an imported mesh has no lights, and a path tracer renders an unlit scene *black* |
 | `--fov` | Vertical field of view; the framing distance follows from it |
-| `--view-direction` | Direction from the object centre to the eye (default `0 -1 0`, front-on) |
+| `--view-direction` | Direction from the object center to the eye (default `0 -1 0`, front-on) |
 | `--margin` | Framing headroom beyond a tight fit (`1.2` default; `1.0` is exactly tight) |
 | `--samples` | Cycles samples per pixel (128 default; 64 previews, 256 for finals) |
 | `--compute` | Cycles compute device: `auto` (default, GPU first), `gpu`, `cpu` |
 | `--view-transform` | OCIO view transform (`Standard` default; see [cycles.md](cycles.md)) |
-| `--still` | One centre view as a flat image at the device's aspect, instead of a full quilt — the fast way to check framing |
+| `--still` | One center view as a flat image at the device's aspect, instead of a full quilt — the fast way to check framing |
 | `--preview` | Quarter-size quilt, for iterating |
 | `--cast` | Send the finished quilt to Looking Glass Bridge |
 
@@ -69,8 +69,8 @@ sin(fov / 2) = radius / distance
 ```
 
 rather than the small-angle tangent, since object-centric FOVs (~14–30°) are
-not small angles. The eye sits along `--view-direction` from the bounds centre,
-aimed back at that centre — **which becomes the holographic focal plane**.
+not small angles. The eye sits along `--view-direction` from the bounds center,
+aimed back at that center — **which becomes the holographic focal plane**.
 Geometry nearer the camera floats out of the display; geometry beyond it
 recedes.
 
@@ -84,7 +84,7 @@ from quiltwright.cycles import mesh_bounds, frame_camera, render_cycles_quilt
 from quiltwright.quilt import QUILT_PRESETS, save_quilt
 
 lo, hi = mesh_bounds("dragon.glb")              # world-space (min, max) corners
-camera = frame_camera(lo, hi, fov=14.0)         # a CyclesCamera aimed at the centre
+camera = frame_camera(lo, hi, fov=14.0)         # a CyclesCamera aimed at the center
 quilt  = render_cycles_quilt("dragon.glb", QUILT_PRESETS["portrait"], camera,
                              samples=192, lighting="studio")
 save_quilt(quilt, "dragon", QUILT_PRESETS["portrait"])
