@@ -32,7 +32,6 @@ import time
 from pathlib import Path
 
 from quiltwright.lfd import QUILT_PRESETS, focal_distance_for_range, save_quilt
-from quiltwright.povgen import fov_vertical_to_horizontal
 from quiltwright.povray import Clearance, PovCamera, format_depth_budget, render_pov_quilt
 from quiltwright.runreport import RunReport, povray_parallelism
 
@@ -73,6 +72,9 @@ def pdb2pov_include() -> Path:
 
 EYE = (0.0, 0.95, -6.90)
 AIM = (0.0, -1.30, 0.00)
+#: Vertical, matching the scene's own ``VIT_DIR = 0.5 / tan(VIT_FOV_V / 2)``
+#: and :attr:`PovCamera.fov`, which is vertical too.  The horizontal angle
+#: follows from whatever aspect the quilt tile has.
 FOV_V = 44.0
 ASPECT = 16 / 9
 
@@ -108,10 +110,14 @@ def main(argv: list[str] | None = None) -> int:
         parser.error(f"no such exhibit: {scene}")
 
     focal = focal_distance_for_range(NEAR, FAR)
+    # FOV_V is vertical and so is PovCamera.fov, so no conversion happens
+    # here.  Converting to POV-Ray's horizontal `angle` and passing that in
+    # is what this used to do, and it rendered the alcove at a 71.4-degree
+    # vertical lens instead of the 44 the scene composes at.
     camera = PovCamera.aimed(
         EYE,
         AIM,
-        fov=fov_vertical_to_horizontal(FOV_V, ASPECT),
+        fov=FOV_V,
         focal_distance=focal,
     )
 

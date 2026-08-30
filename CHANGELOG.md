@@ -7,6 +7,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **`--sweep` on `scripts/render_still_life_hologram.py`.** `LITIHOLO_SWEEP`
+  has been in the package since the sweep work landed, but nothing in the
+  repository rendered one: producing a sweep meant writing a script against
+  the library by hand, and what came out carried no run report. The flag
+  swaps the device preset for the 23-view, 45-degree, single-row spec and
+  otherwise goes through the same budget, render, save and report path as a
+  quilt, so a sweep is now a provenanced artifact rather than a one-off. It
+  keeps the 23 frames as separate files by default, since that is what a
+  printer consumes and the tiled image is the by-product; `--device` is
+  ignored, `--view-cone` still overrides, and `--cast` declines rather than
+  handing Bridge a layout no panel can fuse.
+
+### Fixed
+
+- **A preview overwrote the frames of a full sweep.** `--preview` already
+  guarded the quilt filename with a `-preview` suffix, for exactly the reason
+  that iterating on one must not destroy the other, but the kept-views
+  directory had no such guard. It does now.
+
+- **The README claimed a preview "prints the same depth budget the full
+  render will use".** It does not: disparity scales with tile height, so a
+  quarter-size preview reports a quarter of the figure -- 0.83 px where porin
+  at 16-landscape actually produces 3.30. Reading a preview's disparity as
+  the real one credits the render with four times the headroom it has, which
+  is the failure the depth budget exists to prevent. The README now says to
+  read a preview's framing and not its disparity.
+
+- **The vitrine exhibits rendered at a 71.4-degree lens instead of the 44
+  they are composed at.** `scripts/render_vitrine.py` converted its vertical
+  `FOV_V` to POV-Ray's horizontal `angle` and passed that to `PovCamera`,
+  whose `fov` is vertical -- so `direction` came out at 0.696 where
+  `vitrine.inc`'s own `VIT_DIR = 0.5 / tan(radians(VIT_FOV_V) / 2)` declares
+  1.238. Every vitrine quilt was therefore wider than the alcove was framed
+  for, and the depth budget printed beside it understated adjacent-view
+  disparity by nearly half: 2.99 px reported against 5.32 px actual at
+  16-landscape, which is the difference between comfortable and at the
+  ceiling. The script now passes `FOV_V` straight through, and the emitted
+  `direction` matches the scene's `VIT_DIR` exactly. The still-life and
+  museum scripts were never affected -- porin's `direction <0,0,1>` implies
+  a 53.13-degree vertical lens, which is the number it already passed.
+
+- **`fov_vertical_to_horizontal()`'s docstring pointed at `PovCamera`**,
+  claiming it and POV-Ray's `angle` keyword "both want the horizontal one".
+  Only `angle` does; `PovCamera.fov` is vertical, as its own docstring and
+  `fov_horizontal_to_vertical()` both already said. Acting on the wrong one
+  is what produced the vitrine bug above. The conversion itself is correct
+  and unchanged -- it is for writing an `angle`, not for feeding a
+  `PovCamera`.
+
 ## [0.10.0] - 2026-08-30
 
 ### Added

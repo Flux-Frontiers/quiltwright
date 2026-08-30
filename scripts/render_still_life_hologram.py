@@ -47,6 +47,7 @@ from pathlib import Path
 
 from quiltwright.lfd import QUILT_PRESETS, focal_distance_for_range, save_quilt
 from quiltwright.povray import PovCamera, format_depth_budget, render_pov_quilt
+from quiltwright.quilt import LITIHOLO_SWEEP
 from quiltwright.runreport import RunReport, povray_parallelism
 
 POV_SCENES = Path(__file__).resolve().parents[1] / "pov-scenes"
@@ -229,7 +230,7 @@ def _run_report(args, subject, spec, camera, budget, elapsed):
         "Run configuration",
         [
             ("subject", args.subject),
-            ("device", args.device),
+            ("device", "LitiHolo sweep (23 views, 45 deg)" if args.sweep else args.device),
             ("quilt", f"{spec.quilt_width}x{spec.quilt_height}"),
             ("tile", f"{spec.tile_width}x{spec.tile_height}"),
             ("aspect", f"{spec.aspect:.4f}"),
@@ -280,6 +281,15 @@ def main() -> int:
         "a landscape panel the vertical framing is unchanged and the extra "
         "width is backdrop -- use --fov to re-frame if you want the subject "
         "larger.",
+    )
+    parser.add_argument(
+        "--sweep",
+        action="store_true",
+        help="render LITIHOLO_SWEEP instead of a device quilt: 23 views over "
+        "45 degrees in a single row, 1600x2000 tiles, which is the layout a "
+        "hologram printer asks for and no columns x rows grid can express.  "
+        "The views are kept as separate frames as well, since that is what "
+        "the printer actually consumes.  Overrides --device.",
     )
     parser.add_argument(
         "--view-cone",
@@ -358,9 +368,14 @@ def main() -> int:
     if args.fov is not None:
         subject = replace(subject, fov=args.fov)
     camera = subject.camera()
-    spec = QUILT_PRESETS[args.device]
+    spec = LITIHOLO_SWEEP if args.sweep else QUILT_PRESETS[args.device]
     if args.view_cone is not None:
         spec = replace(spec, view_cone=args.view_cone)
+    elif args.sweep:
+        # The sweep's 45 degrees is the published specification, not a preset
+        # the panel budget gets to talk down.  It is coarse on purpose: 2.05
+        # degrees between views against a Portrait quilt's 0.74.
+        pass
     elif spec.view_cone > STANDARD_VIEW_CONE:
         print(
             f"  view cone        {spec.view_cone:.0f} deg native -> "
@@ -373,9 +388,10 @@ def main() -> int:
     if args.preview:
         spec = replace(spec, quilt_width=spec.quilt_width // 4, quilt_height=spec.quilt_height // 4)
 
-    print(f"{args.subject} hologram -> {args.device}{' (preview)' if args.preview else ''}")
+    target = "LitiHolo sweep" if args.sweep else args.device
+    print(f"{args.subject} hologram -> {target}{' (preview)' if args.preview else ''}")
     print(
-        f"  quilt            {spec.quilt_width}x{spec.quilt_height}, "
+        f"  {'sweep' if args.sweep else 'quilt':16} {spec.quilt_width}x{spec.quilt_height}, "
         f"tiles {spec.tile_width}x{spec.tile_height}"
     )
     budget = format_depth_budget(
@@ -392,6 +408,15 @@ def main() -> int:
     if subject.caveat:
         print(f"  note: {subject.caveat}")
 
+    # A printer consumes the frames, not the tiled image, so a sweep keeps them
+    # by default; a quilt keeps them only when asked.
+    keep_views = args.keep_views
+    if args.sweep and keep_views is None:
+        # The -preview suffix for the same reason the quilt carries one:
+        # iterating on a preview must not destroy the frames of a full run.
+        suffix = "-preview" if args.preview else ""
+        keep_views = f"renders/views/{args.subject}-litiholo{suffix}"
+
     started = time.time()
     quilt = render_pov_quilt(
         scene,
@@ -407,23 +432,33 @@ def main() -> int:
         # is exactly what a view sweep turns into shimmer.
         extra_args=(*subject.extra_args, *(() if args.preview else ("+AM2", "+R4"))),
         jobs=args.jobs,
-        keep_views=args.keep_views,
+        keep_views=keep_views,
     )
     elapsed = time.time() - started
 
     # A preview is a quarter-size stand-in, not a deliverable, so it must not
     # land on the full render's filename -- iterating on one would silently
     # destroy the other.
-    stem = args.out or f"renders/quilts/{args.subject}"
+    stem = args.out or (
+        f"renders/quilts/{args.subject}-litiholo"
+        if args.sweep
+        else f"renders/quilts/{args.subject}"
+    )
     out = save_quilt(quilt, f"{stem}-preview" if args.preview else stem, spec)
     print(f"  wrote {out}  ({elapsed:.0f}s, {elapsed / spec.n_views:.1f}s/view)")
+    if keep_views:
+        print(f"  frames {keep_views}  ({spec.n_views}, view 0 leftmost)")
 
     if args.report is not None:
         report = _run_report(args, subject, spec, camera, budget, elapsed)
         dest = args.report or f"renders/reports/{Path(out).stem}.md"
         print(f"  report {report.write(dest, output=out)}")
 
-    if args.cast:
+    if args.cast and args.sweep:
+        # A 23x1 sweep is not a quilt any panel can fuse; Bridge would accept
+        # the file and draw nonsense.
+        print("  not casting: a LitiHolo sweep is not a panel layout")
+    elif args.cast:
         from quiltwright.lfd import cast_quilt
 
         cast_quilt(out, spec)
