@@ -105,6 +105,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- **`git push` no longer waits on the ray tracer.** The pre-push pytest hook
+  runs `-m "not slow"`, which takes the local gate from 96 s to 16 s while
+  still running 557 of 588 tests. The marker existed and was declared in
+  `pyproject.toml`, but carried only 13 tests: the three classes in
+  `tests/test_povray.py` that shell out to a real `povray` binary were the
+  bulk of the cost and were unmarked, so deselecting slow tests used to save
+  16 s of 96. They are marked now. Nothing is skipped rather than deferred --
+  CI runs the suite unfiltered on both interpreters, and it now runs on
+  `develop` as well as `main`, which previously got no CI at all.
+
+- **`TestDepthSweep` ray-traces once instead of once per test.** Its `scene`
+  and `curve` fixtures were function-scoped, so a sweep that three tests read
+  different properties of was rendered three times: 18 s of the suite's 96.
+  Both are class-scoped now, which is 12 s off every full run, CI included.
+  The camera moves to a `PROBE_CAMERA` module constant, since a class-scoped
+  fixture cannot depend on the function-scoped `camera` fixture, and both
+  fixtures are `@staticmethod` -- pytest 10 removes class-scoped fixtures
+  declared as instance methods.
+
 - **The last private cross-module imports are gone.** `cli/cmd_cast.py`
   reached into `bridge._bridge_post` and `bridge._enter_orchestration` to
   list output devices; both are public as `bridge_post` and

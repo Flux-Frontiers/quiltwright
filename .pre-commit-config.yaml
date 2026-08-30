@@ -86,13 +86,18 @@ repos:
         always_run: true
       - id: pytest
         name: pytest
-        entry: .venv/bin/pytest --tb=short -q
+        entry: .venv/bin/pytest -m "not slow" --tb=short -q
         language: system
         pass_filenames: false
         always_run: true
-        # The suite takes 61 s: it ray-traces with POV-Ray and drives a real GL
-        # context through PyVista. Running it on every commit invites
-        # `--no-verify`, which also skips the fast hooks above. At pre-push it
-        # still gates anything leaving the machine, and CI reruns it on both
-        # interpreters.
+        # Running the suite on every commit invites `--no-verify`, which also
+        # skips the fast hooks above. At pre-push it still gates anything
+        # leaving the machine, and CI reruns it -- unfiltered, on both
+        # interpreters -- so nothing deselected here goes unrun.
+        #
+        # `not slow` is what keeps this a gate rather than a wait. The full
+        # suite is 84 s, and almost all of that is the three classes in
+        # test_povray.py that shell out to a real ray tracer, plus the
+        # PyVista/POV-Ray parity module. Deselecting them leaves 557 of 588
+        # tests and 16 s.
         stages: [pre-push]

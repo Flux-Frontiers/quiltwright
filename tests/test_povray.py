@@ -34,10 +34,17 @@ def _parse_plane(text: str) -> tuple[np.ndarray, float]:
 # ---------------------------------------------------------------------------
 
 
+#: A camera looking down +z, 10 units from its focal plane.  A module constant
+#: as well as a fixture: `TestDepthSweep.curve` is class-scoped and so cannot
+#: depend on a function-scoped fixture.  `PovCamera` is frozen, so the two
+#: share one instance safely.
+PROBE_CAMERA = PovCamera(location=(0.0, 0.0, -10.0), look_at=(0.0, 0.0, 0.0), fov=30.0)
+
+
 @pytest.fixture
 def camera() -> PovCamera:
     """A camera looking down +z, 10 units from its focal plane."""
-    return PovCamera(location=(0.0, 0.0, -10.0), look_at=(0.0, 0.0, 0.0), fov=30.0)
+    return PROBE_CAMERA
 
 
 @pytest.fixture
@@ -354,6 +361,7 @@ sphere { <0,0.9,4>,   0.20 pigment { color rgb <0,0,1> } finish { ambient 1 } }
 """
 
 
+@pytest.mark.slow
 @requires_povray
 class TestRenderPovQuilt:
     @pytest.fixture
@@ -470,6 +478,7 @@ class TestRenderPovQuilt:
         assert "camera {" in wrapper
 
 
+@pytest.mark.slow
 @requires_povray
 class TestRenderPovViews:
     """The sweep-export path, which hologram printers consume instead of a quilt."""
@@ -768,23 +777,29 @@ plane { <0,0,-1>, -20 pigment { color rgb <0.5,0.5,0.5> } finish { ambient 1 } }
 """
 
 
+@pytest.mark.slow
 @requires_povray
 class TestDepthSweep:
     """The measurement itself, against a scene whose depths are known exactly."""
 
-    @pytest.fixture
-    def scene(self, tmp_path):
-        path = tmp_path / "probe_scene.pov"
+    @pytest.fixture(scope="class")
+    @staticmethod
+    def scene(tmp_path_factory):
+        path = tmp_path_factory.mktemp("depth_sweep") / "probe_scene.pov"
         path.write_text(PROBE_SCENE)
         return path
 
-    @pytest.fixture
-    def curve(self, scene, camera):
+    # Class-scoped: one 6 s ray-trace answers all three questions below, which
+    # read different properties of the same curve.  Function-scoped, this was
+    # 18 s of the suite's 96.
+    @pytest.fixture(scope="class")
+    @staticmethod
+    def curve(scene):
         from quiltwright.povray import depth_sweep
 
         return depth_sweep(
             scene,
-            camera,
+            PROBE_CAMERA,
             [5.0, 8.0, 11.0, 13.0, 16.0, 25.0, 40.0],
             width=64,
             height=64,
