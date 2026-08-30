@@ -12,7 +12,7 @@ look like one. Everything in *this* directory is output.
 | Directory | Contents | Kept |
 |---|---|---|
 | `stills/` | Working renders you are currently looking at | local scratch, never committed -- promote to [`../gallery/`](../gallery/) what earns a place |
-| `quilts/` | Looking Glass quilts, written here by the render scripts | release assets (25-40 MB each) -- rendered on CI by `release.yml`, or locally via `make release-assets` |
+| `quilts/` | Looking Glass quilts, written here by the render scripts | release assets (25-40 MB each) -- published with `make release-assets`, fetched with `gh release download` |
 | `reports/` | Run reports -- one Markdown provenance record per full quilt | committed (~2 kB each) -- the only record of how a gitignored quilt was made |
 | `views/` | Per-view captures, test frames and experiments | local scratch, never committed |
 
@@ -37,8 +37,20 @@ the scene digest pins the actual input either way.
 
 ## quilts/
 
-Gitignored like everything else here -- at every depth, since the `*_qs...`
-patterns carry no slash -- and they land here when you render them:
+Gitignored like everything else here, at every depth, since the `*_qs...`
+patterns carry no slash. Nothing under `quilts/` is committed, and there are
+no exceptions: three of them used to be, negated by name so a clone carried
+the landscape set, but 97 MB of PNG put `.git` at 300 MB and every clone paid
+it forever. They are release assets now, which is the same convenience at
+none of the cost:
+
+```bash
+gh release download v0.10.0 -p '*_qs*.png' -D renders/quilts/
+```
+
+That pulls the landscape set plus the LitiHolo reference sweep. Publishing a
+new one is `make release-assets TAG=<tag>`. Otherwise they land here when you
+render them:
 
 ```bash
 python scripts/render_still_life_hologram.py bell-jar          # 16" landscape, ~9 min
