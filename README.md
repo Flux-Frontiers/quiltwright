@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Flux-Frontiers/quiltwright/v0.10.0/assets/logo_pack/quiltwright_logo_512.png" alt="Quiltwright" width="512"/>
+  <img src="https://raw.githubusercontent.com/Flux-Frontiers/quiltwright/v0.10.1/assets/logo_pack/quiltwright_logo_512.png" alt="Quiltwright" width="512"/>
 </p>
 
 [![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](LICENSE)
 [![PyPI](https://img.shields.io/pypi/v/quiltwright.svg)](https://pypi.org/project/quiltwright/)
-[![Version](https://img.shields.io/badge/version-0.10.0-blue.svg)](https://github.com/Flux-Frontiers/quiltwright/releases)
+[![Version](https://img.shields.io/badge/version-0.10.1-blue.svg)](https://github.com/Flux-Frontiers/quiltwright/releases)
 [![Tests](https://github.com/Flux-Frontiers/quiltwright/actions/workflows/tests.yml/badge.svg)](https://github.com/Flux-Frontiers/quiltwright/actions/workflows/tests.yml)
 [![Docs](https://img.shields.io/badge/docs-flux--frontiers.github.io-blue.svg)](https://flux-frontiers.github.io/quiltwright/)
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.22180300-blue.svg)](https://doi.org/10.5281/zenodo.22180300)
@@ -29,7 +29,7 @@ for geometric ML manifolds and by
 [pypdb2pov](https://github.com/Flux-Frontiers/pypdb2pov) for molecular
 structures, but neither is a prerequisite. If you can render it, you can hang it in the air.
 
-![Eric's Science Museum, the canonical POV-Ray render](https://raw.githubusercontent.com/Flux-Frontiers/quiltwright/v0.10.0/gallery/museum.png)
+![Eric's Science Museum, the canonical POV-Ray render](https://raw.githubusercontent.com/Flux-Frontiers/quiltwright/v0.10.1/gallery/museum.png)
 
 *A career in structural biophysics, arranged as exhibits: B-DNA and Z-DNA
 under bell jars, Ras and my original **DNA Under Glass** on the walls. The molecular
@@ -43,19 +43,21 @@ panels, or into 2-D video for Hololuminescent displays. A third output -- a
 
 ## Latest news
 
-**v0.10.0 (2026-08-30).** Quilt geometry, presets, and depth-budget arithmetic
-now live in `quiltwright.quilt`, and the Bridge client in `quiltwright.bridge`
--- neither imports VTK, so a machine that only casts a finished quilt no longer
-pays for PyVista. `quiltwright.lfd` is the PyVista backend and re-exports every
-moved name, so existing imports are unchanged. `QuiltCamera` and
-`window_shear()` state the off-axis shift once; the three backends convert it
-into their own units.
+**v0.10.1 (2026-08-31).** Documentation gets a real home: the `docs/*.md`
+guides now build into a GitHub Pages site at
+[flux-frontiers.github.io/quiltwright](https://flux-frontiers.github.io/quiltwright/),
+with an mkdocstrings API reference generated straight from the package's own
+docstrings, so it can't drift from the code. `docs/architecture.md` replaces
+the module-split proposal it outgrew -- the split it planned had already
+landed -- and `docs/cli.md` is a full flag reference for every command. The
+repository itself moved under the Flux-Frontiers org, matching the rest of
+the fleet.
 
-Two new commands take arbitrary input: `quiltwright mesh` auto-frames any
-glTF, OBJ, STL, PLY, USD, FBX, or Alembic file into a quilt from its bounding
-box, and `quiltwright probe` measures near/far -- and now reports when a sweep
-never closed, rather than letting the end of its travel be copied into a scene
-as a measurement.
+This cut also carries `bj_holo_2026.pov` -- "DNA Under Glass" with a bell
+jar that finally refracts rather than just tinting, via a Fresnel
+reflection and a real wall thickness -- and a fix for the vitrine exhibits,
+which had been rendering at a 71.4-degree lens instead of the 44 degrees
+they are composed at.
 
 _Full history: [CHANGELOG.md](CHANGELOG.md) and
 [releases](https://github.com/Flux-Frontiers/quiltwright/releases)._
@@ -275,7 +277,7 @@ on Zenodo.
   title   = {Quiltwright: Holographic Output for Looking Glass Displays},
   url     = {https://github.com/Flux-Frontiers/quiltwright},
   doi     = {10.5281/zenodo.22180300},
-  version = {0.10.0},
+  version = {0.10.1},
   year    = {2026}
 }
 ```

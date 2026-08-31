@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-08-31
+
+### Added
+
+- **A GitHub Pages documentation site.** `docs/*.md` now builds with MkDocs
+  Material into `https://flux-frontiers.github.io/quiltwright/`, with an
+  mkdocstrings API reference generated from the package's own docstrings
+  (`quilt`, `lfd`, `povray`, `cycles`, `povgen`, `hld`, `weave`, `bridge`,
+  `tvb_data`, `runtime`) so it cannot drift from the code.
+  `.github/workflows/docs.yml` builds and deploys on every push to `main`.
+  A `docs` Poetry group (`mkdocs-material`, `mkdocstrings[python]`) holds
+  the toolchain, optional and out of the published wheel.
+
+- **`docs/architecture.md`**, replacing `docs/architecture-plan.md`. The
+  module split it proposed had fully landed, so the file had become a PR
+  proposal masquerading as documentation. The replacement describes the
+  package as it is: the module map, the acyclic dependency graph, and the
+  off-axis invariant (`window_shear`) shared by the PyVista, POV-Ray and
+  Cycles backends.
+
+- **`docs/cli.md`**, a flag-by-flag reference for every `quiltwright`
+  command, generated from each command's own `--help` output.
+  `docs/shell.md` keeps its narrative "what each command is for" and links
+  out to the new page instead of duplicating the option tables.
+
+### Changed
+
+- **Repository ownership moved to Flux-Frontiers.** Every
+  `suchanek/quiltwright` reference -- README badges, `pyproject.toml`
+  project URLs, `CITATION.cff`, source-file docstring headers -- now points
+  at `Flux-Frontiers/quiltwright`. The Zenodo DOI
+  (`10.5281/zenodo.22180300`) and the PyPI trusted-publisher configuration
+  were updated to match.
+
+- **Doc links that pointed at `scripts/`, `pov-scenes/`, or the top-level
+  README now use absolute GitHub URLs** instead of paths relative to
+  `docs/`. They rendered fine read in the repository, but MkDocs only
+  serves `docs_dir`, so they had no target on the deployed Pages site.
+
 ### Added
 
 - **`bj_holo_2026.pov` -- "DNA Under Glass" with the glass made real.** The
