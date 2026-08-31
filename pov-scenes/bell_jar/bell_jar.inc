@@ -73,18 +73,24 @@
    }
 }
 
-// dispersion is what separates crystal from window glass, and it is the one
-// expensive line here: measured on bj_holo_2026 at 640x360 +WT1, dropping it
-// takes the render from 17.5s to 3.9s and changes 53% of the jar's pixels,
-// peak 28/255.  Cheap on a still, 4.5x on a 48-view quilt -- worth knowing
-// before sweeping one.  The fade is free by comparison (17.8s with it gone)
-// and moves more: 72% of the jar's pixels, which is the green that collects
-// along the silhouette where a ray runs down the length of the glass rather
-// than straight through it.  That gradient is what reads as thickness.
+// No dispersion, deliberately.  It is the line you reach for first on
+// crystal and it does not pay here.  Measured on bj_holo_2026 at 640x360
+// +WT1, `dispersion 1.015` with 7 samples costs 4.5x the render (17.5s
+// against 3.9s) and returns a mean difference of 0.63/255 over the jar --
+// wide but vanishingly shallow, and concentrated in the rim, where a 6x
+// zoom could barely separate the two.  On a quilt it is worse than useless:
+// each of the 48 views reaches the eye through lenticular optics with real
+// angular crosstalk, which erases a sub-1/255 chromatic shift completely.
+// At 960x540 per view it was costing 36 s/view, ~29 minutes a sweep, for
+// something the panel cannot deliver.
+//
+// The fade below is the opposite bargain -- free (17.8s with it removed)
+// and it moves 72% of the jar's pixels.  That is the green collecting along
+// the silhouette where a ray runs down the length of the glass rather than
+// straight through it, and that gradient is what reads as thickness.  With
+// ior, the Fresnel reflection and the wall, it does all the visible work.
 #declare BJ_GLASS_INTERIOR = interior {
    ior 1.52
-   dispersion 1.015
-   dispersion_samples 7
    fade_power 1001
    fade_distance 40
    fade_color <0.86, 0.95, 0.90>

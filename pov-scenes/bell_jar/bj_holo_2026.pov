@@ -28,8 +28,8 @@
 // BJ_WALL gave the jar two surfaces, that filter applied twice wherever the
 // wall was seen edge-on, which is why the dome carries two grey outlines
 // down each side instead of one glass rim.  BJ_CRYSTAL (see bell_jar.inc)
-// swaps in ior 1.52 with a Fresnel reflection and a little dispersion, so
-// the wall refracts rather than tints.  The doubled outline resolves into a
+// swaps in ior 1.52 with a Fresnel reflection, so the wall refracts rather
+// than tints.  The doubled outline resolves into a
 // single bright band, the sky lands in the shoulder of the dome where the
 // Fresnel term climbs, and the duplex behind the glass is magnified the way
 // a real jar magnifies what is under it.

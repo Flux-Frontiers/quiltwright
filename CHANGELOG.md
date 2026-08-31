@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   surfaces, that filter applied twice wherever the wall was seen edge-on, and
   the dome came out with two grey outlines down each side instead of one glass
   rim. The new cut turns on `BJ_CRYSTAL`, a switch added to `bell_jar.inc`:
-  ior 1.52, a Fresnel reflection, a little dispersion, and a wall at 0.20
+  ior 1.52, a Fresnel reflection, edge absorption, and a wall at 0.20
   rather than 0.06. The doubled outline resolves into a single bright band,
   the glass meets the pedestal in a real rim, the horizon bends where it
   crosses the wall, and the duplex is magnified the way a jar magnifies what
@@ -33,11 +33,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   around that branch alone, never for the file -- raising it for the whole
   include would re-grade every scene that reads it.
 
-  Photons were tried and rejected. POV-Ray stops passing direct light through
-  a photon target and expects the photon map to replace it; at this scale it
-  does not. The duplex went flat for want of the light that used to reach it
-  through the glass, and the jar dropped a hard black ellipse across the sea.
-  220k photons and 900k photons were equally bad, the latter at 7x the render.
+  Three things were tried and rejected. **Photons**: POV-Ray stops passing
+  direct light through a photon target and expects the photon map to replace
+  it; at this scale it does not. The duplex went flat for want of the light
+  that used to reach it through the glass, and the jar dropped a hard black
+  ellipse across the sea. 220k and 900k photons were equally bad, the latter
+  at 7x the render. **The title's reflection in the dome**, which is correct
+  now that the glass reflects but reads as a mirrored smear across the
+  shoulder; `no_reflection` on the title alone suppresses it. And
+  **dispersion**, which is the line you reach for first on crystal and the
+  one that does not pay: 4.5x the render for a mean difference of 0.63/255
+  over the jar, concentrated in the rim, where a 6x zoom could barely
+  separate the two. On a quilt it is worse than useless -- each of the 48
+  views reaches the eye through lenticular optics with real angular
+  crosstalk, which erases a sub-1/255 chromatic shift entirely, and at
+  960x540 per view it was costing 36 s/view against a ~29-minute sweep. ior,
+  the Fresnel reflection, the wall thickness and the edge absorption do all
+  the visible work.
 
   Wired up as `make still-bell_jar_bj_holo_2026` (in `gallery`),
   `make quilt-bell-jar-holo-2026` and `make preview-bell-jar-holo-2026`. The

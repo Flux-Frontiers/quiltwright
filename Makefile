@@ -183,9 +183,8 @@ quilt-bell-jar-holo:  $(THREAD_INI)  ## recomposed bell jar quilt, 16" landscape
 
 # bj_holo_2026.pov: the same frame with real refracting crystal in place of
 # the 1996 tinted film.  Same camera as quilt-bell-jar-holo, so the same
-# focal plane and the same sweep -- but `dispersion` on the glass makes it
-# roughly 4.5x the render.  Preview first.
-quilt-bell-jar-holo-2026:  $(THREAD_INI)  ## crystal bell jar quilt, 16" landscape (slow -- dispersion)
+# focal plane and the same sweep.
+quilt-bell-jar-holo-2026:  $(THREAD_INI)  ## crystal bell jar quilt, 16" landscape
 	$(PYTHON) scripts/render_still_life_hologram.py bell-jar-holo-2026 --jobs $(JOBS) --report $(EXTRA_ARGS)
 
 # bj_portrait.pov: the 9:16 companion, for the tall panels (16/27/32-portrait,

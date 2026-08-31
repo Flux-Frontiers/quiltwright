@@ -160,9 +160,10 @@ SCENES = {
         # That matters -- the title and signature are placed against that
         # number in the scene, and bj_holo_2026.pov inherits the placement.
         #
-        # Slower than bell-jar-holo by roughly 4.5x, and the reason is one
-        # line: `dispersion` in BJ_GLASS_INTERIOR.  Budget accordingly, or
-        # drop it in bell_jar.inc for a sweep where it will not be seen.
+        # Refracting glass costs more per view than the 1996 film did, but
+        # not much: `dispersion` was what made it expensive, and it is gone
+        # from BJ_GLASS_INTERIOR -- see the note there before adding it back
+        # for a sweep.
         eye=(0.0, 35.0, -95.0),
         aim=(0.0, 20.95, 0.0),
         fov=55.32,
