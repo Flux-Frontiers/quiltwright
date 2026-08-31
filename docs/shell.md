@@ -61,6 +61,7 @@ from the scene's own aim point:
 ```bash
 make quilts                       # bell jar, porin, lambda, museum
 make quilt-bell-jar-holo          # one, 16:9
+make quilt-bell-jar-holo-2026     # the crystal cut
 make quilt-bell-jar-portrait      # the 9:16 companion, for tall panels
 make preview-museum               # quarter-size, for iterating on composition
 ```

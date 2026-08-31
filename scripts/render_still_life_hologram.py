@@ -150,6 +150,27 @@ SCENES = {
         far=129.0,
         backdrop="sea and sky",
     ),
+    "bell-jar-holo-2026": StillLife(
+        scene="bell_jar/bj_holo_2026.pov",
+        # Identical optics to bell-jar-holo -- same eye, same aim, same lens,
+        # same framing.  Only the glass differs, and a jar that refracts does
+        # not move the surfaces the sweep was measured against: the pedestal's
+        # front rim still appears at 72 and the subject is still in by 129, so
+        # the focal plane lands at 92.42 exactly as it does for bj_holo.pov.
+        # That matters -- the title and signature are placed against that
+        # number in the scene, and bj_holo_2026.pov inherits the placement.
+        #
+        # Refracting glass costs more per view than the 1996 film did, but
+        # not much: `dispersion` was what made it expensive, and it is gone
+        # from BJ_GLASS_INTERIOR -- see the note there before adding it back
+        # for a sweep.
+        eye=(0.0, 35.0, -95.0),
+        aim=(0.0, 20.95, 0.0),
+        fov=55.32,
+        near=72.0,
+        far=129.0,
+        backdrop="sea and sky",
+    ),
     "bell-jar-portrait": StillLife(
         scene="bell_jar/bj_portrait.pov",
         # The 9:16 companion to bj_holo.  Same eye; the lens is set by the

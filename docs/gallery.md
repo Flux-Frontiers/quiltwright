@@ -20,6 +20,7 @@ mismatched frame stretches the picture with no warning:
 | `museum_2026.png` | `museum/museum_2026.pov` | 1.778 | 1920x1080 |
 | `bell_jar_bj.png` | `bell_jar/bj.pov` | 0.75 | 900x1200 |
 | `bell_jar_bj_holo.png` | `bell_jar/bj_holo.pov` | 1.778 | 1920x1080 |
+| `bell_jar_bj_holo_2026.png` | `bell_jar/bj_holo_2026.pov` | 1.778 | 1920x1080 |
 | `bell_jar_bj_portrait.png` | `bell_jar/bj_portrait.pov` | 0.5625 | 1080x1920 |
 | `bell_jar_bdna.png` | `bell_jar/bdna.pov` | 0.75 | 900x1200 |
 | `bell_jar_yinyang.png` | `bell_jar/yinyang.pov` | 1.25 | 1500x1200 |
@@ -79,6 +80,20 @@ focal plane, where a light-field display holds them sharp; in `bj.pov` they are
 camera-pinned overlays 70-74 units from the eye, in front of the scene itself.
 The lens opens 53.13 -> 55.32 degrees to make room for the title, which
 `bj.pov`'s framing has none of.*
+
+![DNA Under Glass, 2026 crystal cut](../gallery/bell_jar_bj_holo_2026.png)
+
+*`bj_holo_2026.pov` -- the same frame with the glass made real. The 1996 jar
+has no `interior`, so it refracts nothing: it is a surface that filters what
+passes through it, and once the jar was given a wall that filter applied twice
+wherever the wall was seen edge-on, drawing two grey outlines down each side of
+the dome. This one is ior 1.52 with a Fresnel reflection and a heavier wall, so
+the wall refracts rather than tints -- one bright band at the silhouette, a
+visible rim where the glass meets the pedestal, the horizon bending as it
+crosses the wall, and the duplex magnified the way a real jar magnifies what is
+under it. The signature reads '26. Everything else -- eye, lens, framing,
+lettering -- is `bj_holo.pov` untouched. See `BJ_CRYSTAL` in `bell_jar.inc`;
+it is off by default, so the other scenes sharing that include are unchanged.*
 
 ![DNA Under Glass, 9:16 portrait cut](../gallery/bell_jar_bj_portrait.png)
 
