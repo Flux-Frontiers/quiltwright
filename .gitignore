@@ -118,3 +118,7 @@ grants/
 **/.agentkg/
 docs/quiltwright_brand.md
 .grok/config.toml
+.pycodekg/graph.sqlite-shm
+.pycodekg/graph.sqlite-wal
+.pycodekg/vectors.sqlite-shm
+.pycodekg/vectors.sqlite-wal

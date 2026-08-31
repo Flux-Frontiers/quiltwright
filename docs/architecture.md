@@ -115,8 +115,8 @@ source and backend in full.
 
 The `quiltwright` console script (`quiltwright.cli`) covers hardware and
 tooling that takes arbitrary input: `mesh`, `cartoon`, and `probe` accept
-any file or scene; `cast`, `weave`, `wallpaper`, and `bridge` drive a
-connected panel. There is no generic `quiltwright render` -- a *composed*
+any file or scene; `cast`, `weave`, `wallpaper`, `dynamic`, and `bridge`
+drive a connected panel. There is no generic `quiltwright render` -- a *composed*
 exhibit (the museum, the vitrine, the PyVista brain demo) is a
 `scripts/render_*.py` script, not a subcommand, because each one wires up
 scene-specific choices (camera framing, lighting, which molecules) that

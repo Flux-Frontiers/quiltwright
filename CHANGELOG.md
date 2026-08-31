@@ -48,6 +48,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **`quiltwright dynamic` -- pack stills into a macOS Dynamic Desktop HEIC.**
+  Appearance (light/dark), solar (altitude/azimuth), or time-of-day (`h24`)
+  metadata on image 0, matching the plists Apple ships in `The Lake.heic` and
+  `Sonoma.heic`. Woven `_native_` frames encode lossless 4:4:4 so the
+  hologram survives; ordinary 2D stills may be lossy. Encoding is the
+  `heic` extra (`pillow-heif`). `quiltwright wallpaper` already installs
+  the `.heic` by serial, same as a PNG. Light Mode is the normal plate;
+  Dark Mode is the fog night.
+
+- **POV-Ray `lighting=` / `sun=` on `render_pov_quilt` and
+  `render_pov_views`.** Dynamic Desktop lighting without touching POV-Ray's
+  `clock` (that is the animation parameter, `+K`, and has nothing to do with
+  wall-clock time). `#declare QW_Appearance` / `QW_SunAltitude` /
+  `QW_SunAzimuth` are prefixed so a scene can opt in. `lighting="light"`
+  leaves the scene's own lights alone -- an additive key washes the plate
+  out. `lighting="dark"` appends a cool moon plus short fog so Dark Mode
+  still reads as night against an authored white key. Pass `sun=(altitude,
+  azimuth)` for solar frames that need an explicit parallel sun.
+
 - **`bj_holo_2026.pov` -- "DNA Under Glass" with the glass made real.** The
   1996 bell jar carries no `interior`, so its index of refraction is 1.0 and
   it bends nothing: it is a surface that filters what crosses it, which is a
@@ -98,6 +117,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   placed against. Worst-case adjacent-view disparity is 2.30 px, at infinity.
 
 ### Changed
+
+- **`bj_holo_2026.pov` framed for desktop wallpaper.** The glass Y scale
+  drops from 10.5 to 9.5 (DNA unchanged) so the dome leaves a sky band, and
+  the title baseline moves from `y=62.45` to `y=61.30` -- low enough that a
+  macOS menu bar does not clip the caps, high enough that the letters clear
+  the glass. Pair with `lighting="light"|"dark"` for a Dynamic Desktop: the
+  normal plate by day, fog night after dark, on both the Mac and a woven
+  Looking Glass HEIC.
 
 - **The three committed quilts are release assets now, not repo content.**
   `bell-jar`, `museum` and `porin` at 16" landscape were negated by name in

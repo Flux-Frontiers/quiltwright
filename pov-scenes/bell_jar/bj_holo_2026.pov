@@ -40,9 +40,11 @@
 //
 // The whole diff against bj_holo.pov: max_trace_level and the two BJ_
 // declares below; `no_reflection` on the title; the light_source unwrapped
-// from its 1996 `object { ... }`; and the signature string.  Eye, lens,
-// framing, lettering placement, sky, sea and molecule are untouched.  The
-// original composition note follows.
+// from its 1996 `object { ... }`; the signature string; a slightly shorter
+// jar (see bna7_full_belljar redeclare below); and the title baseline
+// dropped a scooch so a macOS menu bar does not clip the caps.  Eye, lens,
+// sky, sea and molecule are untouched.  The original composition note
+// follows.
 //
 // Light-field recomposition of bj.pov.  Same scene, same eye, same lens --
 // only the frame and the lettering differ, so bj.pov keeps its 1997 3:4
@@ -239,6 +241,14 @@ sky_sphere { Sky }
 //
 // the actual scene objects
 //
+// Shorter jar than bj_holo.pov's <25, 10.5, 25>: the Y scale drops to 9.5 so
+// the dome leaves a band of sky big enough for the title to sit under a
+// macOS menu bar without kissing the glass.  The DNA (bna7_full_obj) is
+// unchanged -- only the glass is shortened.
+#declare bna7_full_belljar = union {
+        object {bell_jar  scale <25, 9.5, 25>}
+        object { bna7_full_obj rotate x*90 translate <0, 25, 0>}
+     }
 
 object { bna7_full_belljar translate <0.0, 0.0, 7.0>}
 
@@ -258,23 +268,22 @@ object { bna7_full_belljar translate <0.0, 0.0, 7.0>}
 // about its own baseline-left origin, so each translate below *is* the
 // baseline-left corner of the string.
 //
-// Title: centred, in the sky above the dome.  What bounds it is the glass,
-// not taste -- the dome's silhouette tops out 90 pixels down a 1080-line
-// frame, and an ellipsoid seen from a pitched camera silhouettes at its
-// tangent point (y=60.27, z=-1.90), not at its apex, so the tangent is what
-// the title has to clear.  The baseline sits 12 pixels above it and the
-// caps stop 26 pixels short of the top edge.  In world terms the baseline
-// is at y=62.45, z=2.48, comfortably outside the glass.
+// Title: centred, in the sky above the dome.  With the shorter jar the
+// dome's silhouette clears more sky than the original y=60.27 tangent, so
+// the baseline can sit at y=61.30 -- low enough that a menu bar does not
+// clip the caps, high enough that the letters clear the glass.  (y=62.45
+// was the original; y=60.20 clipped the dome.)  z=2.48 keeps it outside
+// the glass.
 //
-// no_shadow because the light is at <-13.1,70,-30.9> and the title is now
-// 62 units up: the shadow ray reaches the sea some 340 units downrange,
-// which projects as a smeared dark copy of the lettering lying across the
+// no_shadow because the light is at <-13.1,70,-30.9> and the title is high
+// up: the shadow ray reaches the sea some 340 units downrange, which
+// projects as a smeared dark copy of the lettering lying across the
 // horizon.  The signature keeps its shadow -- that one lands directly
 // beneath the string and grounds it on the water.
 object {titletext
           rotate 8.41*x
           scale 6.68
-          translate <-25.21, 62.45, 2.48>
+          translate <-25.21, 61.30, 2.48>
           no_shadow
           // no_reflection is new in 2026 and exists only because the glass
           // is now real: a dome that reflects returns the title as a

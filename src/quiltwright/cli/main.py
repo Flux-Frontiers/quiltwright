@@ -22,8 +22,8 @@ def cli() -> None:
     """quiltwright -- holographic output for Looking Glass displays.
 
     Hardware and tooling on a finished quilt (cast, weave, wallpaper,
-    bridge), plus mesh / cartoon / probe for arbitrary input. Composed
-    exhibits for the bundled scenes live in scripts/, not here.
+    dynamic, bridge), plus mesh / cartoon / probe for arbitrary input.
+    Composed exhibits for the bundled scenes live in scripts/, not here.
     """
 
 
@@ -32,6 +32,7 @@ from quiltwright.cli import (  # noqa: E402, F401
     cmd_bridge,
     cmd_cartoon,
     cmd_cast,
+    cmd_dynamic,
     cmd_mesh,
     cmd_probe,
     cmd_wallpaper,

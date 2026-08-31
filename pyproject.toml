@@ -108,6 +108,10 @@ video = ["imageio-ffmpeg>=0.4"]
 # immutable.)
 molecules = ["pypdb2pov>=0.1.1"]
 
+# Dynamic Desktop HEIC encoding.  Metadata construction is stdlib; this extra
+# is only the encoder.  Woven holographic frames need it for lossless 4:4:4.
+heic = ["pillow-heif>=0.16"]
+
 [project.urls]
 Homepage = "https://github.com/Flux-Frontiers/quiltwright"
 Repository = "https://github.com/Flux-Frontiers/quiltwright"
