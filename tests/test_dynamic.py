@@ -147,6 +147,23 @@ def test_spec_from_json_remaps_primary_and_solar(tmp_path: Path):
     assert spec.solar[1].altitude == 10
 
 
+def test_spec_from_json_rejects_half_a_solar_position(tmp_path: Path):
+    Image.fromarray(_rgb(1, 1, 1)).save(tmp_path / "a.png")
+    Image.fromarray(_rgb(2, 2, 2)).save(tmp_path / "b.png")
+    cfg = tmp_path / "solar.json"
+    cfg.write_text(
+        """
+        [
+          {"fileName": "a.png", "isPrimary": true, "altitude": 45},
+          {"fileName": "b.png", "altitude": -20, "azimuth": 350}
+        ]
+        """
+    )
+    # A ValueError, not a KeyError: the CLI turns this one into a usage error.
+    with pytest.raises(ValueError, match="both altitude and azimuth"):
+        spec_from_json(cfg)
+
+
 def test_spec_from_json_time(tmp_path: Path):
     Image.fromarray(_rgb(1, 1, 1)).save(tmp_path / "a.png")
     Image.fromarray(_rgb(2, 2, 2)).save(tmp_path / "b.png")

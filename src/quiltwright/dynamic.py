@@ -447,6 +447,11 @@ def spec_from_json(path: str | Path, *, lossless: bool | None = None) -> Dynamic
         if entry.get("isForDark"):
             dark_idx = new
         if "altitude" in entry or "azimuth" in entry:
+            if "altitude" not in entry or "azimuth" not in entry:
+                raise ValueError(
+                    f"entry {old} ({name}) needs both altitude and azimuth, "
+                    f"got only {'altitude' if 'altitude' in entry else 'azimuth'}"
+                )
             has_solar = True
             solar.append(
                 SolarItem(
