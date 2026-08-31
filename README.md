@@ -42,20 +42,19 @@ panels, or into 2-D video for Hololuminescent displays. A third output -- a
 
 ## Latest news
 
-**v0.10.0 (2026-08-30).** The package stopped being one module with a
-rendering backend attached. Quilt geometry, presets and the depth-budget
-arithmetic now live in `quiltwright.quilt`, and the Bridge client in
-`quiltwright.bridge` -- neither imports VTK, so a machine that only casts a
-finished quilt no longer pays for PyVista. `quiltwright.lfd` is the PyVista
-backend and re-exports every moved name, so existing imports are unchanged.
-`QuiltCamera` and `window_shear()` state the off-axis shift once, and the
-three backends convert it into their own units rather than each deriving it.
-Two new commands take arbitrary input instead of working downstream of a
-render: `quiltwright mesh` auto-frames any glTF, OBJ, STL, PLY, USD, FBX or
-Alembic file into a quilt from its own bounding box, and `quiltwright probe`
-promotes the plane sweep every near/far figure in this repo was measured with
-into the package -- and now says when a sweep never closed, rather than
-letting the end of its travel be copied into a scene as a measurement.
+**v0.10.0 (2026-08-30).** Quilt geometry, presets, and depth-budget arithmetic
+now live in `quiltwright.quilt`, and the Bridge client in `quiltwright.bridge`
+-- neither imports VTK, so a machine that only casts a finished quilt no longer
+pays for PyVista. `quiltwright.lfd` is the PyVista backend and re-exports every
+moved name, so existing imports are unchanged. `QuiltCamera` and
+`window_shear()` state the off-axis shift once; the three backends convert it
+into their own units.
+
+Two new commands take arbitrary input: `quiltwright mesh` auto-frames any
+glTF, OBJ, STL, PLY, USD, FBX, or Alembic file into a quilt from its bounding
+box, and `quiltwright probe` measures near/far -- and now reports when a sweep
+never closed, rather than letting the end of its travel be copied into a scene
+as a measurement.
 
 _Full history: [CHANGELOG.md](CHANGELOG.md) and
 [releases](https://github.com/suchanek/quiltwright/releases)._
@@ -77,53 +76,32 @@ _Full history: [CHANGELOG.md](CHANGELOG.md) and
    (.blend, glTF, USD, OBJ)
 ```
 
-**Three backends, not three pipelines.** `render_quilt()` sweeps any
-PyVista/VTK scene held in memory. `render_pov_quilt()` ray-traces any POV-Ray
-scene on disk, appending a camera per view and modifying nothing -- which is
-what lets it render files written decades ago, by tools that no longer exist,
-without altering them. `render_cycles_quilt()` path-traces `.blend` files and
-mesh formats (glTF, USD, OBJ, STL, PLY, FBX, Alembic) through Blender's
-Cycles, picking up GPU ray tracing where the hardware offers it -- Metal's
-ray-tracing cores on Apple Silicon, OptiX/HIP/oneAPI elsewhere -- and loading
-the scene once for the whole sweep rather than once per view. All converge at
-a shared, renderer-agnostic assembler, so everything downstream remains
-indifferent to which backend produced the views.
+Three backends share one assembler:
 
-What feeds the backends is open. WaveRider's voxel and manifold visualizer and
-pypdb2pov's PDB conversion are the two that drove the design, but
-`quiltwright.tvb_data` pulls real brain geometry from
-[The Virtual Brain](docs/tvb-data.md), PyVista's own example datasets work
-as-is, `quiltwright.povgen` writes POV-Ray from analytic primitives, and a
-plain `.pov` file off your disk needs no pipeline at all. The backends also
-bridge: `render_cycles_quilt_from_plotter()` takes the same composed PyVista
-plotter `render_quilt()` does and path-traces it instead -- scene exported to
-glTF once, camera translated, scalar colors intact.
+| Backend | Call | Input |
+|---|---|---|
+| PyVista / VTK | `render_quilt()` | In-memory plotter |
+| POV-Ray | `render_pov_quilt()` | `.pov` on disk; original never modified |
+| Cycles | `render_cycles_quilt()` | `.blend` and mesh files; GPU ray tracing where available |
+
+`render_cycles_quilt_from_plotter()` takes the same PyVista plotter
+`render_quilt()` does and path-traces it instead. WaveRider, [The Virtual
+Brain](docs/tvb-data.md), PyVista example datasets, `quiltwright.povgen`, and a
+plain `.pov` file on disk all feed the same path.
 
 **Two display technologies.** *Light-field displays* (LFD -- Portrait, Go,
-16"/27"/32"/65") are lenticular panels that consume **quilts**: N views of the
-same scene tiled into one image, fused optically into real depth.
-*Hololuminescent displays* (HLD -- 16"/27"/86") play **ordinary 2-D video**
-behind a fixed holographic optic and require styling rather than parallax:
-dark field, high contrast, generous safe margins. `quiltwright.lfd` targets the
-first; `quiltwright.hld` the second.
+16"/27"/32"/65") consume **quilts**: N views tiled into one image.
+`quiltwright.lfd` targets those. *Hololuminescent displays* (HLD --
+16"/27"/86") play **ordinary 2-D video** behind a fixed holographic optic and
+need dark-field styling rather than parallax; that is `quiltwright.hld`.
 
-The shared middle is what makes this a package rather than two scripts: quilt
-geometry and device presets, depth-budget arithmetic that decides whether a
-scene will fuse before you spend an hour rendering it, filename conventions the
-Looking Glass software parses, video encoding, and direct Bridge control.
-
-**A third output, under development.** That middle layer also serves consumers
-that are not panels at all: `render_pov_views()` writes the sweep as separate
-frames, and `sweep_spec()` / `LITIHOLO_SWEEP` provide the single-row layout a
-hologram printer's view count requires -- a structure a quilt grid cannot
-express -- so one scene feeds a light-field panel and a hologram printer without
-being rebuilt. Nothing has yet passed through a printer's software, so the
-claim is a sweep matching LitiHolo's published specification rather than
-verified compatibility;
+A third output is in development: `render_pov_views()` plus `LITIHOLO_SWEEP`
+write a 23-view single-row sweep for LitiHolo's desktop hologram printer. Nothing
+has yet passed through a printer's software;
 [docs/lfd.md](docs/lfd.md#view-sweeps--when-the-consumer-is-not-a-panel)
 records what remains open.
 
-### The part that is easy to get wrong
+### Off-axis, not toe-in
 
 Each view must use an **off-axis (asymmetric-frustum) projection**: the camera
 slides sideways while continuing to face the same direction, with the image
@@ -133,9 +111,7 @@ The intuitive alternative is to swivel each camera to keep the subject centered.
 This "toe-in" approach introduces vertical parallax and keystone distortion, so
 the display cannot fuse the views: you get ghosting instead of depth. It is the
 single most common way light-field renders go wrong, and it produces output
-that looks perfectly plausible in any individual frame. Quiltwright implements
-the off-axis projection correctly in both backends and provides the arithmetic
-to predict whether a scene will fuse.
+that looks perfectly plausible in any individual frame.
 
 ---
 
@@ -148,50 +124,11 @@ pip install "quiltwright[video]"        # + a bundled ffmpeg for video encoding
 pip install "quiltwright[molecules]"    # + PDB and mmCIF, via pypdb2pov
 ```
 
-### From a clone, with Poetry
+Requires Python 3.12 or 3.13. Core depends only on numpy, pillow, and click.
 
-Each extra above has a Poetry group of the same name, so the two produce the
-same environment. Every group is optional -- a bare `poetry install` skips all
-of them.
-
-```bash
-poetry install                          # core: quilt geometry + Bridge control
-poetry install --with viz               # + PyVista/VTK rendering backend
-poetry install --with video             # + a bundled ffmpeg for video encoding
-poetry install --with molecules         # + PDB and mmCIF, via pypdb2pov
-poetry install --with dev               # + pytest, ruff, ty, pre-commit
-poetry install --with viz,video,dev     # groups combine
-```
-
-No space after the comma: Poetry reads the name following it as a positional
-argument and refuses the command.
-
-There is one group with no pip equivalent, on purpose. `kg` installs the
-`pycodekg` and `dockg` CLIs that index this repo for agents -- tooling this
-repo runs rather than a feature of the package, so it stays out of the
-published wheel metadata:
-
-```bash
-poetry install --with kg
-poetry install --all-extras --with dev,kg    # everything
-```
-
-### Prerequisites
-
-Nothing above needs all of these -- pick the row for the backend you're
-using. Each is an external binary, not a Python dependency, so `pip install
-quiltwright` never pulls any of them in on its own.
-
-| Dependency | Needed for | Install |
-|---|---|---|
-| **POV-Ray** | the ray-traced backend (`render_pov_quilt`) | `brew install povray` / `apt install povray` / `dnf install povray` |
-| **Blender** (4.x+) | the Cycles backend (`render_cycles_quilt`) | `brew install --cask blender`, or any [blender.org](https://www.blender.org/download/) install |
-| **PyMOL** | secondary-structure cartoons (`quiltwright cartoon`, `cartoon_inc`/`cartoon_obj`) | `brew install pymol` / `conda install -c conda-forge pymol-open-source` |
-| **ffmpeg** | quilt/HLD video encoding | `brew install ffmpeg`, or skip it and use `pip install "quiltwright[video]"` for a bundled copy |
-| **Looking Glass Bridge** (≥ 2.2) | casting to a physical panel (`cast_quilt`) | [lookingglassfactory.com/software/looking-glass-bridge](https://lookingglassfactory.com/software/looking-glass-bridge) |
-
-For the complete stack -- every layer above in more depth, plus pypdb2pov --
-see the [installation guide](docs/install.md).
+POV-Ray, Blender, PyMOL, ffmpeg, and Looking Glass Bridge are external binaries,
+not pip dependencies. Poetry groups, from-source install, and the rest of the
+stack are in the [installation guide](docs/install.md).
 
 ---
 
@@ -225,27 +162,16 @@ quilt = render_pov_quilt("pov-scenes/museum/museum.pov", spec, camera,
 save_quilt(quilt, "museum", spec)
 ```
 
-A 2026 cut of the museum, `museum_2026.pov`, is composed for the panel rather
-than for paper: 16:9, the oval mirror where the Risedronate picture hung, and
-both pedestals moved inward to flank the alcove. The 1999 original is
-untouched beside it.
-
-The museum scene above ships in [pov-scenes/](pov-scenes/), and
+The museum scene ships in [pov-scenes/](pov-scenes/).
 [scripts/render_museum_hologram.py](scripts/render_museum_hologram.py) renders
-it end-to-end with a measured depth budget -- the worked case study in
-[docs/povray.md](docs/povray.md), and the scene itself in
-[docs/about-the-image.md](docs/about-the-image.md).
-
-Two more scene trees ship alongside it -- the bell-jar DNA still lifes the
-museum's pedestals were built from, and porin's beta-barrel over water. What is in
-each, and how to render them directly, is in
-[pov-scenes/README.md](pov-scenes/README.md).
+it end-to-end; the worked case study is [docs/povray.md](docs/povray.md).
 
 ### From a Cycles scene
 
-Same plotter, path-traced instead of rasterized -- with GPU hardware ray
-tracing where it's available (Metal on Apple Silicon; OptiX/HIP/oneAPI
-elsewhere, CPU as the fallback):
+Same plotter, path-traced instead of rasterized -- Metal on Apple Silicon,
+OptiX/HIP/oneAPI elsewhere, CPU as the fallback.
+`render_cycles_quilt_from_plotter` reads the plotter and does not mutate it,
+so it also runs where `render_quilt` cannot (no OpenGL stack).
 
 ```python
 import pyvista as pv
@@ -259,95 +185,65 @@ quilt = render_cycles_quilt_from_plotter(p, spec, lighting="studio")
 save_quilt(quilt, "torus_cycles", spec)
 ```
 
-`render_cycles_quilt_from_plotter` reads the plotter -- never renders or
-mutates it -- so it also works on machines with no OpenGL stack, where
-`render_quilt` itself cannot run. It exports through glTF once and shares the
-result across the whole view sweep, rather than re-parsing per view the way
-the POV-Ray backend does. For a `.blend` file or a mesh already on disk
-(glTF, OBJ, STL, PLY, USD, FBX, Alembic), skip the plotter and call
-`render_cycles_quilt` directly with an explicit `CyclesCamera`:
+For a `.blend` file or a mesh already on disk (glTF, OBJ, STL, PLY, USD, FBX,
+Alembic), call `render_cycles_quilt` with an explicit `CyclesCamera`:
 
 ```python
 from quiltwright import CyclesCamera, QUILT_PRESETS, render_cycles_quilt, save_quilt
 
 camera = CyclesCamera(location=(0, -35, 8), look_at=(0, 0, 5), fov=14)
-quilt = render_cycles_quilt("protein.glb", QUILT_PRESETS["portrait"], camera, samples=128)
+spec = QUILT_PRESETS["portrait"]
+quilt = render_cycles_quilt("protein.glb", spec, camera, samples=128)
 save_quilt(quilt, "protein", spec)
 ```
 
-Two worked examples ship in [scripts/](scripts/): `render_dna_helix_hologram.py`
-compares this backend against POV-Ray on the same composed scene (a case where
-POV-Ray's analytic primitives win outright), and `render_cartoon_hologram.py`
-does the reverse comparison on a real PyMOL Richardson cartoon -- tens of
-thousands of triangles, the case Cycles exists for. The mechanism, the
-lighting rigs (`"soft"`/`"studio"`/`"sky"`/an HDRI path), and both worked
-examples in full are in [docs/cycles.md](docs/cycles.md).
+Lighting rigs and two worked examples (DNA helix vs POV-Ray, PyMOL cartoon vs
+Cycles) are in [docs/cycles.md](docs/cycles.md).
 
 ### Send it to the display
 
 ```python
-from quiltwright import cast_quilt, pause_quilt, resume_quilt, stop_quilt
+from quiltwright import cast_quilt, save_and_cast_quilt
 
 cast_quilt("museum_qs8x6a1.77778.png", spec)   # needs Looking Glass Bridge >= 2.2
-```
-
-`save_quilt` takes the array and `cast_quilt` takes a path, and mixing them up
-only surfaces minutes into a ray-traced render. `save_and_cast_quilt` composes
-the two in the right order, and returns a failed cast rather than raising, so a
-Bridge that isn't running never costs you the render:
-
-```python
-from quiltwright import save_and_cast_quilt
 
 path, error = save_and_cast_quilt(quilt, "museum", spec)
 ```
 
-Saved filenames carry the `_qs<cols>x<rows>a<aspect>` suffix that Looking Glass
-Studio and Bridge parse, so playback settings are detected automatically.
+`save_quilt` takes the array and `cast_quilt` takes a path.
+`save_and_cast_quilt` composes the two and returns a failed cast rather than
+raising, so a Bridge that isn't running never costs you the render. Saved
+filenames carry the `_qs<cols>x<rows>a<aspect>` suffix that Looking Glass Studio
+and Bridge parse.
 
 ### Send it to a hologram printer (in development)
 
 A printer wants the views as **separate frames**, not tiled, and LitiHolo's
-published input specification asks for 23 of them per hogel -- a prime count, so
-no `columns × rows` grid can express it. `LITIHOLO_SWEEP` is that single-row
-spec, and the camera sweep behind it is the same off-axis geometry a quilt is
-built from:
+published spec asks for 23 of them -- a prime count, so no quilt grid can
+express it. `LITIHOLO_SWEEP` is that single-row spec. POV-Ray only for now;
+no file has been through the printer's software.
 
 ```python
 from quiltwright import LITIHOLO_SWEEP, format_depth_budget, render_pov_views
 
 print(format_depth_budget(LITIHOLO_SWEEP, camera, {"near": 31, "far": 96}))
-
 paths = render_pov_views("pov-scenes/museum/museum.pov", LITIHOLO_SWEEP,
                          camera, "sweep/",
                          include_paths=["pov-scenes/myinclude", "pov-scenes"])
-# -> sweep/view000.png ... sweep/view022.png, view 0 leftmost
 ```
 
-Print the budget first rather than after. 23 views over 45° is **2.05° between
-adjacent views** against a Portrait quilt's 0.74° -- about 2.75× coarser sampling,
-so a sweep has *less* margin than a quilt, not more. The museum, framed as
-above, reports ~43 px of adjacent-view disparity at that cone: far past the
-~8 px ghosting threshold, and exactly the sort of thing worth learning before
-the ray-tracer starts rather than after.
-
-This path is POV-Ray only for now, and no file has been through the printer's
-software: what it emits is a sweep matching the published specification, which
-is a narrower claim than compatibility. The two open questions -- whether a hogel
-slicer expects off-axis frusta or a toe-in arc, and whether 2.05° is too coarse
--- are written up in
+23 views over 45° is 2.05° between adjacent views (a Portrait quilt is 0.74°),
+so a sweep has *less* margin than a quilt, not more. Open questions are in
 [docs/lfd.md](docs/lfd.md#what-this-does-and-does-not-establish).
 
 ---
 
 ## Driving it from the shell
 
-Two things sit around the library: a `Makefile` for the bundled 1993-99
-scenes, and a CLI for hardware and tooling -- `cast`, `weave`, `wallpaper`,
-`bridge` -- plus `mesh` / `cartoon` / `probe` for arbitrary input. The
-worked exhibits for the scenes this repo ships (museum, vitrine, still-life,
-DNA helix, cartoon comparison) stay in `scripts/`; they are not unfinished
-CLI. The full tour is [docs/shell.md](docs/shell.md).
+The `Makefile` covers the bundled 1993-99 scenes. The `quiltwright` CLI covers
+hardware (`cast`, `weave`, `wallpaper`, `bridge`) and arbitrary input (`mesh`,
+`cartoon`, `probe`). Worked exhibits stay in `scripts/`. Full tour:
+[docs/shell.md](docs/shell.md).
 
 ```bash
 make gallery                    # every reference still -> gallery/
@@ -362,27 +258,11 @@ quiltwright mesh model.glb                           # any mesh file, camera aut
 quiltwright probe scene.pov --eye 0 35 -95 --aim 0 18 0   # measure its depth range
 
 python scripts/make_exhibit.py 7AHL --quilt          # fetch -> convert -> render
-
-python scripts/render_dna_helix_hologram.py --backend cycles --still     # Cycles, one scene
-python scripts/render_cartoon_hologram.py 2omf.cif.gz --backend povray --still   # ...and POV-Ray
 ```
 
-Worth knowing before the details:
-
-- **Renders never take the whole machine.** `RENDER_THREADS` defaults to
-  `ncpu - 2`; override it deliberately.
-- **Preview first.** A quarter-size quilt costs seconds per view and frames
-  the shot for a fraction of the time. Read its *geometry*, not its
-  disparity: pixel disparity scales with tile height, so a quarter-size
-  preview reports a quarter of the figure the full render will produce.
-- **Every full quilt writes a provenance report** to `renders/reports/` --
-  scene hash, commit, camera, measured depths -- because the quilt itself is a
-  gitignored 25-40 MB PNG that says nothing about where it came from.
-- **`make_exhibit.py` fetches into `$PDB`** (default `~/pdb`), and nothing
-  already there is fetched twice.
-- **When the glass stays black, run `bridge status` first.** Bridge keeps
-  answering HTTP after crashing internally, so a cast can report success
-  against a daemon that will never draw.
+`RENDER_THREADS` defaults to `ncpu - 2`. When the glass stays black, run
+`quiltwright bridge status` first -- Bridge keeps answering HTTP after crashing
+internally.
 
 ---
 
@@ -401,22 +281,21 @@ view_disparity(QUILT_PRESETS["16-landscape"], fov=53.13,
                focal_distance=focal, depth=31)          # -> px between adjacent views
 ```
 
-The results worth knowing before you frame a shot -- each derived and worked
-through in [docs/povray.md](docs/povray.md):
+The results worth knowing before you frame a shot -- each derived in
+[docs/povray.md](docs/povray.md):
 
 - **Content at the focal plane has zero disparity** -- it is welded to the glass.
 - **The focal plane belongs at the harmonic mean** of the measured depth range,
   not the midpoint; near content is the expensive side.
 - **A narrower field of view increases disparity.** The widely repeated
-  "use ~14 degree FOV" advice is specific to object-centric scenes; applied to
-  an interior it makes ghosting worse.
+  "~14 degree FOV" advice is specific to object-centric scenes; applied to an
+  interior it makes ghosting worse.
 - **Interiors have a fourth trap no arithmetic warns about**: the camera sweep
-  physically travels sideways, and in a room that path can run through a wall.
-  Measure the corridor --
+  can run through a wall. Measure
   [sweep clearance](docs/povray.md#3-sweep-clearance--the-constraint-peculiar-to-interiors).
-- **The depths themselves are measured, not guessed** --
-  `quiltwright probe` sweeps an opaque plane along the view axis and reports
-  where content actually begins and ends.
+- **The depths themselves are measured, not guessed** -- `quiltwright probe`
+  sweeps an opaque plane along the view axis and reports where content actually
+  begins and ends.
 
 ---
 
@@ -462,11 +341,9 @@ poetry install --with viz,dev    # or: pip install -e ".[viz]" && pip install py
 pytest
 ```
 
-Rendering tests skip cleanly on machines with no OpenGL stack, the POV-Ray
-tests skip when no `povray` binary is present, and the Cycles end-to-end tests
-skip without a `blender` binary (or `QW_BPY_PYTHON` naming an interpreter with
-the `bpy` wheel). Under a headless CI runner, use `xvfb-run -a pytest` to
-exercise the OpenGL ones.
+Tests skip when their backend is absent. Headless CI: `xvfb-run -a pytest`.
+Layered install and skip conditions are in the
+[installation guide](docs/install.md#checking-the-stack).
 
 ---
 
@@ -476,13 +353,10 @@ exercise the OpenGL ones.
   geometric ML. Its voxel and manifold visualizer builds the PyVista scenes
   that `render_quilt()` sweeps.
 - [pypdb2pov](https://github.com/Flux-Frontiers/pypdb2pov) -- PDB and mmCIF to
-  POV-Ray, and the converter this pipeline actually calls. It reads mmCIF and
-  compressed input, ships the atom textures inside the package, and imports,
-  so a conversion and a quilt render fit in one script. Its scenes are
-  byte-identical to those of
-  [pdb2pov](https://github.com/suchanek/pdb2pov), the 1993 C original that
-  produced the molecular models in the image above and still builds from a
-  fresh clone.
+  POV-Ray. Reads mmCIF and compressed input, ships the atom textures inside
+  the package, and imports, so a conversion and a quilt render fit in one
+  script. Scenes are byte-identical to
+  [pdb2pov](https://github.com/suchanek/pdb2pov), the 1993 C original.
 - [proteusPy](https://github.com/suchanek/proteusPy) -- protein disulfide bond
   analysis and rendering.
 
