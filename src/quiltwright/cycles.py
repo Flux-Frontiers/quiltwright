@@ -66,7 +66,7 @@ Typical usage::
     quilt = render_cycles_quilt("protein.glb", spec, camera, samples=128)
     save_quilt(quilt, "protein", spec)   # -> protein_qs8x6a0.75.png
 
-Part of Quiltwright -- https://github.com/suchanek/quiltwright
+Part of Quiltwright -- https://github.com/Flux-Frontiers/quiltwright
 Author: Eric G. Suchanek, PhD
 """
 

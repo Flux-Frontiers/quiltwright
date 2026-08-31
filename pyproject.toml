@@ -10,7 +10,8 @@
 #   poetry install --with video        + bundled ffmpeg for video encoding
 #   poetry install --with dev          + test and lint tooling
 #   poetry install --with kg           + pycodekg/dockg, maintainer tooling
-#   poetry install --all-extras --with dev,kg + everything
+#   poetry install --with docs         + mkdocs, to build the Pages site
+#   poetry install --all-extras --with dev,kg,docs + everything
 #
 # Groups combine, and every group is optional -- a bare `poetry install` skips
 # all of them.  No space after the comma: Poetry reads the name following it as
@@ -108,10 +109,10 @@ video = ["imageio-ffmpeg>=0.4"]
 molecules = ["pypdb2pov>=0.1.1"]
 
 [project.urls]
-Homepage = "https://github.com/suchanek/quiltwright"
-Repository = "https://github.com/suchanek/quiltwright"
-Documentation = "https://github.com/suchanek/quiltwright/tree/main/docs"
-Issues = "https://github.com/suchanek/quiltwright/issues"
+Homepage = "https://github.com/Flux-Frontiers/quiltwright"
+Repository = "https://github.com/Flux-Frontiers/quiltwright"
+Documentation = "https://flux-frontiers.github.io/quiltwright/"
+Issues = "https://github.com/Flux-Frontiers/quiltwright/issues"
 
 [project.scripts]
 quiltwright = "quiltwright.cli.main:cli"
@@ -183,6 +184,15 @@ optional = true
 pycode-kg = ">=0.24.1"
 doc-kg = ">=0.22.0"
 
+# The GitHub Pages site: mkdocs-material renders docs/*.md as-is, and
+# mkdocstrings adds an API reference generated from the package's own
+# docstrings so it can't drift from the code.
+[tool.poetry.group.docs]
+optional = true
+
+[tool.poetry.group.docs.dependencies]
+mkdocs-material = ">=9.5"
+mkdocstrings = { version = ">=0.26", extras = ["python"] }
 
 # ---------------------------------------------------------------------------
 # Tooling

@@ -47,7 +47,7 @@ The saved quilt can be displayed on the device by dragging it into Looking
 Glass Studio, or cast directly from Python via :func:`cast_quilt` if Looking
 Glass Bridge is running on the machine driving the display.
 
-Part of Quiltwright -- https://github.com/suchanek/quiltwright
+Part of Quiltwright -- https://github.com/Flux-Frontiers/quiltwright
 Author: Eric G. Suchanek, PhD
 """
 

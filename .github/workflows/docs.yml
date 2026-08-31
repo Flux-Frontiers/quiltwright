@@ -1,0 +1,95 @@
+# Build the docs/*.md guides and the mkdocstrings API reference into a
+# GitHub Pages site.
+#
+# Runs on every push to main so the site never drifts from the guides, and
+# on demand.  The gallery images and the two logo files referenced by
+# docs/index.md and docs/gallery.md live outside docs_dir (at the repo
+# root, so GitHub still renders them when the source .md is read in the
+# repo itself) -- the build step below copies them in and rewrites the
+# `../gallery/` links to `gallery/` in this checkout only, since nothing
+# outside docs_dir reaches the built site.
+
+name: Docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'gallery/**'
+      - 'src/quiltwright/**'
+      - 'mkdocs.yml'
+      - '.github/workflows/docs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One Pages deployment at a time; let an in-progress deploy finish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build site (mkdocs)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Cache virtualenv
+        uses: actions/cache@v6
+        with:
+          path: .venv
+          key: docs-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
+
+      # mkdocstrings imports quiltwright to read its docstrings, so the API
+      # reference needs the same extras the public API touches.
+      - name: Install dependencies
+        run: poetry install --no-interaction --with docs --extras "viz video molecules"
+
+      - name: Bring the gallery images into docs_dir
+        run: |
+          cp -r gallery docs/gallery
+          sed -i 's#(\.\./gallery/#(gallery/#g' docs/gallery.md docs/index.md
+
+      # Not --strict: docs/*.md cross-links to scripts/, pov-scenes/ and the
+      # top-level README (outside docs_dir) render fine on GitHub but have no
+      # target inside the built site, and mkdocstrings' griffe backend warns
+      # on a NamedTuple's :param: docstring not matching its synthesized
+      # __init__ signature. Both are pre-existing, non-broken states.
+      - name: Build
+        run: poetry run mkdocs build
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v6
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: site
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v5

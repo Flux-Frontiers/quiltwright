@@ -1,13 +1,14 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/suchanek/quiltwright/v0.10.0/assets/logo_pack/quiltwright_logo_512.png" alt="Quiltwright" width="512"/>
+  <img src="https://raw.githubusercontent.com/Flux-Frontiers/quiltwright/v0.10.0/assets/logo_pack/quiltwright_logo_512.png" alt="Quiltwright" width="512"/>
 </p>
 
 [![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](LICENSE)
 [![PyPI](https://img.shields.io/pypi/v/quiltwright.svg)](https://pypi.org/project/quiltwright/)
-[![Version](https://img.shields.io/badge/version-0.10.0-blue.svg)](https://github.com/suchanek/quiltwright/releases)
-[![Tests](https://github.com/suchanek/quiltwright/actions/workflows/tests.yml/badge.svg)](https://github.com/suchanek/quiltwright/actions/workflows/tests.yml)
-[![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.21798503-blue.svg)](https://doi.org/10.5281/zenodo.21798503)
+[![Version](https://img.shields.io/badge/version-0.10.0-blue.svg)](https://github.com/Flux-Frontiers/quiltwright/releases)
+[![Tests](https://github.com/Flux-Frontiers/quiltwright/actions/workflows/tests.yml/badge.svg)](https://github.com/Flux-Frontiers/quiltwright/actions/workflows/tests.yml)
+[![Docs](https://img.shields.io/badge/docs-flux--frontiers.github.io-blue.svg)](https://flux-frontiers.github.io/quiltwright/)
+[![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.22180300-blue.svg)](https://doi.org/10.5281/zenodo.22180300)
 
 **Quiltwright** -- holographic output for scientific visualization.
 
@@ -28,7 +29,7 @@ for geometric ML manifolds and by
 [pypdb2pov](https://github.com/Flux-Frontiers/pypdb2pov) for molecular
 structures, but neither is a prerequisite. If you can render it, you can hang it in the air.
 
-![Eric's Science Museum, the canonical POV-Ray render](https://raw.githubusercontent.com/suchanek/quiltwright/v0.10.0/gallery/museum.png)
+![Eric's Science Museum, the canonical POV-Ray render](https://raw.githubusercontent.com/Flux-Frontiers/quiltwright/v0.10.0/gallery/museum.png)
 
 *A career in structural biophysics, arranged as exhibits: B-DNA and Z-DNA
 under bell jars, Ras and my original **DNA Under Glass** on the walls. The molecular
@@ -57,7 +58,7 @@ never closed, rather than letting the end of its travel be copied into a scene
 as a measurement.
 
 _Full history: [CHANGELOG.md](CHANGELOG.md) and
-[releases](https://github.com/suchanek/quiltwright/releases)._
+[releases](https://github.com/Flux-Frontiers/quiltwright/releases)._
 
 ---
 
@@ -271,8 +272,8 @@ on Zenodo.
 @software{suchanek_quiltwright,
   author  = {Suchanek, Eric G.},
   title   = {Quiltwright: Holographic Output for Looking Glass Displays},
-  url     = {https://github.com/suchanek/quiltwright},
-  doi     = {10.5281/zenodo.21798503},
+  url     = {https://github.com/Flux-Frontiers/quiltwright},
+  doi     = {10.5281/zenodo.22180300},
   version = {0.10.0},
   year    = {2026}
 }

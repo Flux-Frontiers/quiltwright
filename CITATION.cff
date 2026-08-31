@@ -19,10 +19,10 @@ authors:
     affiliation: "Flux-Frontiers"
 version: "0.10.0"
 date-released: "2026-08-30"
-doi: "10.5281/zenodo.21798503"
+doi: "10.5281/zenodo.22180300"
 license: BSD-3-Clause
-repository-code: "https://github.com/suchanek/quiltwright"
-url: "https://github.com/suchanek/quiltwright"
+repository-code: "https://github.com/Flux-Frontiers/quiltwright"
+url: "https://github.com/Flux-Frontiers/quiltwright"
 keywords:
   - looking-glass
   - light-field-display

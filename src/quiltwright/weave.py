@@ -60,7 +60,7 @@ Typical usage::
     native = weave_quilt(quilt, spec, cal)
     Image.fromarray(native).save("scene_native.png")
 
-Part of Quiltwright -- https://github.com/suchanek/quiltwright
+Part of Quiltwright -- https://github.com/Flux-Frontiers/quiltwright
 Author: Eric G. Suchanek, PhD
 """
 
