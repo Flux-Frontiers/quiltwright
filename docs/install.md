@@ -94,7 +94,7 @@ povray --version
 ```
 
 The repo ships a complete test scene -- "Eric's Science Museum", 1995-97, see
-[about-the-image.md](about-the-image.md) -- under [pov-scenes/](../pov-scenes/),
+[about-the-image.md](about-the-image.md) -- under [pov-scenes/](https://github.com/Flux-Frontiers/quiltwright/tree/main/pov-scenes),
 so you can exercise this layer with no scene files of your own:
 
 ```bash
@@ -243,7 +243,7 @@ Either way the scenes reference POV-Ray include files that must be on the
 library path. `pypdb2pov --include-dir` prints where the Python package keeps
 them -- inside the package, so wherever it is installed is where they are;
 with the C program they sit in the clone.
-[`scripts/render_vitrine.py`](../scripts/render_vitrine.py) asks the package
+[`scripts/render_vitrine.py`](https://github.com/Flux-Frontiers/quiltwright/blob/main/scripts/render_vitrine.py) asks the package
 directly rather than being told a path.
 
 See [pdb2pov.md](pdb2pov.md) for which to choose, the build notes, and the

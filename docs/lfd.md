@@ -7,7 +7,7 @@
 Quilt geometry (`QuiltSpec`, presets, `assemble_quilt`, `save_quilt`) lives
 in `quiltwright.quilt` and is re-exported here. Bridge HTTP (`cast_quilt`)
 lives in `quiltwright.bridge` and is re-exported here. See
-[architecture-plan.md](architecture-plan.md).
+[architecture.md](architecture.md).
 
 > *"A manifold you can slice with a mouse is good. A manifold floating
 > behind glass is better."*

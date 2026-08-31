@@ -35,7 +35,8 @@ light-field panels, or into 2-D video for Hololuminescent displays.
 |---|---|
 | [Installation](install.md) | Package extras, POV-Ray, ffmpeg, Bridge, pypdb2pov |
 | [Usage recipes](usage.md) | PyVista, POV-Ray, Cycles, casting to Bridge, printer sweeps, depth budget |
-| [The shell workflow](shell.md) | Every make target, the parallelism model, run reports, and the CLI command by command |
+| [The shell workflow](shell.md) | Every make target, the parallelism model, run reports, and what each CLI command is for |
+| [CLI reference](cli.md) | Every `quiltwright` command and flag |
 
 ## Backends
 
@@ -58,7 +59,7 @@ light-field panels, or into 2-D video for Hololuminescent displays.
 | [The Virtual Brain](tvb-data.md) | Cortical surfaces, connectomes, parcellations, downloaded on demand |
 
 See also the [gallery](gallery.md) of every rendered scene, and the
-[module split](architecture-plan.md) behind the package layout.
+[architecture](architecture.md) behind the package layout.
 
 The [API reference](api/quilt.md) is generated from the package's own
 docstrings.

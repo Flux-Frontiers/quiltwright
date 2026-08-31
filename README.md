@@ -218,8 +218,9 @@ verified against what Bridge reports for real hardware -- see
 |----------|----------|
 | [docs/install.md](docs/install.md) | Installing the full stack: package extras, POV-Ray, ffmpeg, Bridge, pypdb2pov |
 | [docs/usage.md](docs/usage.md) | Library recipes: PyVista, POV-Ray, Cycles, casting to Bridge, printer sweeps, depth budget |
-| [docs/shell.md](docs/shell.md) | Driving it from the shell: every make target, the parallelism model, run reports, and the CLI command by command |
-| [docs/architecture-plan.md](docs/architecture-plan.md) | Module split: `quiltwright.quilt` / `.bridge` / `.lfd`, `QuiltCamera`, `window_shear`. Landed on `develop` |
+| [docs/shell.md](docs/shell.md) | Driving it from the shell: every make target, the parallelism model, run reports, and what each CLI command is for |
+| [docs/cli.md](docs/cli.md) | Flag-by-flag reference for every `quiltwright` command |
+| [docs/architecture.md](docs/architecture.md) | The module map, the off-axis invariant shared by all three backends, and why the geometry core stays free of VTK |
 | [docs/lfd.md](docs/lfd.md) | Light-field output, Bridge/Studio setup, device presets, the PyVista path, view sweeps for hologram printers |
 | [docs/pyvista-datasets.md](docs/pyvista-datasets.md) | PyVista dataset ideas for holograms: topography, the Allen mouse brain atlas, other strong-depth candidates |
 | [docs/tvb-data.md](docs/tvb-data.md) | Brain geometry from The Virtual Brain: cortical surfaces, connectomes, parcellations, downloaded on demand |
