@@ -147,10 +147,14 @@ optional = true
 [tool.poetry.group.video.dependencies]
 imageio-ffmpeg = ">=0.4"
 
-# imageio-ffmpeg is a dev dependency as well as an extra: without it the video
-# tests skip, and a skipped test reports success while asserting nothing.  It
-# is the only skip condition pip alone can lift — the pyvista tests also need a
-# system GL stack and an X server, which no dependency can supply.
+# imageio-ffmpeg and pillow-heif are dev dependencies as well as extras:
+# without them the video and HEIC round-trip tests skip, and a skipped test
+# reports success while asserting nothing.  pillow-heif also has to be
+# installed for `ty` to resolve the guarded `import pillow_heif` in
+# dynamic.py -- otherwise the type checker reports it unresolved even though
+# the import is deliberately optional at runtime.  These are the only skip
+# conditions pip alone can lift -- the pyvista tests also need a system GL
+# stack and an X server, which no dependency can supply.
 [tool.poetry.group.dev]
 optional = true
 
@@ -159,6 +163,7 @@ pytest = ">=9.0.3"
 pytest-cov = ">=5.0"
 ruff = ">=0.6"
 imageio-ffmpeg = ">=0.4"
+pillow-heif = ">=0.16"
 ty = ">=0.0.41"
 pre-commit = ">=4.5.1"
 

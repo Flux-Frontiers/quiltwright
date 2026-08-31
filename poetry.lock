@@ -2468,7 +2468,7 @@ version = "12.3.0"
 description = "Python Imaging Library (fork)"
 optional = false
 python-versions = ">=3.10"
-groups = ["main", "viz"]
+groups = ["main", "dev", "viz"]
 files = [
     {file = "pillow-12.3.0-cp310-cp310-macosx_10_10_x86_64.whl", hash = "sha256:6c0016e7b354317c4e9e525b937ac8596c38d2d232b419529b9cd7a1cd46e39a"},
     {file = "pillow-12.3.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:bcc33feacfaefce60c12fd500a277533bdc02b10a19f7f6d348763d8140bbba7"},
@@ -2571,10 +2571,9 @@ xmp = ["defusedxml"]
 name = "pillow-heif"
 version = "1.6.0"
 description = "Python interface for libheif library"
-optional = true
+optional = false
 python-versions = ">=3.10"
-groups = ["main"]
-markers = "extra == \"heic\""
+groups = ["main", "dev"]
 files = [
     {file = "pillow_heif-1.6.0-cp310-cp310-macosx_10_15_x86_64.whl", hash = "sha256:da43303dde3d7dc8b936da3c10b4e5bc2f5fd470655d2cde84a6bc0a587e66e2"},
     {file = "pillow_heif-1.6.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:d2a66d4e01bcce4b7f445ffdadfe454b8706d85536fec0cb8df18927d75fe16c"},
@@ -2647,6 +2646,7 @@ files = [
     {file = "pillow_heif-1.6.0-pp311-pypy311_pp73-win_amd64.whl", hash = "sha256:b7ba4b0f1c7ea2e2388ebf28fd151a145ca3bc6dd0c79b08480b01189cc2546f"},
     {file = "pillow_heif-1.6.0.tar.gz", hash = "sha256:5fb08da332fc44521611b646a3aa2f3455c14556c968a23723b76ec2ce8ade21"},
 ]
+markers = {main = "extra == \"heic\""}
 
 [package.dependencies]
 pillow = ">=11.1.0"
@@ -4580,4 +4580,4 @@ viz = ["pyvista"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<3.14"
-content-hash = "f502608d82bbdbd8a67a5e77962393cba104f4e040ab90aa7354288664b82498"
+content-hash = "a0fe4030941fc66d08ab821b305ac3374b5c6f7d2f1a7760b8baa2237e8b371b"
