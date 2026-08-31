@@ -1,6 +1,6 @@
 # Usage
 
-**Companion to**: the README [Quick start](../README.md#quick-start), which
+**Companion to**: the README [Quick start](https://github.com/Flux-Frontiers/quiltwright#quick-start), which
 keeps one short example. This page holds the recipes for each backend, casting
 to Looking Glass Bridge, and view sweeps for a hologram printer.
 
@@ -40,8 +40,8 @@ quilt = render_pov_quilt("pov-scenes/museum/museum.pov", spec, camera,
 save_quilt(quilt, "museum", spec)
 ```
 
-The museum scene ships in [pov-scenes/](../pov-scenes/).
-[scripts/render_museum_hologram.py](../scripts/render_museum_hologram.py)
+The museum scene ships in [pov-scenes/](https://github.com/Flux-Frontiers/quiltwright/tree/main/pov-scenes).
+[scripts/render_museum_hologram.py](https://github.com/Flux-Frontiers/quiltwright/blob/main/scripts/render_museum_hologram.py)
 renders it end-to-end; the worked case study is [povray.md](povray.md).
 
 ---
@@ -137,7 +137,7 @@ view_disparity(QUILT_PRESETS["16-landscape"], fov=53.13,
 ```
 
 The results worth knowing before you frame a shot are summarized in the README
-[depth budget](../README.md#the-depth-budget) section and derived in
+[depth budget](https://github.com/Flux-Frontiers/quiltwright#the-depth-budget) section and derived in
 [povray.md](povray.md).
 
 ---

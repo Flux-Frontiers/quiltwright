@@ -56,6 +56,7 @@ nav:
       - Installation: install.md
       - Usage recipes: usage.md
       - The shell workflow: shell.md
+      - CLI reference: cli.md
   - Backends:
       - PyVista / VTK: lfd.md
       - POV-Ray: povray.md
@@ -71,7 +72,7 @@ nav:
   - The museum scene:
       - About the image: about-the-image.md
       - Gallery: gallery.md
-  - Architecture: architecture-plan.md
+  - Architecture: architecture.md
   - API reference:
       - Quilt geometry: api/quilt.md
       - PyVista backend (lfd): api/lfd.md
