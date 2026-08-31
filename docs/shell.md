@@ -1,6 +1,6 @@
 # Driving it from the shell
 
-**Companion to**: the README's [shell section](../README.md#driving-it-from-the-shell),
+**Companion to**: the README's [shell section](https://github.com/Flux-Frontiers/quiltwright#driving-it-from-the-shell),
 which carries the summary this page expands.
 
 Everything in the library docs is where a scene arrives from whichever
@@ -25,7 +25,7 @@ them with their measured depth budgets already dialled in, so a hologram from a
 clean clone is one command rather than a script you have to write. This covers
 the *bundled* scenes only. A WaveRider manifold or a freshly converted
 structure does not come through here -- it comes through the library, or through
-[scripts/render_pyvista_hologram.py](../scripts/render_pyvista_hologram.py) for
+[scripts/render_pyvista_hologram.py](https://github.com/Flux-Frontiers/quiltwright/blob/main/scripts/render_pyvista_hologram.py) for
 the PyVista subjects -- and it lands in the same `renders/quilts/`, where the
 CLI below picks it up regardless of origin.
 
@@ -105,6 +105,9 @@ Pass `--report` to either render script to get one outside `make`.
 ---
 
 ## `quiltwright` -- the CLI
+
+Flag-by-flag reference: [cli.md](cli.md). This section is the *why*, not
+the full option list.
 
 Installed as `quiltwright`, core-only (numpy, pillow, click). Most commands
 operate on a *quilt*, which is where the backends have already met: a

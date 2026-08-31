@@ -1,6 +1,6 @@
 # About the image
 
-**Scene**: [`pov-scenes/museum/museum.pov`](../pov-scenes/museum/museum.pov) --
+**Scene**: [`pov-scenes/museum/museum.pov`](https://github.com/Flux-Frontiers/quiltwright/blob/main/pov-scenes/museum/museum.pov) --
 "Eric's Science Museum"
 **Begun**: 10 June 1995 -- **Last revised**: 14 March 1997 -- **Rendered as a
 hologram**: 2026

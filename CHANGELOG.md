@@ -276,8 +276,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   Package-level lazy imports resolve `QuiltSpec` without loading VTK.
   `depth_budget` / `format_depth_budget` take any camera with `fov` and
   `focal_distance`, so `lfd.depth_report` no longer builds a throwaway
-  `PovCamera`. Docs and examples import from the new homes. Plan:
-  [docs/architecture-plan.md](docs/architecture-plan.md).
+  `PovCamera`. Docs and examples import from the new homes. Details:
+  [docs/architecture.md](docs/architecture.md).
 
 - **The CLI is hardware and tooling; `scripts/` is the gallery.** There is
   no generic `quiltwright render`. `cast` / `weave` / `wallpaper` / `bridge`
