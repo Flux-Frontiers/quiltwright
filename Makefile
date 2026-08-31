@@ -81,6 +81,10 @@ still-bell_jar_bj_holo:      DIR=bell_jar
 still-bell_jar_bj_holo:      SCENE=bj_holo.pov
 still-bell_jar_bj_holo:      SIZE=+W1920 +H1080
 
+still-bell_jar_bj_holo_2026: DIR=bell_jar
+still-bell_jar_bj_holo_2026: SCENE=bj_holo_2026.pov
+still-bell_jar_bj_holo_2026: SIZE=+W1920 +H1080
+
 still-bell_jar_bj_portrait:  DIR=bell_jar
 still-bell_jar_bj_portrait:  SCENE=bj_portrait.pov
 still-bell_jar_bj_portrait:  SIZE=+W1080 +H1920
@@ -136,6 +140,7 @@ still-lambda_main:           SIZE=+W1920 +H1080
 # the presented set any more, and listing them here would put their images
 # back in gallery/ on the next `make gallery`.
 STILL_TARGETS := still-bell_jar_bj still-bell_jar_bj_holo \
+                 still-bell_jar_bj_holo_2026 \
                  still-bell_jar_bj_portrait \
                  still-bell_jar_bdna \
                  still-bell_jar_yinyang \
@@ -167,7 +172,7 @@ stills: gallery
 #   make quilt-museum EXTRA_ARGS="--antialias 0.1"
 EXTRA_ARGS ?=
 
-.PHONY: quilt-bell-jar quilt-bell-jar-holo quilt-bell-jar-portrait quilt-porin quilt-lambda quilt-museum quilts
+.PHONY: quilt-bell-jar quilt-bell-jar-holo quilt-bell-jar-holo-2026 quilt-bell-jar-portrait quilt-porin quilt-lambda quilt-museum quilts
 quilt-bell-jar:  $(THREAD_INI)  ## bell jar quilt, 16" landscape (~3 min uncapped on 18 cores)
 	$(PYTHON) scripts/render_still_life_hologram.py bell-jar --jobs $(JOBS) --report $(EXTRA_ARGS)
 
@@ -175,6 +180,13 @@ quilt-bell-jar:  $(THREAD_INI)  ## bell jar quilt, 16" landscape (~3 min uncappe
 # moved out to the focal plane.  Native landscape, so no --fov correction.
 quilt-bell-jar-holo:  $(THREAD_INI)  ## recomposed bell jar quilt, 16" landscape
 	$(PYTHON) scripts/render_still_life_hologram.py bell-jar-holo --jobs $(JOBS) --report $(EXTRA_ARGS)
+
+# bj_holo_2026.pov: the same frame with real refracting crystal in place of
+# the 1996 tinted film.  Same camera as quilt-bell-jar-holo, so the same
+# focal plane and the same sweep -- but `dispersion` on the glass makes it
+# roughly 4.5x the render.  Preview first.
+quilt-bell-jar-holo-2026:  $(THREAD_INI)  ## crystal bell jar quilt, 16" landscape (slow -- dispersion)
+	$(PYTHON) scripts/render_still_life_hologram.py bell-jar-holo-2026 --jobs $(JOBS) --report $(EXTRA_ARGS)
 
 # bj_portrait.pov: the 9:16 companion, for the tall panels (16/27/32-portrait,
 # go).  Pass --device to pick one; the default 16-landscape would letterbox it.
@@ -195,12 +207,15 @@ quilt-museum:  $(THREAD_INI)  ## museum quilt, 16" landscape (~6 min uncapped; t
 
 quilts: quilt-bell-jar quilt-porin quilt-lambda quilt-museum  ## all four quilts
 
-.PHONY: preview-bell-jar preview-bell-jar-holo preview-bell-jar-portrait preview-porin preview-lambda preview-museum
+.PHONY: preview-bell-jar preview-bell-jar-holo preview-bell-jar-holo-2026 preview-bell-jar-portrait preview-porin preview-lambda preview-museum
 preview-bell-jar: $(THREAD_INI)  ## quarter-size bell jar quilt for iterating
 	$(PYTHON) scripts/render_still_life_hologram.py bell-jar --preview --jobs $(JOBS)
 
 preview-bell-jar-holo: $(THREAD_INI)  ## quarter-size recomposed bell jar quilt
 	$(PYTHON) scripts/render_still_life_hologram.py bell-jar-holo --preview --jobs $(JOBS)
+
+preview-bell-jar-holo-2026: $(THREAD_INI)  ## quarter-size crystal bell jar quilt
+	$(PYTHON) scripts/render_still_life_hologram.py bell-jar-holo-2026 --preview --jobs $(JOBS)
 
 preview-bell-jar-portrait: $(THREAD_INI)  ## quarter-size portrait bell jar quilt
 	$(PYTHON) scripts/render_still_life_hologram.py bell-jar-portrait --device 16-portrait --preview --jobs $(JOBS)

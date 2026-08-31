@@ -23,9 +23,74 @@
 // it a real wall costs nothing and matters more on a light-field display
 // than on a still, because a dome the display cannot see is a dome it
 // cannot fuse.  Set to 0 for the original surface.
+#ifndef (BJ_WALL)
 #declare BJ_WALL = 0.06
+#end
+
+// Real refracting crystal rather than the 1996 tinted film.
+//
+// The 1996 texture has no `interior` at all, so its index of refraction is
+// 1.0 and it bends nothing: it is a surface that filters what passes through
+// it, which is a soap bubble's optics, not glass's.  With BJ_WALL giving the
+// jar two surfaces that reads as two grey outlines down each side of the
+// dome, because the filter simply applies twice where the wall is seen
+// edge-on.  Turning this on replaces it with ior 1.52 and a Fresnel
+// reflection, so the wall refracts instead of tinting and the silhouette
+// becomes one bright band -- which is what a glass rim actually looks like.
+//
+// Off by default: eight scenes share this include, and none of the others
+// were composed for a jar that magnifies what is under it.  Set it before
+// the #include to turn it on.
+#ifndef (BJ_CRYSTAL)
+#declare BJ_CRYSTAL = false
+#end
 
 #include "glass.inc"
+
+// The crystal texture and interior need POV-Ray 3.6 syntax (`interior` is
+// 3.1, Fresnel reflection is 3.6), but the rest of this file -- and every
+// scene that includes it -- is composed for 3.0's tone mapping.  Raising the
+// language version for the whole file would re-grade the image; bumping it
+// around the crystal branch alone does not, and the 1996 path never sees it.
+#if (BJ_CRYSTAL)
+#declare BellJar_Crystal_Temp = version
+#version 3.6;
+
+// Lead crystal.  `rgbt` rather than `rgbf`: transmit passes light through
+// unchanged where filter tints it, and clear crystal does not tint -- what
+// colour it has comes from absorption over distance, below.
+#declare BJ_GLASS_TEXTURE = texture {
+   pigment { color rgbt <1, 1, 1, 1> }
+   finish {
+      ambient 0
+      diffuse 0
+      specular 0.45
+      roughness 0.0012
+      // 0.02 head-on rising to 1.0 at grazing incidence, which is what puts
+      // the sky into the shoulder of the dome and leaves the front clear.
+      reflection { 0.02, 1.0 fresnel on }
+      conserve_energy
+   }
+}
+
+// dispersion is what separates crystal from window glass, and it is the one
+// expensive line here: measured on bj_holo_2026 at 640x360 +WT1, dropping it
+// takes the render from 17.5s to 3.9s and changes 53% of the jar's pixels,
+// peak 28/255.  Cheap on a still, 4.5x on a 48-view quilt -- worth knowing
+// before sweeping one.  The fade is free by comparison (17.8s with it gone)
+// and moves more: 72% of the jar's pixels, which is the green that collects
+// along the silhouette where a ray runs down the length of the glass rather
+// than straight through it.  That gradient is what reads as thickness.
+#declare BJ_GLASS_INTERIOR = interior {
+   ior 1.52
+   dispersion 1.015
+   dispersion_samples 7
+   fade_power 1001
+   fade_distance 40
+   fade_color <0.86, 0.95, 0.90>
+}
+
+#end
 
 #if (BJ_WALL = 0)
 
@@ -47,6 +112,10 @@
    object { cyl }
    object { hemi }
    scale <1, 1.5, 1>
+   #if (BJ_CRYSTAL)
+   texture { BJ_GLASS_TEXTURE }
+   interior { BJ_GLASS_INTERIOR }
+   #else
    // T_Glass3, inlined from glass_old.inc (the named texture is
    // deprecated and warns on every use); values are verbatim.
    texture {
@@ -61,6 +130,7 @@
          phong_size 400
       }
    }
+   #end
 
   hollow
 }
@@ -86,6 +156,10 @@
    object { bell_outer }
    object { bell_cavity }
    scale <1, 1.5, 1>
+   #if (BJ_CRYSTAL)
+   texture { BJ_GLASS_TEXTURE }
+   interior { BJ_GLASS_INTERIOR }
+   #else
    // T_Glass3, inlined from glass_old.inc (the named texture is
    // deprecated and warns on every use); values are verbatim.
    texture {
@@ -100,9 +174,14 @@
          phong_size 400
       }
    }
+   #end
    hollow
 }
 
+#end
+
+#if (BJ_CRYSTAL)
+#version BellJar_Crystal_Temp;
 #end
 
 /*-----------BASE OF COLUMN A / TOP FLOOR-------------------*/

@@ -150,6 +150,26 @@ SCENES = {
         far=129.0,
         backdrop="sea and sky",
     ),
+    "bell-jar-holo-2026": StillLife(
+        scene="bell_jar/bj_holo_2026.pov",
+        # Identical optics to bell-jar-holo -- same eye, same aim, same lens,
+        # same framing.  Only the glass differs, and a jar that refracts does
+        # not move the surfaces the sweep was measured against: the pedestal's
+        # front rim still appears at 72 and the subject is still in by 129, so
+        # the focal plane lands at 92.42 exactly as it does for bj_holo.pov.
+        # That matters -- the title and signature are placed against that
+        # number in the scene, and bj_holo_2026.pov inherits the placement.
+        #
+        # Slower than bell-jar-holo by roughly 4.5x, and the reason is one
+        # line: `dispersion` in BJ_GLASS_INTERIOR.  Budget accordingly, or
+        # drop it in bell_jar.inc for a sweep where it will not be seen.
+        eye=(0.0, 35.0, -95.0),
+        aim=(0.0, 20.95, 0.0),
+        fov=55.32,
+        near=72.0,
+        far=129.0,
+        backdrop="sea and sky",
+    ),
     "bell-jar-portrait": StillLife(
         scene="bell_jar/bj_portrait.pov",
         # The 9:16 companion to bj_holo.  Same eye; the lens is set by the

@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **`bj_holo_2026.pov` -- "DNA Under Glass" with the glass made real.** The
+  1996 bell jar carries no `interior`, so its index of refraction is 1.0 and
+  it bends nothing: it is a surface that filters what crosses it, which is a
+  soap bubble's optics rather than glass's. Once `BJ_WALL` gave the jar two
+  surfaces, that filter applied twice wherever the wall was seen edge-on, and
+  the dome came out with two grey outlines down each side instead of one glass
+  rim. The new cut turns on `BJ_CRYSTAL`, a switch added to `bell_jar.inc`:
+  ior 1.52, a Fresnel reflection, a little dispersion, and a wall at 0.20
+  rather than 0.06. The doubled outline resolves into a single bright band,
+  the glass meets the pedestal in a real rim, the horizon bends where it
+  crosses the wall, and the duplex is magnified the way a jar magnifies what
+  is under it. `max_trace_level` goes to 15 to pay for it -- the default of 5
+  is spent before a ray has crossed both walls, bounced off an atom and come
+  back out, and what it cannot finish it renders black. The signature reads
+  '26. Eye, lens, framing and lettering are `bj_holo.pov` verbatim.
+
+  `BJ_CRYSTAL` and `BJ_WALL` are both `#ifndef`-guarded and `BJ_CRYSTAL`
+  defaults off, so the eight scenes sharing `bell_jar.inc` are untouched:
+  `bj`, `bj_holo`, `bj_portrait`, `bj_black`, `bdna` and `yinyang` were
+  re-rendered at `+WT1` against the previous include and are bit-identical.
+  The crystal texture needs 3.6 syntax and the language version is raised
+  around that branch alone, never for the file -- raising it for the whole
+  include would re-grade every scene that reads it.
+
+  Photons were tried and rejected. POV-Ray stops passing direct light through
+  a photon target and expects the photon map to replace it; at this scale it
+  does not. The duplex went flat for want of the light that used to reach it
+  through the glass, and the jar dropped a hard black ellipse across the sea.
+  220k photons and 900k photons were equally bad, the latter at 7x the render.
+
+  Wired up as `make still-bell_jar_bj_holo_2026` (in `gallery`),
+  `make quilt-bell-jar-holo-2026` and `make preview-bell-jar-holo-2026`. The
+  quilt entry restates bell-jar-holo's camera unchanged -- a jar that refracts
+  does not move the surfaces the sweep was measured against, so the focal
+  plane still lands at 92.42, which is the number the title and signature were
+  placed against. Worst-case adjacent-view disparity is 2.30 px, at infinity.
+
 ### Changed
 
 - **The three committed quilts are release assets now, not repo content.**
