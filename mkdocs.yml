@@ -81,6 +81,7 @@ nav:
       - Scene primitives (povgen): api/povgen.md
       - Hololuminescent Displays: api/hld.md
       - Lenticular weave: api/weave.md
+      - Dynamic Desktop HEIC: api/dynamic.md
       - Looking Glass Bridge: api/bridge.md
       - The Virtual Brain data: api/tvb_data.md
       - Runtime helpers: api/runtime.md
