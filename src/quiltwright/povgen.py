@@ -69,7 +69,7 @@ Typical usage::
     quilt = render_pov_quilt("tree.pov", spec, pov_camera_from_plotter(plotter))
     save_quilt(quilt, "tree", spec)
 
-Part of Quiltwright -- https://github.com/suchanek/quiltwright
+Part of Quiltwright -- https://github.com/Flux-Frontiers/quiltwright
 
 Author: Eric G. Suchanek, PhD
 """

@@ -92,7 +92,7 @@ For a ready-made CLI over these datasets, see the ``--tvb-demo`` mode of
 `WaveRider <https://github.com/Flux-Frontiers/waverider>`_, which wires
 scene presets on top of this module.
 
-Part of Quiltwright -- https://github.com/suchanek/quiltwright
+Part of Quiltwright -- https://github.com/Flux-Frontiers/quiltwright
 Author: Eric G. Suchanek, PhD
 """
 

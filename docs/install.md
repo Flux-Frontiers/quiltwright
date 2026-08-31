@@ -35,7 +35,7 @@ machine that only casts pre-rendered quilts stays lean.
 From source (for the example scenes, scripts, and tests):
 
 ```bash
-git clone https://github.com/suchanek/quiltwright
+git clone https://github.com/Flux-Frontiers/quiltwright
 cd quiltwright
 pip install -e ".[viz,video]"
 ```

@@ -16,7 +16,7 @@ Typical usage::
 Re-exported from :mod:`quiltwright.lfd` for one release, so
 ``from quiltwright.lfd import QuiltSpec`` keeps working.
 
-Part of Quiltwright -- https://github.com/suchanek/quiltwright
+Part of Quiltwright -- https://github.com/Flux-Frontiers/quiltwright
 Author: Eric G. Suchanek, PhD
 """
 

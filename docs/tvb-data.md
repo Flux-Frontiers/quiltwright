@@ -260,4 +260,4 @@ The archive holds more than this module exposes:
 
 ---
 
-*Part of Quiltwright -- https://github.com/suchanek/quiltwright*
+*Part of Quiltwright -- https://github.com/Flux-Frontiers/quiltwright*

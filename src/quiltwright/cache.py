@@ -24,7 +24,7 @@ looks.
 environment variable so a user can relocate one dataset without moving the
 rest.
 
-Part of Quiltwright -- https://github.com/suchanek/quiltwright
+Part of Quiltwright -- https://github.com/Flux-Frontiers/quiltwright
 Author: Eric G. Suchanek, PhD
 """
 

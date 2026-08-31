@@ -306,7 +306,7 @@ converter is importable, the enclosing radius is a method rather than a header
 comment, and `include_dir()` is the path `include_paths` wants.
 
 The host scene below is the piece [Prefer `-o` for
-quilts](#prefer--o-for-quilts) describes and does not spell out. An `-o`
+quilts](#prefer-o-for-quilts) describes and does not spell out. An `-o`
 include *declares* -- it has no camera, no lights, and no `object { }`
 statement instantiating anything -- so something has to supply all three.
 `render_pov_quilt` appends the camera; the host scene supplies the rest:

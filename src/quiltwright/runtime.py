@@ -5,7 +5,7 @@ core cap is the one constant both POV-Ray and Cycles need so a quilt
 does not take every core on the machine; the ffmpeg lookup is shared by
 the quilt-video encoder and the HLD encoder.
 
-Part of Quiltwright -- https://github.com/suchanek/quiltwright
+Part of Quiltwright -- https://github.com/Flux-Frontiers/quiltwright
 Author: Eric G. Suchanek, PhD
 """
 

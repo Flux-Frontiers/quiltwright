@@ -14,6 +14,11 @@ poetry.toml
 .coverage
 htmlcov/
 
+# mkdocs build output, and the gallery copy docs.yml stages into docs_dir
+# so the built site can serve it (see .github/workflows/docs.yml).
+site/
+docs/gallery/
+
 # DocKG local index -- reproducible from docs/ via `dockg build`.  Granular
 # rather than a blanket `.dockg/`, matching doc_kg's own .gitignore: a bare
 # `**/.dockg/` would also swallow `.dockg/snapshots/`, which is meant to stay

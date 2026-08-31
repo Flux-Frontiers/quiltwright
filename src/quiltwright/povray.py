@@ -66,7 +66,7 @@ Typical usage::
                              include_paths=["../myinclude"])
     save_quilt(quilt, "museum", spec)   # -> museum_qs8x6a0.75.png
 
-Part of Quiltwright -- https://github.com/suchanek/quiltwright
+Part of Quiltwright -- https://github.com/Flux-Frontiers/quiltwright
 Author: Eric G. Suchanek, PhD
 """
 

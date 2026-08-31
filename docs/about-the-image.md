@@ -86,8 +86,8 @@ content -- for reasons that are worth naming, because they generalize:
 
 It also has the failure mode peculiar to interiors -- the view sweep runs into
 a wall -- which is documented, with the measurements, in
-[povray.md section 3](povray.md#3-sweep-clearance--the-constraint-peculiar-to-interiors)
-and [section 4](povray.md#4-case-study--the-museum).
+[povray.md section 3](povray.md#3-sweep-clearance-the-constraint-peculiar-to-interiors)
+and [section 4](povray.md#4-case-study-the-museum).
 
 ---
 

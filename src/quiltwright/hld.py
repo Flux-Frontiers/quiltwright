@@ -37,7 +37,7 @@ Typical usage::
     render_hld_video(p, "torus")              # -> torus_hld.mp4 (10s orbit)
     p.close()
 
-Part of Quiltwright -- https://github.com/suchanek/quiltwright
+Part of Quiltwright -- https://github.com/Flux-Frontiers/quiltwright
 Author: Eric G. Suchanek, PhD
 """
 
