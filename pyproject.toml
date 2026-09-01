@@ -51,7 +51,7 @@ packages = [{ include = "quiltwright", from = "src" }]
 # ---------------------------------------------------------------------------
 [project]
 name = "quiltwright"
-version = "0.10.1"
+version = "0.11.0"
 description = "Holographic output for Looking Glass displays: off-axis multi-view quilts from PyVista, POV-Ray or Blender Cycles scenes"
 readme = "README.md"
 license = "BSD-3-Clause"
