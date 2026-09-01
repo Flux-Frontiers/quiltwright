@@ -66,9 +66,10 @@ def main() -> int:
     parser.add_argument(
         "--orbit-degrees",
         type=float,
-        default=360.0,
+        default=None,
         help="total camera revolution over the clip; 360 loops seamlessly.  "
-        "Ignored if --sway-degrees is given.",
+        "Ignored if --sway-degrees is given.  Default: 0 (static camera) "
+        "under --spin-degrees, else 360.",
     )
     parser.add_argument(
         "--sway-degrees",
@@ -80,6 +81,17 @@ def main() -> int:
         "scene, or a display that itself only rocks through a limited angle "
         "(e.g. a musubi frame's own ~15 degrees -- pass a few degrees of "
         "margin over that, not the display's full range).",
+    )
+    parser.add_argument(
+        "--spin-degrees",
+        type=float,
+        default=None,
+        help="hold the camera static (the composed still, unchanged) and "
+        "instead spin the scene's own subject via a per-frame "
+        "QW_Spin_Angle declare -- 360 for one full turn.  Independent of "
+        "--orbit-degrees/--sway-degrees; only does something for a scene "
+        "that reads QW_Spin_Angle itself, e.g. bell-jar-portrait's DNA. "
+        "Sets --orbit-degrees to 0 unless that flag is also given.",
     )
     parser.add_argument(
         "--preview",
@@ -174,10 +186,16 @@ def main() -> int:
     extra_args = () if args.preview else ("+AM2", "+R4")
     quality = 9 if args.preview else 11
 
-    # A sway keeps the camera within a few degrees of the composed viewpoint,
+    orbit_degrees = args.orbit_degrees
+    if orbit_degrees is None:
+        orbit_degrees = 0.0 if args.spin_degrees is not None else 360.0
+
+    # A sway -- or a fully static camera under --spin-degrees -- keeps the
+    # camera within a few degrees of (or exactly at) the composed viewpoint,
     # so title/signature text never approaches the angle where it would read
-    # mirrored -- suppressing it by default is a full-orbit-only concern.
-    suppress_overlays = args.sway_degrees is None and not args.keep_overlays
+    # mirrored.  Suppressing it by default is a full-orbit-only concern.
+    camera_is_orbiting = args.sway_degrees is None and orbit_degrees != 0.0
+    suppress_overlays = camera_is_orbiting and not args.keep_overlays
 
     codec = args.codec
     if codec is None:
@@ -205,7 +223,9 @@ def main() -> int:
     if args.sway_degrees is not None:
         print(f"  sway             +/-{args.sway_degrees:.0f} deg")
     else:
-        print(f"  orbit            {args.orbit_degrees:.0f} deg")
+        print(f"  orbit            {orbit_degrees:.0f} deg")
+    if args.spin_degrees is not None:
+        print(f"  spin             {args.spin_degrees:.0f} deg")
 
     out_stem = Path(args.out) if args.out else DEFAULT_OUT_DIR / args.subject
 
@@ -217,8 +237,9 @@ def main() -> int:
         include_paths=[POV_SCENES / "myinclude", POV_SCENES],
         n_frames=n_frames,
         fps=fps,
-        orbit_degrees=args.orbit_degrees,
+        orbit_degrees=orbit_degrees,
         sway_degrees=args.sway_degrees,
+        spin_degrees=args.spin_degrees,
         resolution=resolution,
         antialias=antialias,
         quality=quality,

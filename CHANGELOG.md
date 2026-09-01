@@ -43,8 +43,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   the same `SCENES` camera registry so the two renderers agree on
   eye/aim/lens/focal-plane without duplicating those measured numbers.
   `--device musubi` sets resolution/fps/codec together; `--sway-degrees`,
-  `--orbit-degrees`, `--codec`, `--resolution`, `--crf` and friends still
-  override individual pieces when given.
+  `--spin-degrees`, `--orbit-degrees`, `--codec`, `--resolution`, `--crf`
+  and friends still override individual pieces when given.
+
+- **`spin_degrees` on `render_pov_hld_video()`, independent of camera
+  motion entirely.** Emits `#declare QW_Spin_Angle = <degrees>;` before the
+  scene each frame, sweeping linearly to *spin_degrees* over the clip (360
+  loops seamlessly), instead of moving the camera -- a scene turns its own
+  subject with it. Meant for `orbit_degrees=0`: the composed still held
+  exactly as authored, with only the subject rotating in place.
+  `bell-jar-portrait`'s DNA now does this, via a locally-overridden
+  `bna7_full_belljar` in `bj_portrait.pov` that pivots the spin on the
+  molecule's own tipped-upright bounding-box centre (`min_extent` /
+  `max_extent`) rather than its raw, off-centre PDB coordinate origin or
+  the pre-tip frame -- either of those sent the DNA swinging out of the
+  jar or tumbling from standing to lying flat instead of turning in place.
+  `bj_portrait.pov`'s title and signature also gained the
+  `QW_HLD_Turntable` on/off toggle `bj_holo_2026.pov` already had.
 
 ## [0.11.0] - 2026-08-31
 

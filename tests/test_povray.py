@@ -782,6 +782,51 @@ class TestRenderPovHldVideo:
         expected_quarter = _orbit_camera(camera, 30.0).location
         assert np.allclose(quarter["location"], expected_quarter, atol=1e-6)
 
+    def test_spin_degrees_holds_camera_static_and_declares_the_angle(self, scene, camera, tmp_path):
+        """spin_degrees is independent of camera motion entirely: a static
+        camera (orbit_degrees=0) with a per-frame QW_Spin_Angle declare for
+        the scene's own object to rotate by -- see bj_portrait.pov's
+        bna7_full_belljar override for the real usage."""
+        from quiltwright.povray import render_pov_hld_video
+
+        keep = tmp_path / "frames"
+        render_pov_hld_video(
+            scene,
+            camera,
+            tmp_path / "spin",
+            n_frames=4,
+            fps=30,
+            orbit_degrees=0.0,
+            spin_degrees=360.0,
+            resolution=(160, 90),
+            keep_frames=keep,
+            progress=False,
+        )
+        wrappers = [(keep / f"frame{i:05d}.pov").read_text() for i in range(4)]
+
+        locations = [parse_vectors(w)["location"] for w in wrappers]
+        for loc in locations[1:]:
+            assert np.allclose(loc, locations[0], atol=1e-9)
+
+        for i, expected_angle in enumerate((0, 90, 180, 270)):
+            assert f"QW_Spin_Angle = {expected_angle}" in wrappers[i]
+
+    def test_spin_degrees_absent_by_default(self, scene, camera, tmp_path):
+        from quiltwright.povray import render_pov_hld_video
+
+        keep = tmp_path / "frames"
+        render_pov_hld_video(
+            scene,
+            camera,
+            tmp_path / "nospin",
+            n_frames=2,
+            fps=30,
+            resolution=(160, 90),
+            keep_frames=keep,
+            progress=False,
+        )
+        assert "QW_Spin_Angle" not in (keep / "frame00000.pov").read_text()
+
 
 # ---------------------------------------------------------------------------
 # Work-thread resolution

@@ -1305,6 +1305,7 @@ def render_pov_hld_video(
     fps: int = 30,
     orbit_degrees: float = 360.0,
     sway_degrees: float | None = None,
+    spin_degrees: float | None = None,
     resolution: tuple[int, int] = HLD_RESOLUTION,
     antialias: float | None = 0.3,
     quality: int = 9,
@@ -1354,6 +1355,16 @@ def render_pov_hld_video(
         physical HLD panels only rock through a limited angle themselves, so
         sweeping wider than the panel moves buys nothing.  ``None`` (the
         default) uses *orbit_degrees* instead.
+    :param spin_degrees: Independent of camera motion entirely -- emits
+        ``#declare QW_Spin_Angle = <degrees>;`` before the scene each frame,
+        sweeping linearly from 0 to *spin_degrees* over the clip (360 loops
+        seamlessly, same as *orbit_degrees*).  A scene turns its own object
+        with it, e.g. ``object { subject #ifdef(QW_Spin_Angle) rotate
+        y*QW_Spin_Angle #end ... }`` -- the same ``QW_*`` convention as
+        *suppress_overlays*.  Meant for *orbit_degrees=0* (a static camera,
+        the composed still unchanged): a subject rotating in place inside a
+        backdrop that never moves, rather than a camera sweep around it.
+        ``None`` (the default) leaves the scene's rotation, if any, alone.
     :param resolution: Render ``(width, height)``; default 3840x2160.
     :param antialias: POV-Ray ``+A`` threshold; ``None`` disables it.
     :param quality: POV-Ray ``+Q`` quality level, 0-11.
@@ -1428,11 +1439,16 @@ def render_pov_hld_video(
         step = orbit_degrees / n_frames if n_frames else 0.0
         angles = [step * i for i in range(n_frames)]
 
+    spin_step = spin_degrees / n_frames if (spin_degrees is not None and n_frames) else 0.0
+
     with tempfile.TemporaryDirectory(prefix="pov_hld_") as tmp:
         workdir = Path(tmp)
         frames = []
         for i in range(n_frames):
             frame_camera = _orbit_camera(camera, angles[i])
+            frame_prefix = lighting_prefix
+            if spin_degrees is not None:
+                frame_prefix += f"#declare QW_Spin_Angle = {spin_step * i:.6g};\n"
             wrapper = workdir / f"frame{i:05d}.pov"
             wrapper.write_text(
                 _wrapper_source(
@@ -1442,7 +1458,7 @@ def render_pov_hld_video(
                     0.0,
                     frame_camera,
                     render_aspect,
-                    lighting_prefix=lighting_prefix,
+                    lighting_prefix=frame_prefix,
                     lighting_suffix=lighting_suffix,
                 )
             )
