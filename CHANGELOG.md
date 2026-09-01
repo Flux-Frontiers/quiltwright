@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **`render_pov_hld_video()` in `quiltwright.povray`, the POV-Ray counterpart
+  to `render_hld_video()`.** Renders a scene's own `PovCamera` revolving
+  around its `look_at` point (`_orbit_camera`) rather than PyVista's
+  `camera.Azimuth` -- either a full 360-degree orbit or a seamless
+  `sway_degrees` back-and-forth oscillation, for a single-viewpoint diorama
+  scene or a display that itself only rocks through a limited angle.
+  `suppress_overlays` emits `#declare QW_HLD_Turntable = 1;` before the
+  scene (the same `QW_*` convention `lighting_declares` uses for
+  appearance), so a scene can guard camera-pinned overlay text -- a title, a
+  signature, placed for one authored viewpoint -- with
+  `#ifndef(QW_HLD_Turntable) ... #end` and skip it only for a turntable
+  render, since from the back of an orbit such text reads mirrored.
+  `bj_holo_2026.pov`'s title and signature now do this.
+
+- **`encode_args` on `render_pov_hld_video()`, escaping the official HEVC
+  master spec.** The default still targets what HLD Author and the big
+  Portrait HLD panels want (`_hld_encode_args`, HEVC bt709), but a device
+  that plays video directly instead of through HLD Author may want
+  something else entirely; `encode_args` replaces the ffmpeg output
+  arguments wholesale rather than forcing every HLD-family target through
+  one codec.
+
+- **`HLDDeviceSpec` / `HLD_DEVICES` / `MUSUBI` in `quiltwright.hld`.** Named
+  device presets bundling resolution, fps, encode target and import-duration
+  cap. `MUSUBI` -- Looking Glass's small consumer HLD frame -- is measured
+  from the device's own generated clips, not any published spec: LKG's
+  musubi docs give no technical detail at all. 576x1024 portrait, H.264
+  Baseline, yuv420p, no audio track, 30 fps, imports capped at 30s.
+
+- **`scripts/render_still_life_hld_video.py`.** Companion to
+  `render_still_life_hologram.py`: drives `render_pov_hld_video()` through
+  the same `SCENES` camera registry so the two renderers agree on
+  eye/aim/lens/focal-plane without duplicating those measured numbers.
+  `--device musubi` sets resolution/fps/codec together; `--sway-degrees`,
+  `--orbit-degrees`, `--codec`, `--resolution`, `--crf` and friends still
+  override individual pieces when given.
+
 ## [0.11.0] - 2026-08-31
 
 ### Added
