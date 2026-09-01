@@ -36,7 +36,7 @@ from pathlib import Path
 
 from quiltwright.lfd import QUILT_PRESETS, focal_distance_for_range, save_quilt
 from quiltwright.povray import Clearance, PovCamera, format_depth_budget, render_pov_quilt
-from quiltwright.runreport import RunReport, povray_parallelism
+from quiltwright.runreport import RunReport, povray_flags, povray_parallelism
 
 # --- Scene -----------------------------------------------------------------
 
@@ -193,19 +193,23 @@ def main() -> int:
     )
     print(budget)
 
+    antialias_used = None if args.preview else args.antialias
+    quality_used = 11
+    # Recursive supersampling (+AM2) to depth 4, rather than the default
+    # adaptive single pass, which leaves stair-stepping on the window
+    # mullions and bell-jar rims -- the highest-contrast edges in frame.
+    extra_args_used = () if args.preview else ("+AM2", "+R4")
+
     started = time.time()
     quilt = render_pov_quilt(
         SCENE,
         spec,
         camera,
         include_paths=INCLUDE_PATHS,
-        antialias=None if args.preview else args.antialias,
-        quality=11,
+        antialias=antialias_used,
+        quality=quality_used,
         threads=args.threads,
-        # Recursive supersampling (+AM2) to depth 4, rather than the default
-        # adaptive single pass, which leaves stair-stepping on the window
-        # mullions and bell-jar rims -- the highest-contrast edges in frame.
-        extra_args=() if args.preview else ("+AM2", "+R4"),
+        extra_args=extra_args_used,
         jobs=args.jobs,
         keep_views=args.keep_views,
     )
@@ -229,11 +233,7 @@ def main() -> int:
                 ("aspect", f"{spec.aspect:.4f}"),
                 ("views", spec.n_views),
                 ("view cone", f"{spec.view_cone:.1f} deg"),
-                (
-                    "anti-aliasing",
-                    "off (preview)" if args.preview else f"+A{args.antialias} +AM2 +R4",
-                ),
-                ("POV-Ray quality", "+Q11"),
+                ("POV-Ray flags", povray_flags(antialias_used, quality_used, extra_args_used)),
             ],
         )
         report.table("Parallelism", povray_parallelism(args.jobs, args.threads))

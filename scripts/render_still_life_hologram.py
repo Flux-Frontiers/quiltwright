@@ -48,7 +48,7 @@ from pathlib import Path
 from quiltwright.lfd import QUILT_PRESETS, focal_distance_for_range, save_quilt
 from quiltwright.povray import PovCamera, format_depth_budget, render_pov_quilt
 from quiltwright.quilt import LITIHOLO_SWEEP
-from quiltwright.runreport import RunReport, povray_parallelism
+from quiltwright.runreport import RunReport, povray_flags, povray_parallelism
 
 POV_SCENES = Path(__file__).resolve().parents[1] / "pov-scenes"
 
@@ -227,7 +227,7 @@ SCENES = {
 }
 
 
-def _run_report(args, subject, spec, camera, budget, elapsed):
+def _run_report(args, subject, spec, camera, budget, elapsed, antialias, quality, extra_args):
     """Assemble this run's report.
 
     Everything here is what the quilt itself cannot tell you afterwards: the
@@ -241,6 +241,11 @@ def _run_report(args, subject, spec, camera, budget, elapsed):
     :param camera: Centre-view camera.
     :param budget: Formatted depth budget, as printed.
     :param elapsed: Wall-clock render time, in seconds.
+    :param antialias: The ``antialias`` actually passed to
+        :func:`render_pov_quilt` for this run.
+    :param quality: The ``quality`` actually passed, likewise.
+    :param extra_args: The ``extra_args`` actually passed, likewise --
+        includes both the subject's own flags and the AA supersampling pass.
     :return: The report, ready to write.
     """
     report = RunReport(
@@ -257,8 +262,7 @@ def _run_report(args, subject, spec, camera, budget, elapsed):
             ("aspect", f"{spec.aspect:.4f}"),
             ("views", spec.n_views),
             ("view cone", f"{spec.view_cone:.1f} deg"),
-            ("anti-aliasing", "off (preview)" if args.preview else f"+A{args.antialias} +AM2 +R4"),
-            ("POV-Ray quality", "+Q11"),
+            ("POV-Ray flags", povray_flags(antialias, quality, extra_args)),
         ],
     )
     report.table("Parallelism", povray_parallelism(args.jobs, args.threads))
@@ -438,20 +442,24 @@ def main() -> int:
         suffix = "-preview" if args.preview else ""
         keep_views = f"renders/views/{args.subject}-litiholo{suffix}"
 
+    antialias_used = None if args.preview else args.antialias
+    quality_used = 11
+    # Recursive supersampling rather than the default adaptive single pass:
+    # the bell jar's rim and the beta-barrel's ribbon edges are the
+    # highest-contrast lines in either frame, and stair-stepping on them is
+    # exactly what a view sweep turns into shimmer.
+    extra_args_used = (*subject.extra_args, *(() if args.preview else ("+AM2", "+R4")))
+
     started = time.time()
     quilt = render_pov_quilt(
         scene,
         spec,
         camera,
         include_paths=[POV_SCENES / "myinclude", POV_SCENES],
-        antialias=None if args.preview else args.antialias,
-        quality=11,
+        antialias=antialias_used,
+        quality=quality_used,
         threads=args.threads,
-        # Recursive supersampling rather than the default adaptive single
-        # pass: the bell jar's rim and the beta-barrel's ribbon edges are the
-        # highest-contrast lines in either frame, and stair-stepping on them
-        # is exactly what a view sweep turns into shimmer.
-        extra_args=(*subject.extra_args, *(() if args.preview else ("+AM2", "+R4"))),
+        extra_args=extra_args_used,
         jobs=args.jobs,
         keep_views=keep_views,
     )
@@ -471,7 +479,17 @@ def main() -> int:
         print(f"  frames {keep_views}  ({spec.n_views}, view 0 leftmost)")
 
     if args.report is not None:
-        report = _run_report(args, subject, spec, camera, budget, elapsed)
+        report = _run_report(
+            args,
+            subject,
+            spec,
+            camera,
+            budget,
+            elapsed,
+            antialias_used,
+            quality_used,
+            extra_args_used,
+        )
         dest = args.report or f"renders/reports/{Path(out).stem}.md"
         print(f"  report {report.write(dest, output=out)}")
 

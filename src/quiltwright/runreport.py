@@ -44,6 +44,7 @@ import shutil
 import socket
 import subprocess
 import sys
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from importlib.metadata import PackageNotFoundError, version
@@ -53,6 +54,7 @@ __all__ = [
     "RunReport",
     "git_info",
     "machine_description",
+    "povray_flags",
     "povray_parallelism",
     "povray_version",
     "sha256",
@@ -212,6 +214,32 @@ def povray_parallelism(jobs: int, threads: int | None = None) -> list[tuple[str,
             ("cores in use", f"{total} of {cores}" + (" (oversubscribed)" if total > cores else ""))
         )
     return rows
+
+
+def povray_flags(antialias: float | None, quality: int, extra_args: Sequence[str] = ()) -> str:
+    """The POV-Ray flags a render actually used, as one string for a report.
+
+    Take this from the exact ``antialias``/``quality``/``extra_args`` values
+    passed to :func:`~quiltwright.povray.render_pov_quilt` or
+    :func:`~quiltwright.povray.render_pov_views`, rather than retyping them --
+    a hand-typed summary silently stops matching reality the day one of those
+    values changes, or a scene's own ``extra_args`` (e.g. ``+MV3.1``) goes
+    unmentioned because it was never part of the summary to begin with.
+
+    :param antialias: The ``antialias`` argument as passed, ``None`` for off.
+    :param quality: The ``quality`` argument, likewise.
+    :param extra_args: The ``extra_args`` argument, likewise -- radiosity or
+        photon-cache flags, an explicit ``+WT``, or anything else a scene
+        needed would appear here.
+    :return: e.g. ``"+Q11 +A0.05 +AM2 +R4"``, or ``"off, +Q11"``.
+    """
+    parts = [f"+Q{quality}"]
+    if antialias is None:
+        parts.insert(0, "off,")
+    else:
+        parts.append(f"+A{antialias:g}")
+    parts += list(extra_args)
+    return " ".join(parts)
 
 
 def sha256(path: Path | str) -> str:

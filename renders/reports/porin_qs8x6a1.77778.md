@@ -22,8 +22,7 @@
 | aspect | 1.7778 |
 | views | 48 |
 | view cone | 35.0 deg |
-| anti-aliasing | +A0.05 +AM2 +R4 |
-| POV-Ray quality | +Q11 |
+| POV-Ray flags | +Q11 +A0.05 +AM2 +R4 |
 
 ## Parallelism
 
