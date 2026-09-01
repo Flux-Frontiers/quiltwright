@@ -270,7 +270,11 @@ def scene_depths(
 
 @dataclass(frozen=True)
 class _Lens:
-    """The two numbers :func:`format_depth_budget` reads off a camera."""
+    """Cheap :class:`~quiltwright.quilt.HasLens` for a depth report.
+
+    Carries only the two numbers :func:`~quiltwright.povray.format_depth_budget`
+    reads, so a PyVista path does not have to build a throwaway camera.
+    """
 
     fov: float
     focal_distance: float

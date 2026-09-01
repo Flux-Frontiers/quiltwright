@@ -8,13 +8,22 @@ from __future__ import annotations
 
 import math
 import sys
+from dataclasses import dataclass
 
 import numpy as np
 import pytest
 
 from quiltwright.cycles import CyclesCamera, view_shift_x
-from quiltwright.povray import PovCamera, camera_block
-from quiltwright.quilt import QuiltCamera, window_shear
+from quiltwright.povray import PovCamera, camera_block, depth_budget
+from quiltwright.quilt import QUILT_PRESETS, HasLens, QuiltCamera, window_shear
+
+
+@dataclass(frozen=True)
+class _TinyLens:
+    """Stand-in for :class:`~quiltwright.lfd._Lens` -- fov + focal_distance only."""
+
+    fov: float
+    focal_distance: float
 
 
 def _parse_vectors(block: str) -> dict[str, np.ndarray]:
@@ -72,6 +81,86 @@ class TestQuiltCamera:
         assert isinstance(cyc, QuiltCamera)
         assert pov.focal_distance == pytest.approx(10.0)
         assert cyc.focal_distance == pytest.approx(10.0)
+
+
+class TestHasLens:
+    def test_cameras_and_lens_namespace_satisfy_the_protocol(self):
+        pov = PovCamera(location=(0.0, 0.0, -10.0), look_at=(0.0, 0.0, 0.0), fov=14.0)
+        cyc = CyclesCamera(location=(0.0, -10.0, 0.0), look_at=(0.0, 0.0, 0.0), fov=14.0)
+        lens = _TinyLens(fov=14.0, focal_distance=10.0)
+        assert isinstance(pov, HasLens)
+        assert isinstance(cyc, HasLens)
+        assert isinstance(lens, HasLens)
+
+    def test_depth_budget_accepts_the_lens_namespace(self):
+        spec = QUILT_PRESETS["portrait"]
+        lens = _TinyLens(fov=14.0, focal_distance=48.5)
+        rows = depth_budget(spec, lens, {"focal": 48.5})
+        assert rows[0][0] == "focal"
+        assert rows[0][2] == pytest.approx(0.0, abs=1e-9)
+
+
+class TestAimedParity:
+    """PovCamera.aimed and CyclesCamera.aimed share one contract.
+
+    Each backend has its own handedness and default up-hint, so the
+    assertions are invariant-level: lens preserved, focal distance applied,
+    view direction untouched, lateral shift slides eye and aim together.
+    """
+
+    def test_keeps_view_direction_and_lens(self):
+        location, aim, fov, fd = (15.0, 20.0, 6.0), (58.0, 19.0, 53.0), 53.13, 48.5
+        for aimed, Camera in (
+            (PovCamera.aimed, PovCamera),
+            (CyclesCamera.aimed, CyclesCamera),
+        ):
+            cam = aimed(location, aim, fov=fov, focal_distance=fd)
+            base = Camera(location=location, look_at=aim)
+            np.testing.assert_allclose(cam.basis()[0], base.basis()[0], atol=1e-12)
+            assert cam.fov == pytest.approx(fov)
+
+    def test_focal_distance_applied_without_moving_the_eye(self):
+        for aimed, location, aim, look_at in (
+            (PovCamera.aimed, (0.0, 0.0, 0.0), (0.0, 0.0, 10.0), (0.0, 0.0, 48.5)),
+            (CyclesCamera.aimed, (0.0, 0.0, 0.0), (0.0, 10.0, 0.0), (0.0, 48.5, 0.0)),
+        ):
+            cam = aimed(location, aim, fov=30.0, focal_distance=48.5)
+            assert cam.focal_distance == pytest.approx(48.5)
+            np.testing.assert_allclose(cam.location, location, atol=1e-12)
+            np.testing.assert_allclose(cam.look_at, look_at, atol=1e-12)
+
+    def test_lateral_shift_slides_eye_and_aim_together(self):
+        for aimed, location, aim, eye, look_at in (
+            (
+                PovCamera.aimed,
+                (0.0, 0.0, 0.0),
+                (0.0, 0.0, 10.0),
+                (-5.0, 0.0, 0.0),
+                (-5.0, 0.0, 10.0),
+            ),
+            (
+                CyclesCamera.aimed,
+                (0.0, 0.0, 0.0),
+                (0.0, 10.0, 0.0),
+                (-5.0, 0.0, 0.0),
+                (-5.0, 10.0, 0.0),
+            ),
+        ):
+            cam = aimed(location, aim, fov=30.0, lateral_shift=-5.0)
+            np.testing.assert_allclose(cam.location, eye, atol=1e-12)
+            np.testing.assert_allclose(cam.look_at, look_at, atol=1e-12)
+            forward, _, _ = cam.basis()
+            base_forward = np.asarray(aim, dtype="d") - location
+            base_forward = base_forward / np.linalg.norm(base_forward)
+            np.testing.assert_allclose(forward, base_forward, atol=1e-12)
+
+    def test_rejects_non_positive_focal_distance(self):
+        for aimed, aim in (
+            (PovCamera.aimed, (0.0, 0.0, 10.0)),
+            (CyclesCamera.aimed, (0.0, 10.0, 0.0)),
+        ):
+            with pytest.raises(ValueError, match="focal_distance"):
+                aimed((0.0, 0.0, 0.0), aim, fov=30.0, focal_distance=0.0)
 
 
 def test_importing_window_shear_does_not_load_pyvista() -> None:

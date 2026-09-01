@@ -238,6 +238,23 @@ LITIHOLO_SWEEP: QuiltSpec = sweep_spec(
 
 
 @runtime_checkable
+class HasLens(Protocol):
+    """``fov`` and ``focal_distance`` -- all the depth budget reads.
+
+    A typing :class:`~typing.Protocol`, not a runtime base class.
+    :class:`QuiltCamera` satisfies this, as does a tiny namespace with those
+    two attributes (see :class:`~quiltwright.lfd._Lens`) so a depth report
+    does not have to construct a throwaway camera.
+    """
+
+    @property
+    def fov(self) -> float: ...
+
+    @property
+    def focal_distance(self) -> float: ...
+
+
+@runtime_checkable
 class QuiltCamera(Protocol):
     """Look-at camera that can feed a quilt sweep.
 
@@ -250,6 +267,8 @@ class QuiltCamera(Protocol):
     are right-handed.  :meth:`basis` returns ``(forward, right, up)`` in
     that convention.  Callers that emit a renderer-specific frustum convert
     :func:`window_shear` into the units that renderer takes.
+
+    Every :class:`QuiltCamera` is also a :class:`HasLens`.
     """
 
     location: tuple[float, float, float]

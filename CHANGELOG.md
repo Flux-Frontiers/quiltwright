@@ -28,6 +28,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   still reads as night against an authored white key. Pass `sun=(altitude,
   azimuth)` for solar frames that need an explicit parallel sun.
 
+- **`HasLens` protocol in `quiltwright.quilt`.** The narrow
+  ``fov`` / ``focal_distance`` surface that `depth_budget` and
+  `format_depth_budget` read -- satisfied by every `QuiltCamera` and by a
+  tiny namespace such as `lfd`'s `_Lens`. Lazy-exported from the package root.
+
 ### Changed
 
 - **`bj_holo_2026.pov` framed for desktop wallpaper.** The glass Y scale
@@ -41,10 +46,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **Deduplicated shared helpers into `quiltwright.runtime`.**
   `require_pyvista` replaces three identical copies in `lfd`, `hld`, and
   `tvb_data`; `triple` replaces the twin `_triple` helpers in `povray` and
-  `cycles` (imported there as `_triple` so call sites stay private). The
-  `_HasLens` protocol docstring now notes it is annotation-only, so call-graph
-  orphan detectors reporting zero callers are expected. `cli/__init__.py` gets
-  a module docstring.
+  `cycles` (imported there as `_triple` so call sites stay private).
+  `cli/__init__.py` gets a module docstring.
+
+- **Depth budget types against `HasLens`.** The private `_HasLens` protocol
+  leaves `povray`; `PovCamera.aimed` / `CyclesCamera.aimed` gain a shared
+  parity suite in `tests/test_camera.py` so the documented twin contract
+  cannot drift quietly.
 
 ## [0.10.1] - 2026-08-31
 

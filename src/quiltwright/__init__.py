@@ -72,6 +72,7 @@ _LAZY: dict[str, str] = {
     "PovScene": "povgen",
     "Primitive": "povgen",
     "QUILT_PRESETS": "quilt",
+    "HasLens": "quilt",
     "QuiltCamera": "quilt",
     "QuiltSpec": "quilt",
     "REGION_MAPPINGS": "tvb_data",
@@ -184,6 +185,7 @@ __all__ = [
     # Quilt geometry
     "QuiltSpec",
     "QuiltCamera",
+    "HasLens",
     "QUILT_PRESETS",
     "assemble_quilt",
     "view_offsets",

@@ -105,6 +105,10 @@ need public docs, but the one missing **module** docstring
 
 ## Priority 2 -- Structural cleanup (medium effort)
 
+> **Light P2 done** (option B, 2026-09-01): `HasLens` lives in `quilt.py`;
+> `_HasLens` removed from `povray`; `aimed` parity tests in `test_camera.py`.
+> Module splits (2.1) deferred -- revisit only if a real edit fights a file.
+
 ### 2.1 Split the oversized hubs
 
 PyCodeKG warns on module size. Suggested seams that match existing comments

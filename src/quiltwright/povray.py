@@ -86,11 +86,11 @@ from collections.abc import Iterable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import Protocol
 
 import numpy as np
 
 from quiltwright.quilt import (
+    HasLens,
     QuiltSpec,
     assemble_quilt,
     sweep_extent,
@@ -551,28 +551,8 @@ class Clearance:
         return sweep <= self.half_width or math.isclose(sweep, self.half_width, rel_tol=1e-9)
 
 
-class _HasLens(Protocol):
-    """``fov`` and ``focal_distance`` -- all the depth budget reads.
-
-    A typing :class:`~typing.Protocol`, not a runtime base class: it appears
-    only in annotations on :func:`depth_budget` and :func:`format_depth_budget`,
-    so call-graph orphan detectors correctly report zero callers.
-
-    :class:`~quiltwright.quilt.QuiltCamera` satisfies this, as does a tiny
-    namespace with those two attributes.  The PyVista
-    :func:`~quiltwright.lfd.depth_report` uses the latter so it does not
-    have to construct a throwaway :class:`PovCamera`.
-    """
-
-    @property
-    def fov(self) -> float: ...
-
-    @property
-    def focal_distance(self) -> float: ...
-
-
 def depth_budget(
-    spec: QuiltSpec, camera: _HasLens, depths: Mapping[str, float]
+    spec: QuiltSpec, camera: HasLens, depths: Mapping[str, float]
 ) -> list[tuple[str, float, float]]:
     """Adjacent-view disparity at each depth of interest.
 
@@ -583,7 +563,8 @@ def depth_budget(
 
     :param spec: Quilt specification.
     :param camera: Centre-view camera; a :class:`~quiltwright.quilt.QuiltCamera`
-        or anything with ``fov`` and ``focal_distance``.
+        or anything with ``fov`` and ``focal_distance``
+        (:class:`~quiltwright.quilt.HasLens`).
     :param depths: Labelled distances from the camera, in scene units.  Use
         ``math.inf`` for sky or a backdrop at infinity.
     :return: ``(label, depth, disparity_px)`` in the order given.
@@ -596,7 +577,7 @@ def depth_budget(
 
 def format_depth_budget(
     spec: QuiltSpec,
-    camera: _HasLens,
+    camera: HasLens,
     depths: Mapping[str, float],
     *,
     clearance: Clearance | None = None,
@@ -611,7 +592,8 @@ def format_depth_budget(
 
     :param spec: Quilt specification.
     :param camera: Centre-view camera; a :class:`~quiltwright.quilt.QuiltCamera`
-        or anything with ``fov`` and ``focal_distance``.
+        or anything with ``fov`` and ``focal_distance``
+        (:class:`~quiltwright.quilt.HasLens`).
     :param depths: Labelled depths, as for :func:`depth_budget`.
     :param clearance: Measured lateral corridor, if the scene is enclosed.
         When given, the sweep is checked against it and a warning emitted if
