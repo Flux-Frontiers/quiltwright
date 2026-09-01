@@ -87,6 +87,7 @@ import numpy as np
 
 from quiltwright.quilt import QuiltSpec, assemble_quilt, window_shear
 from quiltwright.runtime import COURTESY_CORES_HELD_BACK
+from quiltwright.runtime import triple as _triple
 
 #: Environment variable overriding which Blender binary is used.
 BLENDER_ENV = "BLENDER_BINARY"
@@ -159,17 +160,6 @@ def _scene_format(scene_path: Path) -> str:
             f"supported: {supported}"
         )
     return kind
-
-
-def _triple(v) -> tuple[float, float, float]:
-    """Coerce a 3-vector -- list, tuple, NumPy array -- to a float 3-tuple.
-
-    :param v: Any iterable of three reals.
-    :return: ``(x, y, z)`` as plain floats.
-    :raises ValueError: If *v* does not have exactly three components.
-    """
-    x, y, z = (float(c) for c in v)
-    return (x, y, z)
 
 
 # ---------------------------------------------------------------------------

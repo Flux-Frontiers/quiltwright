@@ -99,24 +99,10 @@ from quiltwright.quilt import (
     window_shear,
 )
 from quiltwright.runtime import COURTESY_CORES_HELD_BACK
+from quiltwright.runtime import triple as _triple
 
 #: Environment variable overriding which POV-Ray binary is used.
 POVRAY_ENV = "POVRAY_BINARY"
-
-
-def _triple(v: Iterable[float]) -> tuple[float, float, float]:
-    """Coerce a 3-vector -- list, tuple, NumPy array -- to a float 3-tuple.
-
-    ``tuple(v)`` types as ``tuple[float, ...]``, which is not a
-    :class:`PovCamera` coordinate.  Unpacking states the arity and rejects a
-    wrong-length vector here rather than later.
-
-    :param v: Any iterable of three reals.
-    :return: ``(x, y, z)`` as plain floats.
-    :raises ValueError: If *v* does not have exactly three components.
-    """
-    x, y, z = (float(c) for c in v)
-    return (x, y, z)
 
 
 def _find_povray(binary: str | None = None) -> str:
@@ -567,6 +553,10 @@ class Clearance:
 
 class _HasLens(Protocol):
     """``fov`` and ``focal_distance`` -- all the depth budget reads.
+
+    A typing :class:`~typing.Protocol`, not a runtime base class: it appears
+    only in annotations on :func:`depth_budget` and :func:`format_depth_budget`,
+    so call-graph orphan detectors correctly report zero callers.
 
     :class:`~quiltwright.quilt.QuiltCamera` satisfies this, as does a tiny
     namespace with those two attributes.  The PyVista

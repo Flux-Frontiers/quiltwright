@@ -81,7 +81,7 @@ from quiltwright.quilt import (
     view_offsets,
     window_shear,
 )
-from quiltwright.runtime import find_ffmpeg
+from quiltwright.runtime import find_ffmpeg, require_pyvista
 
 # Re-exports: fleet and tests import these from lfd.  Names in __all__ are
 # used, so ruff F401 does not treat the imports above as dead.
@@ -110,21 +110,6 @@ __all__ = [
     "view_disparity",
     "view_offsets",
 ]
-
-try:
-    import pyvista as pv  # noqa: F401  (re-exported pattern matches voxel_viz)
-
-    _PYVISTA_AVAILABLE = True
-except ImportError:
-    _PYVISTA_AVAILABLE = False
-
-
-def _require_pyvista(fn_name: str) -> None:
-    """Raise a clear ImportError if pyvista is not installed."""
-    if not _PYVISTA_AVAILABLE:
-        raise ImportError(
-            f"{fn_name}() requires pyvista.\nInstall with:  poetry install --with viz"
-        )
 
 
 def frame_and_focus(
@@ -173,7 +158,7 @@ def frame_and_focus(
         expects.
     :raises ImportError: If PyVista is not installed.
     """
-    _require_pyvista("frame_and_focus")
+    require_pyvista("frame_and_focus")
     camera = plotter.camera
     position = np.asarray(camera.position, dtype="d")
     focus = np.asarray(camera.focal_point, dtype="d")
@@ -253,7 +238,7 @@ def scene_depths(
     :return: Labelled distances from the render camera, in scene units,
         ready to hand to :func:`~quiltwright.povray.format_depth_budget`.
     """
-    _require_pyvista("scene_depths")
+    require_pyvista("scene_depths")
     camera = plotter.camera
     pos, focal, _right, _up, distance = camera_frame(camera)
     forward = (focal - pos) / distance
@@ -407,7 +392,7 @@ def render_quilt(
         third of the available look-around.
     :return: ``uint8`` RGB array of shape ``(quilt_height, quilt_width, 3)``.
     """
-    _require_pyvista("render_quilt")
+    require_pyvista("render_quilt")
     if view_cone is not None:
         spec = replace(spec, view_cone=view_cone)
 
@@ -530,7 +515,7 @@ def render_quilt_video(
     import subprocess
     import tempfile
 
-    _require_pyvista("render_quilt_video")
+    require_pyvista("render_quilt_video")
     ffmpeg = find_ffmpeg()
 
     try:

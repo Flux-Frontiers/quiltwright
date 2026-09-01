@@ -38,6 +38,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   normal plate by day, fog night after dark, on both the Mac and a woven
   Looking Glass HEIC.
 
+- **Deduplicated shared helpers into `quiltwright.runtime`.**
+  `require_pyvista` replaces three identical copies in `lfd`, `hld`, and
+  `tvb_data`; `triple` replaces the twin `_triple` helpers in `povray` and
+  `cycles` (imported there as `_triple` so call sites stay private). The
+  `_HasLens` protocol docstring now notes it is annotation-only, so call-graph
+  orphan detectors reporting zero callers are expected. `cli/__init__.py` gets
+  a module docstring.
+
 ## [0.10.1] - 2026-08-31
 
 ### Added
