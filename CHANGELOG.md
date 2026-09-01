@@ -33,6 +33,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   `format_depth_budget` read -- satisfied by every `QuiltCamera` and by a
   tiny namespace such as `lfd`'s `_Lens`. Lazy-exported from the package root.
 
+- **Post-cleanup PyCodeKG analysis** under `analysis/`.
+  `quiltwright_analysis_after_p1_p2.md` is the rebuilt-graph report on
+  `444c9b7` (quality **A / 100.0**, zero dead-code candidates);
+  `score_compare_p1_p2.md` diffs it against the pre-cleanup 98.2 baseline.
+
 ### Changed
 
 - **`bj_holo_2026.pov` framed for desktop wallpaper.** The glass Y scale
