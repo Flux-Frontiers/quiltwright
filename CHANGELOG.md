@@ -35,8 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - **Post-cleanup PyCodeKG analysis** under `analysis/`.
   `quiltwright_analysis_after_p1_p2.md` is the rebuilt-graph report on
-  `444c9b7` (quality **A / 100.0**, zero dead-code candidates);
-  `score_compare_p1_p2.md` diffs it against the pre-cleanup 98.2 baseline.
+  `444c9b7` (quality **A / 100.0**, zero dead-code candidates).
 
 ### Changed
 

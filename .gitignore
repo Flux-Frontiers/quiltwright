@@ -116,7 +116,7 @@ grants/
 # nothing under .agentkg/ is meant to be committed -- it is a transcript of
 # working conversations, and this is a public repository.
 **/.agentkg/
-docs/quiltwright_brand.md
+assets/quiltwright_brand.md
 .grok/config.toml
 .pycodekg/graph.sqlite-shm
 .pycodekg/graph.sqlite-wal
