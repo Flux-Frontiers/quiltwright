@@ -54,11 +54,6 @@ replaces three identical copies that had accumulated in `lfd`, `hld`, and
 `tvb_data`; `triple` replaces the twin `_triple` helpers in `povray` and
 `cycles`, imported there as `_triple` so call sites stay private.
 
-**Housekeeping.** A post-cleanup PyCodeKG analysis lands under `analysis/`
--- `quiltwright_analysis_after_p1_p2.md` is the rebuilt-graph report on the
-runtime dedup above, scoring quality A / 100.0 with zero dead-code
-candidates.
-
 ## Upgrading
 
 No breaking changes -- `pip install -U quiltwright` is enough. Packing a
