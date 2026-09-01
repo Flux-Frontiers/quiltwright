@@ -1,12 +1,12 @@
 # Museum hologram
 
-**Generated:** 2026-08-26 18:03:11  
-**Machine:** x86_64  
-**Repository:** quiltwright @ `f029e32` (main)  
-**Commit:** 2026-08-26 17:17:28 +0000 -- chore(renders): bell jar landscape quilt run report  
+**Generated:** 2026-08-31 23:32:17  
+**Machine:** Apple M5 Max, 64 GB RAM  
+**Repository:** quiltwright @ `9c6c3cf` (main) **+ uncommitted changes**  
+**Commit:** 2026-08-31 23:16:53 -0400 -- chore: drop quiltwright_analysis_after_p1_p2.md from analysis/  
 **Scene:** `pov-scenes/museum/museum.pov` sha256 `e7c8814c2b2e1eff`  
-**Python:** 3.13.12  |  **quiltwright:** 0.9.0  |  **numpy:** 2.5.2  |  **POV-Ray:** POV-Ray 3.7.0.10.unofficial  
-**Host:** vm  |  **OS:** Linux-6.18.44-fc-v21-x86_64-with-glibc2.39  
+**Python:** 3.12.13  |  **quiltwright:** 0.10.1  |  **numpy:** 2.5.2  |  **POV-Ray:** POV-Ray 3.7.0.10.unofficial  
+**Host:** turing  |  **OS:** macOS-27.0-arm64-arm-64bit  
 **Command:** `scripts/render_museum_hologram.py --jobs 1 --report`
 
 ---
@@ -28,11 +28,11 @@
 
 | Parameter | Value |
 |---|---|
-| CPU cores | 4 |
+| CPU cores | 18 |
 | POV-Ray processes (--jobs) | 1 |
-| threads per process | 4 |
-| thread count set by | Work_Threads in /home/user/quiltwright/renders/.threads.ini |
-| cores in use | 4 of 4 |
+| threads per process | 16 |
+| thread count set by | Work_Threads in /Users/egs/repos/quiltwright/renders/.threads.ini |
+| cores in use | 16 of 18 |
 
 ## Camera
 
@@ -61,13 +61,13 @@
 
 | Parameter | Value |
 |---|---|
-| wall clock | 2777 s |
-| per view | 57.9 s |
+| wall clock | 387 s |
+| per view | 8.1 s |
 
 ## Output
 
 | Field | Value |
 |---|---|
 | File | `renders/quilts/museum_qs8x6a1.77778.png` |
-| Size | 40.9 MB |
-| SHA-256 | `e50bb25641e6e29f4399cf430dcc88f02b99c0a11634b982cd99340dc0a0f1a8` |
+| Size | 41.3 MB |
+| SHA-256 | `a761c61539bded6a25f2c8facaabc50f81d2655ffb1f997f22b7b29d922c9cc0` |

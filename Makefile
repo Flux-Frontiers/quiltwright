@@ -230,10 +230,26 @@ preview-museum: $(THREAD_INI)  ## quarter-size museum quilt
 
 # --- HOUSEKEEPING ----------------------------------------------------------
 
+# The subjects a release actually bundles. renders/quilts/ accumulates every
+# scene anyone has ever iterated on (lambda, brain, vitrine-hemoglobin, ...)
+# plus a -preview render per subject, and *_qs*.png matches all of it -- a
+# glob that broad would attach unrelated exploratory renders and quarter-size
+# iterations to a public GitHub release. <subject>_qs*.png (no dash before
+# _qs) matches only that subject's full-quality quilt, since every preview
+# and variant inserts a -suffix before _qs. Override per release when the
+# "current" cut of a scene changes, e.g.
+#   make release-assets TAG=v1.2.3 RELEASE_QUILT_SUBJECTS="bell-jar porin museum"
+RELEASE_QUILT_SUBJECTS ?= bell-jar-holo-2026 porin museum
+
+# Dynamic Desktop HEICs to bundle, if a release ships one. Not every release
+# does, so this is empty by default -- pass it explicitly, e.g.
+#   make release-assets TAG=v1.2.3 RELEASE_DYNAMIC_ASSETS="renders/dynamic/bj_holo_2026_appearance.heic renders/dynamic/bj_holo_2026_appearance_native_LKG-J00332.heic"
+RELEASE_DYNAMIC_ASSETS ?=
+
 .PHONY: release-assets clean-views help
-release-assets:  ## attach quilts to a GitHub release: make release-assets TAG=v1.2.3
+release-assets:  ## attach the release-bundle quilts (and any dynamic HEICs) to a GitHub release: make release-assets TAG=v1.2.3
 	@test -n "$(TAG)" || { echo "usage: make release-assets TAG=v1.2.3"; exit 1; }
-	gh release upload $(TAG) renders/quilts/*_qs*.png --clobber
+	gh release upload $(TAG) $(foreach s,$(RELEASE_QUILT_SUBJECTS),renders/quilts/$(s)_qs*.png) $(RELEASE_DYNAMIC_ASSETS) --clobber
 
 clean-views:  ## empty the renders/views/ scratch directory
 	rm -rf renders/views/*

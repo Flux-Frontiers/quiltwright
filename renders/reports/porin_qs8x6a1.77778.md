@@ -1,11 +1,11 @@
 # porin hologram
 
-**Generated:** 2026-08-30 19:27:22  
+**Generated:** 2026-08-31 23:25:49  
 **Machine:** Apple M5 Max, 64 GB RAM  
-**Repository:** quiltwright @ `b4a7b0f` (develop) **+ uncommitted changes**  
-**Commit:** 2026-08-30 19:15:21 -0400 -- chore(renders): publish the landscape quilt set as release assets  
+**Repository:** quiltwright @ `9c6c3cf` (main) **+ uncommitted changes**  
+**Commit:** 2026-08-31 23:16:53 -0400 -- chore: drop quiltwright_analysis_after_p1_p2.md from analysis/  
 **Scene:** `pov-scenes/porin/3porin.pov` sha256 `2c97fadb3306a4e8`  
-**Python:** 3.12.13  |  **quiltwright:** 0.10.0  |  **numpy:** 2.5.2  |  **POV-Ray:** POV-Ray 3.7.0.10.unofficial  
+**Python:** 3.12.13  |  **quiltwright:** 0.10.1  |  **numpy:** 2.5.2  |  **POV-Ray:** POV-Ray 3.7.0.10.unofficial  
 **Host:** turing  |  **OS:** macOS-27.0-arm64-arm-64bit  
 **Command:** `scripts/render_still_life_hologram.py porin --jobs 1 --report`
 
@@ -64,8 +64,8 @@
 
 | Parameter | Value |
 |---|---|
-| wall clock | 232 s |
-| per view | 4.8 s |
+| wall clock | 189 s |
+| per view | 3.9 s |
 
 ## Output
 
@@ -73,4 +73,4 @@
 |---|---|
 | File | `renders/quilts/porin_qs8x6a1.77778.png` |
 | Size | 31.2 MB |
-| SHA-256 | `684891dd65c5a308d9044e1ef78045856022871accbb51f100144395cc3a7cd8` |
+| SHA-256 | `b256129dc29d2e353e78105de660bf84ce1dfa63892a843a2877b9469f718ce4` |
