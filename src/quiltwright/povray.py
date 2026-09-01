@@ -13,8 +13,13 @@ The scene file is never modified.  Rendering wraps it::
 
 POV-Ray uses the *last* camera statement it parses and warns about the
 earlier ones, so appending a camera overrides whatever the scene declared
-while leaving its geometry, textures and lighting untouched.  One wrapper is
-written per view, each carrying that view's camera.
+while leaving its geometry and, by default, its lighting untouched.  One
+wrapper is written per view, each carrying that view's camera.
+
+Optional *lighting* on :func:`render_pov_quilt` appends a parallel sun
+(and prefix ``#declare QW_*`` so a scene can opt in).  That is real sun
+altitude/azimuth -- not POV-Ray's ``clock``, which is the animation
+parameter (``+K``) and has nothing to do with wall-clock time.
 
 **Off-axis projection.**  POV-Ray builds its frustum from ``location`` (the
 eye), ``direction`` (which places the centre of the image plane) and
@@ -81,11 +86,11 @@ from collections.abc import Iterable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import Protocol
 
 import numpy as np
 
 from quiltwright.quilt import (
+    HasLens,
     QuiltSpec,
     assemble_quilt,
     sweep_extent,
@@ -94,24 +99,10 @@ from quiltwright.quilt import (
     window_shear,
 )
 from quiltwright.runtime import COURTESY_CORES_HELD_BACK
+from quiltwright.runtime import triple as _triple
 
 #: Environment variable overriding which POV-Ray binary is used.
 POVRAY_ENV = "POVRAY_BINARY"
-
-
-def _triple(v: Iterable[float]) -> tuple[float, float, float]:
-    """Coerce a 3-vector -- list, tuple, NumPy array -- to a float 3-tuple.
-
-    ``tuple(v)`` types as ``tuple[float, ...]``, which is not a
-    :class:`PovCamera` coordinate.  Unpacking states the arity and rejects a
-    wrong-length vector here rather than later.
-
-    :param v: Any iterable of three reals.
-    :return: ``(x, y, z)`` as plain floats.
-    :raises ValueError: If *v* does not have exactly three components.
-    """
-    x, y, z = (float(c) for c in v)
-    return (x, y, z)
 
 
 def _find_povray(binary: str | None = None) -> str:
@@ -327,6 +318,157 @@ def camera_block(camera: PovCamera, offset: float, aspect: float) -> str:
     )
 
 
+# Appearance presets for Dynamic Desktop stills.  Azimuth is degrees from
+# +Z toward +X in POV-Ray's Y-up frame -- the same convention as
+# :func:`sun_direction`.  Light is a high, hot key; dark is a moon fill
+# plus fog (see :func:`lighting_block`) so scene lights do not wash out
+# the night look.
+APPEARANCE_SUN: dict[str, tuple[float, float]] = {
+    "light": (55.0, 120.0),
+    "dark": (-15.0, 280.0),
+}
+
+
+def sun_direction(altitude: float, azimuth: float) -> tuple[float, float, float]:
+    """Unit vector pointing *toward* the sun, POV-Ray Y-up.
+
+    :param altitude: Degrees above the Y = 0 plane (horizon).  90 is +Y.
+    :param azimuth: Degrees from +Z toward +X, ``[0, 360)``.
+    :return: ``(x, y, z)`` of length 1.
+    """
+    alt = math.radians(altitude)
+    az = math.radians(azimuth)
+    cos_alt = math.cos(alt)
+    return (math.sin(az) * cos_alt, math.sin(alt), math.cos(az) * cos_alt)
+
+
+def _sun_color(altitude: float, *, appearance: str | None = None) -> tuple[float, float, float]:
+    """RGB intensity for a parallel sun at *altitude* degrees.
+
+    ``appearance="dark"`` is a cool moon fill; fog in :func:`lighting_block`
+    does the night separation.  Bare *altitude* (solar frames) uses a
+    milder curve so a high sun does not blow out a scene that already has
+    its own key light.
+    """
+    if appearance == "dark":
+        # Cool moonlight -- fog (below) does most of the night separation.
+        return (0.35, 0.42, 0.70)
+    if altitude >= 20:
+        return (0.85, 0.78, 0.68)
+    if altitude >= 6:
+        t = (altitude - 6) / 14.0
+        return (0.9, 0.7 + 0.15 * t, 0.45 + 0.3 * t)
+    if altitude >= -6:
+        t = (altitude + 6) / 12.0
+        return (0.7 * t + 0.15, 0.3 * t + 0.12, 0.15 * t + 0.25)
+    return (0.18, 0.22, 0.38)
+
+
+def lighting_declares(
+    *,
+    appearance: str | None = None,
+    sun: tuple[float, float] | None = None,
+) -> str:
+    """``#declare QW_*`` prefix so a scene can honour the sun without a parser.
+
+    :param appearance: ``"light"`` or ``"dark"``, or ``None``.
+    :param sun: ``(altitude, azimuth)`` overriding the appearance preset.
+    :return: SDL to emit *before* the ``#include``, or ``""``.
+    """
+    if appearance is None and sun is None:
+        return ""
+    if appearance is not None and appearance not in APPEARANCE_SUN:
+        raise ValueError(f"appearance must be 'light' or 'dark', got {appearance!r}")
+    alt, az = sun if sun is not None else APPEARANCE_SUN[appearance or "light"]
+    flag = 0 if appearance == "dark" else 1
+    return (
+        f"#declare QW_Appearance = {flag};\n"
+        f"#declare QW_SunAltitude = {float(alt):.10g};\n"
+        f"#declare QW_SunAzimuth = {float(az):.10g};\n"
+    )
+
+
+def lighting_block(
+    camera: PovCamera,
+    *,
+    appearance: str | None = None,
+    sun: tuple[float, float] | None = None,
+) -> str:
+    """Lighting appended after the camera for Dynamic Desktop stills.
+
+    ``appearance="light"`` leaves the scene alone: an additive key on top of
+    an authored white light washes the plate out.  ``appearance="dark"``
+    adds a cool moon plus fog so Dark Mode still reads as night without
+    editing the scene.  Pass *sun* ``(altitude, azimuth)`` for solar frames
+    that need an explicit parallel sun.  This is real sun position -- not
+    POV-Ray's ``clock``.
+
+    :param camera: Centre-view camera; ``look_at`` is ``point_at``.
+    :param appearance: ``"light"`` or ``"dark"``, or ``None``.
+    :param sun: ``(altitude, azimuth)``; defaults to the appearance preset
+        when *appearance* is ``"dark"``.
+    :return: POV-Ray SDL, or ``""``.
+    """
+    if appearance is None and sun is None:
+        return ""
+    if appearance is not None and appearance not in APPEARANCE_SUN:
+        raise ValueError(f"appearance must be 'light' or 'dark', got {appearance!r}")
+    # Light Mode = scene as authored.  Declares still go out via
+    # lighting_declares so a scene can branch on QW_Appearance.
+    if appearance == "light" and sun is None:
+        return ""
+    alt, az = sun if sun is not None else APPEARANCE_SUN[appearance or "light"]
+    direction = np.asarray(sun_direction(alt, az), dtype="d")
+    look = np.asarray(camera.look_at, dtype="d")
+    distance = max(camera.focal_distance * 8.0, 1.0)
+    location = look + direction * distance
+    r, g, b = _sun_color(alt, appearance=appearance)
+    parts = [
+        "// quiltwright lighting: parallel sun (not POV-Ray clock)\n"
+        "light_source {\n"
+        f"  {_vec(location)} color rgb <{r:.5g}, {g:.5g}, {b:.5g}>\n"
+        "  parallel\n"
+        f"  point_at {_vec(look)}\n"
+        "}\n"
+    ]
+    if appearance == "dark":
+        # Soften the scene's own lights without burying the subject.  Fog
+        # distance scales with focal distance; ~1.2x keeps Dark Mode
+        # readable on a Mac laptop while still separating from Light.
+        fog_d = max(camera.focal_distance * 1.2, 1.0)
+        parts.append(
+            "background { color rgb <0.04, 0.05, 0.10> }\n"
+            "global_settings { ambient_light rgb <0.08, 0.09, 0.14> }\n"
+            "fog {\n"
+            "  fog_type 1\n"
+            f"  distance {fog_d:.6g}\n"
+            "  color rgb <0.05, 0.06, 0.12>\n"
+            "}\n"
+        )
+    return "".join(parts)
+
+
+def _wrapper_source(
+    scene_path: Path,
+    index: int,
+    n_views: int,
+    offset: float,
+    camera: PovCamera,
+    aspect: float,
+    *,
+    lighting_prefix: str = "",
+    lighting_suffix: str = "",
+) -> str:
+    """One per-view wrapper: optional lighting declares, include, camera, sun."""
+    return (
+        lighting_prefix + f'#include "{scene_path}"\n'
+        f"// view {index + 1}/{n_views}, "
+        f"eye offset {offset:+.6g} scene units\n"
+        + camera_block(camera, offset, aspect)
+        + lighting_suffix
+    )
+
+
 # ---------------------------------------------------------------------------
 # Framing: wall clearance, depth budget
 # ---------------------------------------------------------------------------
@@ -409,24 +551,8 @@ class Clearance:
         return sweep <= self.half_width or math.isclose(sweep, self.half_width, rel_tol=1e-9)
 
 
-class _HasLens(Protocol):
-    """``fov`` and ``focal_distance`` -- all the depth budget reads.
-
-    :class:`~quiltwright.quilt.QuiltCamera` satisfies this, as does a tiny
-    namespace with those two attributes.  The PyVista
-    :func:`~quiltwright.lfd.depth_report` uses the latter so it does not
-    have to construct a throwaway :class:`PovCamera`.
-    """
-
-    @property
-    def fov(self) -> float: ...
-
-    @property
-    def focal_distance(self) -> float: ...
-
-
 def depth_budget(
-    spec: QuiltSpec, camera: _HasLens, depths: Mapping[str, float]
+    spec: QuiltSpec, camera: HasLens, depths: Mapping[str, float]
 ) -> list[tuple[str, float, float]]:
     """Adjacent-view disparity at each depth of interest.
 
@@ -437,7 +563,8 @@ def depth_budget(
 
     :param spec: Quilt specification.
     :param camera: Centre-view camera; a :class:`~quiltwright.quilt.QuiltCamera`
-        or anything with ``fov`` and ``focal_distance``.
+        or anything with ``fov`` and ``focal_distance``
+        (:class:`~quiltwright.quilt.HasLens`).
     :param depths: Labelled distances from the camera, in scene units.  Use
         ``math.inf`` for sky or a backdrop at infinity.
     :return: ``(label, depth, disparity_px)`` in the order given.
@@ -450,7 +577,7 @@ def depth_budget(
 
 def format_depth_budget(
     spec: QuiltSpec,
-    camera: _HasLens,
+    camera: HasLens,
     depths: Mapping[str, float],
     *,
     clearance: Clearance | None = None,
@@ -465,7 +592,8 @@ def format_depth_budget(
 
     :param spec: Quilt specification.
     :param camera: Centre-view camera; a :class:`~quiltwright.quilt.QuiltCamera`
-        or anything with ``fov`` and ``focal_distance``.
+        or anything with ``fov`` and ``focal_distance``
+        (:class:`~quiltwright.quilt.HasLens`).
     :param depths: Labelled depths, as for :func:`depth_budget`.
     :param clearance: Measured lateral corridor, if the scene is enclosed.
         When given, the sweep is checked against it and a warning emitted if
@@ -808,6 +936,8 @@ def render_pov_quilt(
     extra_args: Sequence[str] = (),
     keep_views: str | Path | None = None,
     progress: bool = True,
+    lighting: str | None = None,
+    sun: tuple[float, float] | None = None,
 ) -> np.ndarray:
     """Render a POV-Ray scene into a Looking Glass quilt.
 
@@ -849,6 +979,13 @@ def render_pov_quilt(
         wrapper scenes in, for inspection or debugging.  Discarded if
         ``None``.
     :param progress: Print a progress line while rendering.
+    :param lighting: ``"light"`` or ``"dark"`` -- append a parallel sun at
+        the matching :data:`APPEARANCE_SUN` preset.  ``None`` (the default)
+        leaves the scene's own lights alone.  This is appearance for a
+        Dynamic Desktop still, not POV-Ray's ``clock``.
+    :param sun: ``(altitude, azimuth)`` in degrees, POV-Ray Y-up (see
+        :func:`sun_direction`).  Overrides the preset direction when
+        *lighting* is also set.  Alone, it still appends the sun.
     :return: ``uint8`` RGB array of shape ``(quilt_height, quilt_width, 3)``.
     """
     from PIL import Image
@@ -902,6 +1039,8 @@ def render_pov_quilt(
             extra_args,
             jobs,
             progress,
+            lighting=lighting,
+            sun=sun,
         )
 
         quilt = assemble_quilt(
@@ -950,6 +1089,8 @@ def _sweep(
     extra_args: Sequence[str],
     jobs: int,
     progress: bool,
+    lighting: str | None = None,
+    sun: tuple[float, float] | None = None,
 ) -> list[tuple[Path, Path]]:
     """Ray-trace one image per view into *workdir*.
 
@@ -962,14 +1103,22 @@ def _sweep(
     # library paths, so the wrapper lives in the working directory and
     # pulls the scene in by absolute path, with the scene's own
     # directory on the library path for its relative includes.
+    prefix = lighting_declares(appearance=lighting, sun=sun)
+    suffix = lighting_block(camera, appearance=lighting, sun=sun)
     views = []
     for i, offset in enumerate(offsets):
         wrapper = workdir / f"view{i:03d}.pov"
         wrapper.write_text(
-            f'#include "{scene_path}"\n'
-            f"// view {i + 1}/{spec.n_views}, "
-            f"eye offset {offset:+.6g} scene units\n"
-            + camera_block(camera, float(offset), render_aspect)
+            _wrapper_source(
+                scene_path,
+                i,
+                spec.n_views,
+                float(offset),
+                camera,
+                render_aspect,
+                lighting_prefix=prefix,
+                lighting_suffix=suffix,
+            )
         )
         views.append((wrapper, workdir / f"view{i:03d}.png"))
 
@@ -1023,6 +1172,8 @@ def render_pov_views(
     extra_args: Sequence[str] = (),
     keep_wrappers: bool = False,
     progress: bool = True,
+    lighting: str | None = None,
+    sun: tuple[float, float] | None = None,
 ) -> list[Path]:
     """Render a POV-Ray scene as a sweep of separate view images.
 
@@ -1064,6 +1215,8 @@ def render_pov_views(
     :param keep_wrappers: Also write the generated per-view ``.pov`` wrappers
         alongside the frames, for inspection.
     :param progress: Print a progress line while rendering.
+    :param lighting: See :func:`render_pov_quilt`.
+    :param sun: See :func:`render_pov_quilt`.
     :return: Paths to the written frames, in view order -- view 0 leftmost.
     """
     povray = _find_povray(binary)
@@ -1105,5 +1258,7 @@ def render_pov_views(
             extra_args,
             jobs,
             progress,
+            lighting=lighting,
+            sun=sun,
         )
         return _copy_views(views, out_dir, wrappers=keep_wrappers)

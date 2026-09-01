@@ -112,8 +112,8 @@ the full option list.
 Installed as `quiltwright`, core-only (numpy, pillow, click). Most commands
 operate on a *quilt*, which is where the backends have already met: a
 manifold swept out of PyVista and a molecular scene ray-traced from POV-Ray
-produce the same artifact, and `cast` / `weave` / `wallpaper` treat them
-identically. Three commands are a whole pipeline rather than a step after
+produce the same artifact, and `cast` / `weave` / `wallpaper` / `dynamic`
+treat them identically. Three commands are a whole pipeline rather than a step after
 one: `mesh`, `cartoon`, `probe`. None of them is a generic renderer for the
 bundled scenes -- those stay in `scripts/`.
 
@@ -126,6 +126,12 @@ quiltwright cast --check        # which displays can Bridge see?
 
 quiltwright weave renders/quilts/bell-jar-holo_qs8x6a1.77778.png --cal visual.json
 quiltwright wallpaper bell-jar-holo_native_LKG-J00332.png
+
+# two lighting variants, packed as a Dynamic Desktop (macOS)
+# lighting= is real sun altitude/azimuth -- not POV-Ray's clock
+quiltwright dynamic --appearance day_native_LKG-J00332.png night_native_LKG-J00332.png \
+    -o scene.heic
+quiltwright wallpaper scene.heic
 
 quiltwright cartoon 2omf.cif.gz ompf_cartoon.inc   # a molecular ribbon, via PyMOL
 quiltwright cartoon --check     # is PyMOL reachable, and by which route?
@@ -175,7 +181,11 @@ views. `weave` then `wallpaper` is the **no-Bridge path**:
 a woven frame is already interleaved for one panel, so setting it as that
 panel's desktop picture makes the desktop a hologram with nothing running.
 `wallpaper` matches the frame to the right display by the panel serial both
-carry.
+carry. `dynamic` packs several of those stills -- or ordinary 2D renders --
+into one HEIC whose `apple_desktop` metadata lets macOS swap frames with
+Light/Dark, the sun, or the wall clock. POV-Ray produces the variants with
+`render_pov_quilt(..., lighting="light"|"dark", sun=(altitude, azimuth))`;
+that sun is a parallel light, not the animation `clock`.
 
 When the glass stays black, `bridge status` is the first thing to run. Bridge
 keeps its HTTP port open and keeps issuing session tokens after crashing

@@ -114,6 +114,7 @@ from typing import NamedTuple
 import numpy as np
 
 from quiltwright.cache import dataset_cache_dir
+from quiltwright.runtime import require_pyvista
 
 __all__ = [
     "TVB_DATA_URL",
@@ -674,18 +675,8 @@ def load_sensors(name: str, *, quiet: bool = False) -> tuple[np.ndarray, np.ndar
 
 try:
     import pyvista as pv
-
-    _PYVISTA_AVAILABLE = True
-except ImportError:
-    _PYVISTA_AVAILABLE = False
-
-
-def _require_pyvista(fn_name: str) -> None:
-    """Raise a clear ImportError if pyvista is not installed."""
-    if not _PYVISTA_AVAILABLE:
-        raise ImportError(
-            f"{fn_name}() requires pyvista.\nInstall with:  poetry install --with viz"
-        )
+except ImportError:  # pragma: no cover - require_pyvista raises before use
+    pass
 
 
 def _faces_array(triangles: np.ndarray) -> np.ndarray:
@@ -751,7 +742,7 @@ def surface_polydata(
     :return: The surface as a PyVista mesh.
     :raises ValueError: If *region_mapping* length does not match the mesh.
     """
-    _require_pyvista("surface_polydata")
+    require_pyvista("surface_polydata")
 
     vertices, triangles, normals = load_surface(name, quiet=quiet)
     mesh = pv.PolyData(vertices, _faces_array(triangles))
@@ -810,7 +801,7 @@ def connectome_polydata(
     :return: ``(nodes, edges)`` PyVista meshes.  *nodes* carries a
         ``"degree"`` scalar, *edges* carries a ``"weight"`` scalar.
     """
-    _require_pyvista("connectome_polydata")
+    require_pyvista("connectome_polydata")
 
     conn = load_connectivity(name, quiet=quiet)
     weights = conn.weights

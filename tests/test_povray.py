@@ -11,13 +11,17 @@ import pytest
 
 from quiltwright.lfd import QUILT_PRESETS, QuiltSpec, view_offsets
 from quiltwright.povray import (
+    APPEARANCE_SUN,
     Clearance,
     PovCamera,
     _find_povray,
     camera_block,
     depth_budget,
     format_depth_budget,
+    lighting_block,
+    lighting_declares,
     summarise_depth_sweep,
+    sun_direction,
     sweep_extent,
 )
 
@@ -160,6 +164,46 @@ class TestCameraBlock:
             v = parse_vectors(camera_block(cam, float(offset), aspect=0.75))
             hit = v["location"] + v["direction"] * (cam.focal_distance / d)
             np.testing.assert_allclose(hit, cam.look_at, atol=1e-8)
+
+
+# ---------------------------------------------------------------------------
+# Dynamic Desktop lighting (real sun, not POV-Ray clock)
+# ---------------------------------------------------------------------------
+
+
+class TestLighting:
+    def test_zenith_is_plus_y(self):
+        d = sun_direction(90.0, 0.0)
+        np.testing.assert_allclose(d, (0.0, 1.0, 0.0), atol=1e-12)
+
+    def test_horizon_north_is_plus_z(self):
+        d = sun_direction(0.0, 0.0)
+        np.testing.assert_allclose(d, (0.0, 0.0, 1.0), atol=1e-12)
+
+    def test_empty_when_unset(self, camera):
+        assert lighting_block(camera) == ""
+        assert lighting_declares() == ""
+
+    def test_light_leaves_scene_lights_alone(self, camera):
+        """An additive key on top of an authored white light washes out."""
+        prefix = lighting_declares(appearance="light")
+        assert "QW_Appearance = 1" in prefix
+        assert "QW_SunAltitude" in prefix
+        assert lighting_block(camera, appearance="light") == ""
+
+    def test_dark_uses_fog_to_crush_scene_lights(self, camera):
+        """Scene keys stay white; fog is what makes Dark Mode read as night."""
+        alt, _az = APPEARANCE_SUN["dark"]
+        assert alt < 0
+        block = lighting_block(camera, appearance="dark")
+        assert "fog {" in block
+        assert "ambient_light" in block
+        assert "parallel" in block
+        assert "clock" in block.lower()  # comment: not POV-Ray clock
+
+    def test_rejects_unknown_appearance(self, camera):
+        with pytest.raises(ValueError, match="light"):
+            lighting_block(camera, appearance="dusk")
 
 
 # ---------------------------------------------------------------------------

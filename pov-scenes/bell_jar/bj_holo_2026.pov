@@ -40,9 +40,11 @@
 //
 // The whole diff against bj_holo.pov: max_trace_level and the two BJ_
 // declares below; `no_reflection` on the title; the light_source unwrapped
-// from its 1996 `object { ... }`; and the signature string.  Eye, lens,
-// framing, lettering placement, sky, sea and molecule are untouched.  The
-// original composition note follows.
+// from its 1996 `object { ... }`; the signature string; a slightly shorter
+// jar (see bna7_full_belljar redeclare below); and the title baseline
+// dropped a scooch so a macOS menu bar does not clip the caps.  Eye, lens,
+// sky, sea and molecule are untouched.  The original composition note
+// follows.
 //
 // Light-field recomposition of bj.pov.  Same scene, same eye, same lens --
 // only the frame and the lettering differ, so bj.pov keeps its 1997 3:4
@@ -123,6 +125,56 @@ camera {
 }
 
 
+// ----------------------------------------
+// Optional daylight, driven from outside the scene.
+//
+// `quiltwright`'s `sun=` and `lighting=` prefix the render with
+// `#declare QW_SunAltitude` / `QW_SunAzimuth` / `QW_Appearance`.  Undefined
+// -- which is every ordinary render, including the committed quilts -- takes
+// the #else below and leaves this file behaving exactly as it did before.
+//
+// The appended parallel sun on its own is not a day.  Below the horizon it
+// contributes nothing while the key light further down still blazes, so
+// midnight renders as bright as noon.  Dimming that key is the half only the
+// scene can do: POV-Ray has no way to remove or attenuate a `light_source`
+// from an including file, which is the whole reason these declares exist.
+// The #else branch restates the 1996 literals rather than multiplying them
+// by a day factor of 1.  That is deliberate: it makes an ordinary render a
+// no-op by construction, with no arithmetic to round, instead of one that
+// has to be argued for.  (It cannot be checked by comparing PNGs -- this
+// scene is not reproducible bit for bit.  Two identical renders differ by
+// up to 29/255 on about 6% of pixels.)
+#ifdef (QW_SunAltitude)
+  // 1 with the sun well up, 0 once it is 6 degrees under -- civil twilight,
+  // where the sea stops returning any light of its own.
+  #declare QW_Day = min(1, max(0, (QW_SunAltitude + 6) / 26));
+
+  // Peaks at half light, which is where the sun sits on the horizon: this is
+  // the sunrise/sunset warmth, deliberately absent at noon and at midnight,
+  // both of which are blue.
+  #declare QW_Warm = 4 * QW_Day * (1 - QW_Day);
+
+  // The key never goes fully out.  At 0.12 the jar keeps a readable
+  // silhouette against a night sea, which matters because this is a
+  // wallpaper: a desktop that goes black at 2 a.m. reads as a broken image
+  // rather than as night.
+  #declare QW_Key   = White * (0.12 + 0.88 * QW_Day);
+  #declare QW_SkyLo = CornflowerBlue * (0.10 + 0.90 * QW_Day)
+                      + <0.40, 0.14, 0.02> * QW_Warm;
+  #declare QW_SkyHi = MidnightBlue * (0.15 + 0.85 * QW_Day);
+
+  // The sea's `ambient` is self-glow: no light_source reaches it, so without
+  // this the ocean stays the same electric blue at midnight as at noon,
+  // under a black sky.  It is the single most obvious tell that a day cycle
+  // is painted rather than lit.
+  #declare QW_SeaAmbient = 0.02 + 0.18 * QW_Day;
+#else
+  #declare QW_Key        = White;
+  #declare QW_SkyLo      = CornflowerBlue;
+  #declare QW_SkyHi      = MidnightBlue;
+  #declare QW_SeaAmbient = 0.2;
+#end
+
 // Unwrapped from the `object { light_source { ... } }` bj_holo.pov inherits
 // from 1996.  Same light, same place, same colour; the wrapper was doing
 // nothing, and it is one of the things that hides a light from POV-Ray's
@@ -130,18 +182,18 @@ camera {
 // revisited here.
 light_source {
    <-13.112195, 70, -30.898306>
-   color White
+   color QW_Key
 }
 
 
-background { color MidnightBlue }
+background { color QW_SkyHi }
 
 #declare Sky = sky_sphere {
   pigment {
     gradient y
     color_map {
-      [0.5  color CornflowerBlue]
-      [1.00  color MidnightBlue]
+      [0.5  color QW_SkyLo]
+      [1.00  color QW_SkyHi]
     }
     scale 2
     translate <-1, -1, -1>
@@ -197,7 +249,7 @@ plane { y, -12.5
  pigment { Sapphire_Agate  scale 15.0}
    finish {
       specular 0.6
-      ambient 0.2
+      ambient QW_SeaAmbient
       diffuse 0.8
    }
 }
@@ -239,6 +291,14 @@ sky_sphere { Sky }
 //
 // the actual scene objects
 //
+// Shorter jar than bj_holo.pov's <25, 10.5, 25>: the Y scale drops to 9.5 so
+// the dome leaves a band of sky big enough for the title to sit under a
+// macOS menu bar without kissing the glass.  The DNA (bna7_full_obj) is
+// unchanged -- only the glass is shortened.
+#declare bna7_full_belljar = union {
+        object {bell_jar  scale <25, 9.5, 25>}
+        object { bna7_full_obj rotate x*90 translate <0, 25, 0>}
+     }
 
 object { bna7_full_belljar translate <0.0, 0.0, 7.0>}
 
@@ -258,23 +318,22 @@ object { bna7_full_belljar translate <0.0, 0.0, 7.0>}
 // about its own baseline-left origin, so each translate below *is* the
 // baseline-left corner of the string.
 //
-// Title: centred, in the sky above the dome.  What bounds it is the glass,
-// not taste -- the dome's silhouette tops out 90 pixels down a 1080-line
-// frame, and an ellipsoid seen from a pitched camera silhouettes at its
-// tangent point (y=60.27, z=-1.90), not at its apex, so the tangent is what
-// the title has to clear.  The baseline sits 12 pixels above it and the
-// caps stop 26 pixels short of the top edge.  In world terms the baseline
-// is at y=62.45, z=2.48, comfortably outside the glass.
+// Title: centred, in the sky above the dome.  With the shorter jar the
+// dome's silhouette clears more sky than the original y=60.27 tangent, so
+// the baseline can sit at y=61.30 -- low enough that a menu bar does not
+// clip the caps, high enough that the letters clear the glass.  (y=62.45
+// was the original; y=60.20 clipped the dome.)  z=2.48 keeps it outside
+// the glass.
 //
-// no_shadow because the light is at <-13.1,70,-30.9> and the title is now
-// 62 units up: the shadow ray reaches the sea some 340 units downrange,
-// which projects as a smeared dark copy of the lettering lying across the
+// no_shadow because the light is at <-13.1,70,-30.9> and the title is high
+// up: the shadow ray reaches the sea some 340 units downrange, which
+// projects as a smeared dark copy of the lettering lying across the
 // horizon.  The signature keeps its shadow -- that one lands directly
 // beneath the string and grounds it on the water.
 object {titletext
           rotate 8.41*x
           scale 6.68
-          translate <-25.21, 62.45, 2.48>
+          translate <-25.21, 61.30, 2.48>
           no_shadow
           // no_reflection is new in 2026 and exists only because the glass
           // is now real: a dome that reflects returns the title as a

@@ -49,22 +49,12 @@ from pathlib import Path
 
 import numpy as np
 
-from quiltwright.runtime import find_ffmpeg
+from quiltwright.runtime import find_ffmpeg, require_pyvista
 
 try:
-    import pyvista as pv  # noqa: F401
-
-    _PYVISTA_AVAILABLE = True
-except ImportError:
-    _PYVISTA_AVAILABLE = False
-
-
-def _require_pyvista(fn_name: str) -> None:
-    """Raise a clear ImportError if pyvista is not installed."""
-    if not _PYVISTA_AVAILABLE:
-        raise ImportError(
-            f"{fn_name}() requires pyvista.\nInstall with:  poetry install --with viz"
-        )
+    import pyvista as pv
+except ImportError:  # pragma: no cover - require_pyvista raises before use
+    pass
 
 
 #: Master render resolution -- 4K landscape (16:9) as required by HLD Author.
@@ -122,7 +112,7 @@ def style_plotter_for_hld(
         small inside a 16:9 landscape frame after ``reset_camera()``.
     :param resolution: Render ``(width, height)``; default 3840×2160.
     """
-    _require_pyvista("style_plotter_for_hld")
+    require_pyvista("style_plotter_for_hld")
     plotter.set_background("white")
     plotter.window_size = resolution
     plotter.render()  # apply window size so reset_camera sees 16:9
@@ -153,7 +143,7 @@ def render_hld_still(
     :param resolution: Render ``(width, height)``; default 3840×2160.
     :return: Path of the PNG written.
     """
-    _require_pyvista("render_hld_still")
+    require_pyvista("render_hld_still")
     try:
         from PIL import Image
     except ImportError as exc:
@@ -236,7 +226,7 @@ def render_hld_video(
     :param progress: Print a progress line while rendering.
     :return: Path of the MP4 written.
     """
-    _require_pyvista("render_hld_video")
+    require_pyvista("render_hld_video")
     ffmpeg = find_ffmpeg()
 
     try:
@@ -323,7 +313,7 @@ def add_floor_shadow(
         (centre = dark grey, rim = black).  Default ``False`` is optimised
         for HLD's white background (centre = light grey, rim = white).
     """
-    _require_pyvista("add_floor_shadow")
+    require_pyvista("add_floor_shadow")
     xmin, xmax, ymin, ymax, zmin, zmax = subject_bounds
     cx, cy = (xmin + xmax) / 2.0, (ymin + ymax) / 2.0
     radius = scale * max(xmax - xmin, ymax - ymin) / 2.0

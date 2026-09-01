@@ -7,8 +7,8 @@ extra needed just to run `--help`.
 Most commands operate on a *quilt*, which is where the backends have
 already met: a manifold swept out of PyVista and a molecular scene
 ray-traced from POV-Ray produce the same artifact, and `cast` / `weave` /
-`wallpaper` treat them identically. Three commands are a whole pipeline
-rather than a step after one -- `mesh`, `cartoon`, `probe` -- and none of
+`wallpaper` / `dynamic` treat them identically. Three commands are a whole
+pipeline rather than a step after one -- `mesh`, `cartoon`, `probe` -- and none of
 them is a generic renderer for the bundled scenes; those stay in
 `scripts/`, covered in [shell.md](shell.md#make-the-bundled-archive).
 
@@ -29,6 +29,7 @@ quiltwright [OPTIONS] COMMAND [ARGS]...
 | [`bridge`](#bridge) | Inspect and restart Looking Glass Bridge |
 | [`cartoon`](#cartoon) | Convert a structure into a POV-Ray cartoon include |
 | [`cast`](#cast) | Show a saved quilt on the connected Looking Glass |
+| [`dynamic`](#dynamic) | Pack stills into a macOS Dynamic Desktop HEIC |
 | [`mesh`](#mesh) | Auto-frame a mesh file and render it as a quilt |
 | [`probe`](#probe) | Measure a scene's near and far depth by plane sweep |
 | [`wallpaper`](#wallpaper) | Set a woven frame as the desktop picture of its own panel |
@@ -229,6 +230,46 @@ quiltwright probe pov-scenes/porin/3porin.pov --eye 0 0 -1100 --aim 0 0 0 \
     --include-path pov-scenes/myinclude --min-distance 700 \
     --max-distance 1600 --pov-arg +MV3.1
 ```
+
+---
+
+## `dynamic`
+
+```
+quiltwright dynamic [OPTIONS]
+```
+
+Packs finished stills into a macOS Dynamic Desktop `.heic`. macOS picks the
+frame from sun position, wall-clock time, or Light/Dark appearance -- with
+no agent of ours running. Install the file with [`wallpaper`](#wallpaper).
+
+This is **not** POV-Ray's `clock`. That identifier is POV-Ray's animation
+parameter (`+K`). Real time of day lives in the HEIC metadata, which macOS
+reads. POV-Ray's contribution is `render_pov_quilt(..., lighting="light")`
+or `sun=(altitude, azimuth)` to *produce* the stills.
+
+Woven `_native_` frames always encode lossless 4:4:4. Lossy HEVC 4:2:0
+would mix the per-channel views and destroy the hologram. Encoding needs
+the `heic` extra (`pip install 'quiltwright[heic]'`).
+
+| Option | Default | Effect |
+|---|---|---|
+| `--appearance LIGHT DARK` | -- | Two stills: light appearance, then dark |
+| `--solar FILE.json` | -- | JSON array with `altitude` / `azimuth` per still (wallpapper shape) |
+| `--time FILE.json` | -- | JSON array with `time` (`HH:MM` or `HH:MM:SS`) per still |
+| `-o, --output PATH` | -- | Output `.heic`. Required unless `--dump` |
+| `--lossless` | off (on for `_native_`) | Force lossless 4:4:4 |
+| `--lossy` | off | Force lossy HEVC. Refused for woven frames |
+| `--dump PATH` | -- | Print `apple_desktop` metadata from an existing HEIC |
+
+```bash
+quiltwright dynamic --appearance day_native_LKG-J00332.png night_native_LKG-J00332.png \
+    -o scene.heic
+quiltwright dynamic --solar solar.json -o scene.heic
+quiltwright wallpaper scene.heic
+```
+
+Give exactly one of `--appearance`, `--solar`, or `--time`.
 
 ---
 

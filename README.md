@@ -156,7 +156,7 @@ POV-Ray, Cycles, casting to Bridge, and hologram-printer sweeps:
 ## Driving it from the shell
 
 The `Makefile` covers the bundled 1993-99 scenes. The `quiltwright` CLI covers
-hardware (`cast`, `weave`, `wallpaper`, `bridge`) and arbitrary input (`mesh`,
+hardware (`cast`, `weave`, `wallpaper`, `dynamic`, `bridge`) and arbitrary input (`mesh`,
 `cartoon`, `probe`). Worked exhibits stay in `scripts/`. Full tour:
 [docs/shell.md](docs/shell.md).
 

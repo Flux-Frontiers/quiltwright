@@ -262,6 +262,14 @@ class TestWallpaper:
         assert result.exit_code == 0, result.output
         assert [i for i, _ in desktops.sets] == [2]
 
+    def test_heic_native_stem_still_matches_serial(self, runner, tmp_path, desktops):
+        """A Dynamic Desktop HEIC keeps the woven serial in its stem."""
+        frame = tmp_path / "scene_native_LKG-J00332.heic"
+        frame.write_bytes(b"heic")
+        result = runner.invoke(cli, ["wallpaper", str(frame), "--dir", str(tmp_path / "install")])
+        assert result.exit_code == 0, result.output
+        assert [i for i, _ in desktops.sets] == [2]
+
     def test_sets_the_installed_copy_not_the_source(self, runner, tmp_path, desktops):
         """Wallpaper is stored as a path: pointing into renders/ breaks later."""
         frame = tmp_path / "scene_native_LKG-J00332.png"
