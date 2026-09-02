@@ -61,6 +61,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   `bj_portrait.pov`'s title and signature also gained the
   `QW_HLD_Turntable` on/off toggle `bj_holo_2026.pov` already had.
 
+### Changed
+
+- **`bj_portrait.pov`'s glass is real now.** Ported `bj_holo_2026.pov`'s
+  `BJ_CRYSTAL` treatment across: `ior` 1.52 with a Fresnel reflection
+  instead of the 1996 jar's non-refracting wall, `BJ_WALL` thickened to
+  0.20, `max_trace_level` raised to 15 for the extra bounces a refracting
+  double wall costs, and `no_reflection` on the title so the now-reflective
+  dome doesn't return it as a mirrored ghost across its shoulder. Same
+  fixes, same reasons, as the 16:9 cut -- the doubled grey outline a
+  thickened non-refracting wall shows edge-on resolves into the single
+  bright band real glass has.
+
 ## [0.11.0] - 2026-08-31
 
 ### Added

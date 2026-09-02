@@ -43,10 +43,26 @@
 //     glass.  The title now sits *on* the focal plane; the signature sits
 //     at the near bound, which in this framing is as deep as anything at
 //     the bottom of the frame can be.  See the note above each.
+//
+// The glass.  Ported from bj_holo_2026.pov: BJ_CRYSTAL (see bell_jar.inc)
+// swaps the 1996 jar's ior-1.0 non-refracting wall for ior 1.52 with a
+// Fresnel reflection, so it bends light rather than merely tinting it --
+// the doubled grey outline a BJ_WALL-thickened non-refracting wall shows
+// edge-on resolves into a single bright band, and the duplex behind the
+// glass magnifies the way a real jar magnifies what is under it.
+// max_trace_level 15 is the other half, not optional: the default of 5 is
+// spent before a ray crosses both walls, reflects off an atom and comes
+// back out.
 
 
 #version 3.0
-global_settings { assumed_gamma 1.8 }
+// See bj_holo_2026.pov's own note on both of these -- max_trace_level for
+// what a refracting double wall costs in bounces, BJ_CRYSTAL because
+// bell_jar.inc's #ifndef guard has to see it before bna7_full.inc pulls
+// bell_jar.inc in, or the jar comes out 1996.
+global_settings { assumed_gamma 1.8 max_trace_level 15 }
+#declare BJ_CRYSTAL = true
+#declare BJ_WALL = 0.20
 
 #include "colors.inc"
 #include "shapes.inc"
@@ -263,6 +279,10 @@ object {titletext
           scale 6.42
           translate <-24.24, 65.99, -5.03>
           no_shadow
+          // Real glass reflects: without this the dome returns the title
+          // as a mirrored ghost lying across its shoulder.  See
+          // bj_holo_2026.pov's note -- same fix, same reason.
+          no_reflection
         }
 #end
 
