@@ -43,10 +43,26 @@
 //     glass.  The title now sits *on* the focal plane; the signature sits
 //     at the near bound, which in this framing is as deep as anything at
 //     the bottom of the frame can be.  See the note above each.
+//
+// The glass.  Ported from bj_holo_2026.pov: BJ_CRYSTAL (see bell_jar.inc)
+// swaps the 1996 jar's ior-1.0 non-refracting wall for ior 1.52 with a
+// Fresnel reflection, so it bends light rather than merely tinting it --
+// the doubled grey outline a BJ_WALL-thickened non-refracting wall shows
+// edge-on resolves into a single bright band, and the duplex behind the
+// glass magnifies the way a real jar magnifies what is under it.
+// max_trace_level 15 is the other half, not optional: the default of 5 is
+// spent before a ray crosses both walls, reflects off an atom and comes
+// back out.
 
 
 #version 3.0
-global_settings { assumed_gamma 1.8 }
+// See bj_holo_2026.pov's own note on both of these -- max_trace_level for
+// what a refracting double wall costs in bounces, BJ_CRYSTAL because
+// bell_jar.inc's #ifndef guard has to see it before bna7_full.inc pulls
+// bell_jar.inc in, or the jar comes out 1996.
+global_settings { assumed_gamma 1.8 max_trace_level 15 }
+#declare BJ_CRYSTAL = true
+#declare BJ_WALL = 0.20
 
 #include "colors.inc"
 #include "shapes.inc"
@@ -189,6 +205,37 @@ sky_sphere { Sky }
 //
 // the actual scene objects
 //
+// Re-declares bna7_full_belljar locally, shadowing bna7_full.inc's bundled
+// jar+DNA union, so the DNA can spin independently of the glass and
+// pedestal.  Same bell_jar (from bell_jar.inc, included transitively via
+// bna7_full.inc) and the same placement as the original bundle -- only the
+// QW_Spin_Angle hook is new.  QW_Spin_Angle is
+// quiltwright.povray.render_pov_hld_video()'s spin_degrees, the same QW_*
+// convention QW_HLD_Turntable/QW_Appearance use: undeclared for a still or
+// a quilt sweep, so this is a no-op for them.
+//
+// Two things had to be right, not one.  bna7_full_obj's raw PDB
+// coordinates are not centred at its own local origin, so a spin pivoting
+// on that origin swings the whole molecule through a wide arc.  And the
+// helix's long axis is not world Y until *after* `rotate x*90` tips it
+// upright for the jar -- spin before that tip and Y is some other
+// direction in the molecule's own frame, so the helix tumbles from
+// standing to lying flat instead of turning in place.  Tipping first, then
+// pivoting on the tipped object's own bounding-box centre
+// (min_extent/max_extent), spins it about its own long axis correctly.
+#declare BJ_DNA_Tipped = object { bna7_full_obj rotate x*90 }
+#declare BJ_DNA_Pivot = (min_extent(BJ_DNA_Tipped) + max_extent(BJ_DNA_Tipped)) / 2;
+
+#declare bna7_full_belljar = union {
+        object {bell_jar  scale <25, 10.5, 25>}
+        object { BJ_DNA_Tipped
+                  #ifdef(QW_Spin_Angle)
+                    translate -BJ_DNA_Pivot
+                    rotate y*QW_Spin_Angle
+                    translate BJ_DNA_Pivot
+                  #end
+                  translate <0, 25, 0>}
+     }
 
 object { bna7_full_belljar translate <0.0, 0.0, 7.0>}
 
@@ -222,12 +269,22 @@ object { bna7_full_belljar translate <0.0, 0.0, 7.0>}
 // is more headroom than a 1080-wide frame can spend, so the string is set to
 // 78% of the frame width and centred in the band, 126 pixels clear top and
 // bottom.  Baseline y=65.99, z=-5.03, well outside the dome.
+//
+// QW_HLD_Turntable (see bj_holo_2026.pov's note on it) lets a turntable
+// render skip both strings; irrelevant to a spin render's static camera,
+// where nothing ever reads mirrored, but the toggle costs nothing to carry.
+#ifndef(QW_HLD_Turntable)
 object {titletext
           rotate 7.84*x
           scale 6.42
           translate <-24.24, 65.99, -5.03>
           no_shadow
+          // Real glass reflects: without this the dome returns the title
+          // as a mirrored ghost lying across its shoulder.  See
+          // bj_holo_2026.pov's note -- same fix, same reason.
+          no_reflection
         }
+#end
 
 // Signature: bottom right, on the water below the pedestal.
 //
@@ -238,8 +295,10 @@ object {titletext
 // the near bound rather than a violation of it.  y=-11.8 floats it 0.7 above
 // the sea; at this depth it sits entirely in front of the pedestal, so no
 // clearance term applies.
+#ifndef(QW_HLD_Turntable)
 object {egstext
           rotate 7.84*x
           scale 1.85
           translate <7.39, -11.8, -32.80>
         }
+#end

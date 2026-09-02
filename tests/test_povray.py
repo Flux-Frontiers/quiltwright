@@ -15,6 +15,7 @@ from quiltwright.povray import (
     Clearance,
     PovCamera,
     _find_povray,
+    _orbit_camera,
     camera_block,
     depth_budget,
     format_depth_budget,
@@ -390,6 +391,14 @@ requires_povray = pytest.mark.skipif(
     shutil.which("povray") is None, reason="povray binary unavailable"
 )
 
+# ffprobe ships with a system ffmpeg install but not with imageio-ffmpeg's
+# bundled binary (the `video` extra covers encoding only), so CI -- which
+# has neither a system ffmpeg nor a reason to install one -- does not have
+# it on PATH.
+requires_ffprobe = pytest.mark.skipif(
+    shutil.which("ffprobe") is None, reason="ffprobe binary unavailable"
+)
+
 # Three emissive markers at different depths.  The green one sits exactly on
 # the focal plane; the others straddle it.  They are separated vertically so
 # none occludes another -- an occluded marker's centroid drifts with the
@@ -594,6 +603,238 @@ class TestRenderPovViews:
                 tmp_path / "out",
                 progress=False,
             )
+
+
+class TestOrbitCamera:
+    """The turntable rotation :func:`render_pov_hld_video` uses per frame."""
+
+    def test_zero_degrees_is_identity(self, camera):
+        orbited = _orbit_camera(camera, 0.0)
+        assert orbited.location == pytest.approx(camera.location)
+        assert orbited.look_at == camera.look_at
+        assert orbited.sky == camera.sky
+
+    def test_full_circle_returns_to_start(self, camera):
+        orbited = _orbit_camera(camera, 360.0)
+        assert orbited.location == pytest.approx(camera.location, abs=1e-9)
+
+    def test_look_at_is_the_pivot_distance_is_preserved(self, camera):
+        orbited = _orbit_camera(camera, 90.0)
+        assert orbited.look_at == camera.look_at
+        assert orbited.focal_distance == pytest.approx(camera.focal_distance)
+        assert orbited.location != camera.location
+
+
+@pytest.mark.slow
+@requires_povray
+class TestRenderPovHldVideo:
+    """The turntable-MP4 path for Hololuminescent Displays (no quilt/cone)."""
+
+    @pytest.fixture
+    def scene(self, tmp_path):
+        path = tmp_path / "depth.pov"
+        path.write_text(DEPTH_SCENE)
+        return path
+
+    def test_writes_a_playable_master(self, scene, camera, tmp_path):
+        from quiltwright.povray import render_pov_hld_video
+
+        out = render_pov_hld_video(
+            scene,
+            camera,
+            tmp_path / "spin",
+            n_frames=4,
+            fps=30,
+            resolution=(160, 90),
+            progress=False,
+        )
+        assert out.name == "spin_hld.mp4"
+        assert out.stat().st_size > 0
+
+    def test_camera_actually_orbits(self, scene, camera, tmp_path):
+        """Frame 0 and a later frame must differ -- a still turntable is a bug."""
+        from PIL import Image
+
+        from quiltwright.povray import render_pov_hld_video
+
+        keep = tmp_path / "frames"
+        render_pov_hld_video(
+            scene,
+            camera,
+            tmp_path / "spin",
+            n_frames=4,
+            fps=30,
+            resolution=(160, 90),
+            keep_frames=keep,
+            progress=False,
+        )
+        first = np.asarray(Image.open(keep / "frame00000.png").convert("RGB"))
+        second = np.asarray(Image.open(keep / "frame00002.png").convert("RGB"))
+        assert not np.array_equal(first, second)
+
+    def test_invalid_fps_rejected(self, scene, camera, tmp_path):
+        from quiltwright.povray import render_pov_hld_video
+
+        with pytest.raises(ValueError, match="30 or 60"):
+            render_pov_hld_video(
+                scene,
+                camera,
+                tmp_path / "spin",
+                n_frames=2,
+                fps=24,
+                resolution=(160, 90),
+                progress=False,
+            )
+
+    @requires_ffprobe
+    def test_encode_args_override_bypasses_hevc_default(self, scene, camera, tmp_path):
+        """A device that plays video directly -- not through HLD Author --
+        may want a codec the official HEVC master spec never allows for, so
+        an override must skip _hld_encode_args' 30/60 fps check entirely."""
+        import json
+        import subprocess
+
+        from quiltwright.povray import render_pov_hld_video
+
+        out = render_pov_hld_video(
+            scene,
+            camera,
+            tmp_path / "h264",
+            n_frames=2,
+            fps=24,
+            resolution=(160, 90),
+            encode_args=["-vcodec", "libx264", "-profile:v", "baseline", "-pix_fmt", "yuv420p"],
+            progress=False,
+        )
+        probe = subprocess.run(
+            ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_streams", str(out)],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        stream = json.loads(probe.stdout)["streams"][0]
+        assert stream["codec_name"] == "h264"
+        # x264 reports "Constrained Baseline" when nothing in the stream
+        # needs the extra features plain "Baseline" allows -- still decodes
+        # under any Baseline-profile decoder.
+        assert "Baseline" in stream["profile"]
+
+    def test_missing_scene_raises(self, camera, tmp_path):
+        from quiltwright.povray import render_pov_hld_video
+
+        with pytest.raises(FileNotFoundError):
+            render_pov_hld_video(
+                tmp_path / "nope.pov", camera, tmp_path / "spin", n_frames=2, progress=False
+            )
+
+    def test_suppress_overlays_declares_the_flag(self, scene, camera, tmp_path):
+        """suppress_overlays emits the #declare a scene can guard overlay
+        text with -- see bj_holo_2026.pov's titletext/egstext for the
+        real-world case this exists for (mirrored from behind the orbit)."""
+        from quiltwright.povray import render_pov_hld_video
+
+        keep = tmp_path / "frames"
+        render_pov_hld_video(
+            scene,
+            camera,
+            tmp_path / "flagged",
+            n_frames=2,
+            fps=30,
+            resolution=(160, 90),
+            suppress_overlays=True,
+            keep_frames=keep,
+            progress=False,
+        )
+        wrapper = (keep / "frame00000.pov").read_text()
+        assert "QW_HLD_Turntable = 1" in wrapper
+
+    def test_overlays_kept_by_default(self, scene, camera, tmp_path):
+        from quiltwright.povray import render_pov_hld_video
+
+        keep = tmp_path / "frames"
+        render_pov_hld_video(
+            scene,
+            camera,
+            tmp_path / "unflagged",
+            n_frames=2,
+            fps=30,
+            resolution=(160, 90),
+            keep_frames=keep,
+            progress=False,
+        )
+        wrapper = (keep / "frame00000.pov").read_text()
+        assert "QW_HLD_Turntable" not in wrapper
+
+    def test_sway_overrides_orbit_and_returns_to_centre(self, scene, camera, tmp_path):
+        """sway_degrees must win over orbit_degrees and start at the scene's
+        own composed viewpoint, reaching the expected angle at each frame --
+        see _orbit_camera's own tests for the rotation math itself."""
+        from quiltwright.povray import _orbit_camera, render_pov_hld_video
+
+        keep = tmp_path / "frames"
+        render_pov_hld_video(
+            scene,
+            camera,
+            tmp_path / "sway",
+            n_frames=4,
+            fps=30,
+            orbit_degrees=360.0,
+            sway_degrees=30.0,
+            resolution=(160, 90),
+            keep_frames=keep,
+            progress=False,
+        )
+        first = parse_vectors((keep / "frame00000.pov").read_text())
+        quarter = parse_vectors((keep / "frame00001.pov").read_text())
+
+        assert np.allclose(first["location"], camera.location, atol=1e-6)
+        expected_quarter = _orbit_camera(camera, 30.0).location
+        assert np.allclose(quarter["location"], expected_quarter, atol=1e-6)
+
+    def test_spin_degrees_holds_camera_static_and_declares_the_angle(self, scene, camera, tmp_path):
+        """spin_degrees is independent of camera motion entirely: a static
+        camera (orbit_degrees=0) with a per-frame QW_Spin_Angle declare for
+        the scene's own object to rotate by -- see bj_portrait.pov's
+        bna7_full_belljar override for the real usage."""
+        from quiltwright.povray import render_pov_hld_video
+
+        keep = tmp_path / "frames"
+        render_pov_hld_video(
+            scene,
+            camera,
+            tmp_path / "spin",
+            n_frames=4,
+            fps=30,
+            orbit_degrees=0.0,
+            spin_degrees=360.0,
+            resolution=(160, 90),
+            keep_frames=keep,
+            progress=False,
+        )
+        wrappers = [(keep / f"frame{i:05d}.pov").read_text() for i in range(4)]
+
+        locations = [parse_vectors(w)["location"] for w in wrappers]
+        for loc in locations[1:]:
+            assert np.allclose(loc, locations[0], atol=1e-9)
+
+        for i, expected_angle in enumerate((0, 90, 180, 270)):
+            assert f"QW_Spin_Angle = {expected_angle}" in wrappers[i]
+
+    def test_spin_degrees_absent_by_default(self, scene, camera, tmp_path):
+        from quiltwright.povray import render_pov_hld_video
+
+        keep = tmp_path / "frames"
+        render_pov_hld_video(
+            scene,
+            camera,
+            tmp_path / "nospin",
+            n_frames=2,
+            fps=30,
+            resolution=(160, 90),
+            keep_frames=keep,
+            progress=False,
+        )
+        assert "QW_Spin_Angle" not in (keep / "frame00000.pov").read_text()
 
 
 # ---------------------------------------------------------------------------

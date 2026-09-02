@@ -5,8 +5,10 @@ import pytest
 from render_probe import can_render
 
 from quiltwright.hld import (
+    HLD_DEVICES,
     HLD_RESOLUTION,
     HLD_SAFE_MARGINS,
+    MUSUBI,
     _hld_encode_args,
     hld_orbit_speed,
 )
@@ -43,6 +45,30 @@ class TestHldSpec:
     def test_orbit_speed(self):
         assert hld_orbit_speed(n_frames=300, fps=30) == pytest.approx(36.0)
         assert hld_orbit_speed(n_frames=0, fps=30) == 0.0
+
+
+class TestHldDevices:
+    """Named device specs, measured from real hardware rather than any
+    published spec -- LKG's musubi docs give no technical detail at all."""
+
+    def test_musubi_registered_by_name(self):
+        assert HLD_DEVICES["musubi"] is MUSUBI
+
+    def test_musubi_is_portrait_not_the_landscape_master(self):
+        # Unlike HLD_RESOLUTION (16:9, for HLD Author), musubi plays its own
+        # generated clips directly -- measured 576x1024, 9:16 portrait.
+        w, h = MUSUBI.resolution
+        assert (w, h) == (576, 1024)
+        assert h > w
+
+    def test_musubi_is_never_hevc(self):
+        assert MUSUBI.encode_args is not None
+        assert "libx265" not in MUSUBI.encode_args
+        assert "libx264" in MUSUBI.encode_args
+        assert "baseline" in MUSUBI.encode_args
+
+    def test_musubi_import_cap(self):
+        assert MUSUBI.max_seconds == 30.0
 
 
 # ---------------------------------------------------------------------------

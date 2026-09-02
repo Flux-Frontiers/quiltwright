@@ -330,6 +330,13 @@ object { bna7_full_belljar translate <0.0, 0.0, 7.0>}
 // projects as a smeared dark copy of the lettering lying across the
 // horizon.  The signature keeps its shadow -- that one lands directly
 // beneath the string and grounds it on the water.
+//
+// Both strings are pinned in world space for the one authored viewpoint --
+// from the back of a turntable orbit they read mirrored.  QW_HLD_Turntable
+// is quiltwright.povray.render_pov_hld_video()'s suppress_overlays flag
+// (same #declare QW_* convention lighting_declares() uses for appearance);
+// the quilt renders never set it, so this is a no-op for them.
+#ifndef(QW_HLD_Turntable)
 object {titletext
           rotate 8.41*x
           scale 6.68
@@ -343,6 +350,7 @@ object {titletext
           // where honest optics make the picture worse.
           no_reflection
         }
+#end
 
 // Signature: out over open water at the lower right.
 //
@@ -359,8 +367,10 @@ object {titletext
 // x=39.82 clears it and still ends a quarter of the frame short of the right
 // edge.  y=-11.8 floats it 0.7 above the sea -- enough that the descenders
 // stay dry and the shadow lands directly beneath.
+#ifndef(QW_HLD_Turntable)
 object {egstext
           rotate 8.41*x
           scale 2.30
           translate <39.82, -11.8, -19.03>
         }
+#end

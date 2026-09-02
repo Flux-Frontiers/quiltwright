@@ -45,6 +45,7 @@ from __future__ import annotations
 
 import subprocess
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
@@ -65,6 +66,54 @@ HLD_RESOLUTION: tuple[int, int] = (3840, 2160)
 #: frame size: (top, bottom, left, right).  The larger top margin keeps the
 #: subject clear of the alcove roof.
 HLD_SAFE_MARGINS: tuple[float, float, float, float] = (0.09, 0.03, 0.03, 0.03)
+
+
+@dataclass(frozen=True)
+class HLDDeviceSpec:
+    """A named HLD-family device's concrete media requirements.
+
+    :func:`render_hld_video` / :func:`~quiltwright.povray.render_pov_hld_video`
+    default to the *official* HLD master spec (:data:`HLD_RESOLUTION`, HEVC
+    via :func:`_hld_encode_args`) -- what HLD Author and the big Portrait HLD
+    panels want.  A device that consumes video directly instead, without
+    going through HLD Author, may want something else entirely; look one up
+    in :data:`HLD_DEVICES` rather than hand-rolling it per render.
+
+    :param resolution: Render ``(width, height)``.
+    :param fps: Frame rate the device expects.
+    :param encode_args: ffmpeg output arguments for this device, or ``None``
+        to use the official HEVC master spec.  Does not include ``-crf`` --
+        append that separately so quality stays a caller choice.
+    :param max_seconds: Longest clip the device's own import flow accepts,
+        or ``None`` if unbounded/unknown.
+    """
+
+    resolution: tuple[int, int]
+    fps: int = 30
+    encode_args: tuple[str, ...] | None = None
+    max_seconds: float | None = None
+
+
+#: Looking Glass's small consumer HLD frame (musubi) -- a photo/video frame
+#: that runs its own local AI depth conversion from an imported clip rather
+#: than being driven by HLD Author or Bridge.  LKG's own docs
+#: (https://hlddocs.lookingglassfactory.com/apps-and-tools/musubi-app) give
+#: no technical spec at all; these numbers are measured from the device's
+#: own generated clips instead -- ``ffprobe`` on
+#: ``/Volumes/<device>/NNNN_<uuid>_rgbd.mp4`` after a normal photo import:
+#: 576x1024 portrait, H.264 Baseline, yuv420p, no audio track, 30 fps.
+#: The import flow prompts to trim anything over 30 s.
+MUSUBI = HLDDeviceSpec(
+    resolution=(576, 1024),
+    fps=30,
+    encode_args=("-vcodec", "libx264", "-profile:v", "baseline", "-pix_fmt", "yuv420p"),
+    max_seconds=30.0,
+)
+
+#: Devices this module knows the concrete specs for, by name.
+HLD_DEVICES: dict[str, HLDDeviceSpec] = {
+    "musubi": MUSUBI,
+}
 
 
 def apply_safe_area(camera, margins: tuple[float, float, float, float] = HLD_SAFE_MARGINS) -> None:

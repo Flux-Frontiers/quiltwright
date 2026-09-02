@@ -57,6 +57,13 @@ the measured corridor and the cone it permits, and
 :func:`format_depth_budget` reports the result before the ray-tracer is
 asked to spend an hour on it.
 
+:func:`render_pov_hld_video` renders the same scenes for the other Looking
+Glass technology -- Hololuminescent Displays, which play ordinary 2-D video
+rather than a quilt.  See :mod:`quiltwright.hld` for what that means and
+:func:`render_pov_hld_video`'s own docstring for the POV-Ray specifics: a
+full ``camera.location`` orbit around ``look_at`` rather than the off-axis
+sweep above.
+
 **Requirements** -- a ``povray`` binary on ``PATH`` (``brew install povray``),
 plus pillow for quilt assembly (``poetry install --with viz``).
 
@@ -89,6 +96,7 @@ from pathlib import Path
 
 import numpy as np
 
+from quiltwright.hld import HLD_RESOLUTION, _hld_encode_args
 from quiltwright.quilt import (
     HasLens,
     QuiltSpec,
@@ -98,7 +106,7 @@ from quiltwright.quilt import (
     view_offsets,
     window_shear,
 )
-from quiltwright.runtime import COURTESY_CORES_HELD_BACK
+from quiltwright.runtime import COURTESY_CORES_HELD_BACK, find_ffmpeg
 from quiltwright.runtime import triple as _triple
 
 #: Environment variable overriding which POV-Ray binary is used.
@@ -277,6 +285,29 @@ class PovCamera:
             sky=sky,
             fov=fov,
         )
+
+
+def _orbit_camera(camera: PovCamera, angle_deg: float) -> PovCamera:
+    """Revolve *camera* around its own ``look_at`` point about the ``sky`` axis.
+
+    Builds a full turntable orbit for :func:`render_pov_hld_video` -- a
+    different move from :func:`camera_block`'s lateral off-axis shear, which
+    keeps ``location`` fixed and only tilts the frustum for a light-field
+    quilt's narrow parallax cone.  Here ``location`` itself swings around the
+    pivot; ``look_at``, ``sky`` and ``fov`` are unchanged.
+
+    :param camera: Base camera; frame 0 of the orbit.
+    :param angle_deg: Degrees to revolve *location* around ``look_at``.
+    :return: A new :class:`PovCamera` at the rotated eye position.
+    """
+    axis = np.asarray(camera.sky, dtype="d")
+    axis = axis / np.linalg.norm(axis)
+    pivot = np.asarray(camera.look_at, dtype="d")
+    v = np.asarray(camera.location, dtype="d") - pivot
+    theta = math.radians(angle_deg)
+    cos_t, sin_t = math.cos(theta), math.sin(theta)
+    v_rot = v * cos_t + np.cross(axis, v) * sin_t + axis * np.dot(axis, v) * (1.0 - cos_t)
+    return replace(camera, location=_triple(pivot + v_rot))
 
 
 def _vec(v: Iterable[float]) -> str:
@@ -1262,3 +1293,225 @@ def render_pov_views(
             sun=sun,
         )
         return _copy_views(views, out_dir, wrappers=keep_wrappers)
+
+
+def render_pov_hld_video(
+    scene: str | Path,
+    camera: PovCamera,
+    out_stem: str | Path,
+    *,
+    include_paths: Sequence[str | Path] = (),
+    n_frames: int = 300,
+    fps: int = 30,
+    orbit_degrees: float = 360.0,
+    sway_degrees: float | None = None,
+    spin_degrees: float | None = None,
+    resolution: tuple[int, int] = HLD_RESOLUTION,
+    antialias: float | None = 0.3,
+    quality: int = 9,
+    jobs: int = 1,
+    threads: int | None = None,
+    binary: str | None = None,
+    extra_args: Sequence[str] = (),
+    crf: int = 18,
+    rotate_for_player: bool = False,
+    keep_frames: str | Path | None = None,
+    progress: bool = True,
+    lighting: str | None = None,
+    sun: tuple[float, float] | None = None,
+    suppress_overlays: bool = False,
+    encode_args: Sequence[str] | None = None,
+) -> Path:
+    """Render a POV-Ray scene as a turntable HLD master video.
+
+    The POV-Ray counterpart of
+    :func:`~quiltwright.hld.render_hld_video`: an ordinary full-frame render
+    per frame (no off-axis shear -- see :func:`camera_block`), with *camera*
+    revolving around its own ``look_at`` point via :func:`_orbit_camera`
+    instead of PyVista's ``camera.Azimuth``, encoded to the same official
+    HLD master spec (3840x2160 landscape HEVC bt709).
+
+    Unlike :func:`render_pov_quilt` / :func:`render_pov_views`, this takes
+    no :class:`~quiltwright.quilt.QuiltSpec` -- an HLD master has no view
+    cone or tile grid, just a frame count and an orbit.
+
+    :param scene: Path to the ``.pov`` scene.  Not modified.
+    :param camera: Base camera; frame 0 of the orbit.  ``look_at`` is the
+        pivot, ``sky`` the orbit axis.
+    :param out_stem: Output path; ``_hld.mp4`` is appended.
+    :param include_paths: Extra directories searched for ``#include`` files.
+    :param n_frames: Frame count (default 300 @ 30 fps = 10 s loop).
+    :param fps: 30 or 60 per the HLD spec.
+    :param orbit_degrees: Total orbit over the clip; 360 loops seamlessly.
+        Pass 0 to hold the camera still (e.g. for a lit-window test render).
+        Ignored when *sway_degrees* is set.
+    :param sway_degrees: Oscillate the camera back and forth instead of
+        sweeping all the way around -- one full cycle per clip, swinging
+        *sway_degrees* either side of *camera*'s own position (frame 0 sits
+        at centre and the loop returns there exactly, so it is seamless like
+        a 360-degree orbit).  A scene composed as a single-viewpoint diorama
+        (a backdrop behind the subject, camera-pinned overlay text) usually
+        reads better with a modest sway than a full spin -- and some
+        physical HLD panels only rock through a limited angle themselves, so
+        sweeping wider than the panel moves buys nothing.  ``None`` (the
+        default) uses *orbit_degrees* instead.
+    :param spin_degrees: Independent of camera motion entirely -- emits
+        ``#declare QW_Spin_Angle = <degrees>;`` before the scene each frame,
+        sweeping linearly from 0 to *spin_degrees* over the clip (360 loops
+        seamlessly, same as *orbit_degrees*).  A scene turns its own object
+        with it, e.g. ``object { subject #ifdef(QW_Spin_Angle) rotate
+        y*QW_Spin_Angle #end ... }`` -- the same ``QW_*`` convention as
+        *suppress_overlays*.  Meant for *orbit_degrees=0* (a static camera,
+        the composed still unchanged): a subject rotating in place inside a
+        backdrop that never moves, rather than a camera sweep around it.
+        ``None`` (the default) leaves the scene's rotation, if any, alone.
+    :param resolution: Render ``(width, height)``; default 3840x2160.
+    :param antialias: POV-Ray ``+A`` threshold; ``None`` disables it.
+    :param quality: POV-Ray ``+Q`` quality level, 0-11.
+    :param jobs: Number of POV-Ray processes to run concurrently -- frames
+        are independent, like quilt views.
+    :param threads: POV-Ray worker threads per process.  ``None`` applies
+        the courtesy cap described in :func:`resolve_work_threads`.
+    :param binary: POV-Ray executable; defaults to ``POVRAY_BINARY`` or
+        ``povray`` on ``PATH``.
+    :param extra_args: Additional POV-Ray command-line arguments, e.g.
+        radiosity cache flags -- the lighting is identical across the orbit,
+        so recomputing it per frame is pure waste (see
+        :func:`render_pov_quilt`).
+    :param crf: x265 quality (lower = better; 15-20 sensible).
+    :param rotate_for_player: Rotate 90 degrees CCW before output.  Leave
+        ``False`` (default) for HLD Author and signage/HDMI delivery.
+    :param keep_frames: Directory to retain the per-frame PNGs and generated
+        wrapper scenes in, for inspection.  Discarded if ``None``.
+    :param progress: Print a progress line while rendering.
+    :param lighting: See :func:`render_pov_quilt`.
+    :param sun: See :func:`render_pov_quilt`.
+    :param suppress_overlays: Emit ``#declare QW_HLD_Turntable = 1;`` before
+        the scene, the same ``QW_*``-prefix convention :func:`lighting_declares`
+        uses for appearance.  A scene composed as a still often pins text --
+        a title, a signature -- in world space at a spot calibrated for one
+        authored viewpoint; from the back of a 360-degree orbit that text
+        reads mirrored.  A scene can guard such an object with
+        ``#ifndef(QW_HLD_Turntable) ... #end`` to skip it only for a
+        turntable render.  No effect on a scene that does not check the flag.
+    :param encode_args: Replace :func:`~quiltwright.hld._hld_encode_args`'s
+        ffmpeg output arguments entirely -- *fps* and *crf* are then unused
+        for encoding (still used for the file itself/frame timing).  The
+        default targets the *official* HLD master spec (HEVC bt709), which
+        is what HLD Author and the big Portrait HLD panels want; a device
+        that consumes video directly rather than through HLD Author -- e.g.
+        LKG's musubi frame, whose own generated clips are plain H.264
+        Baseline, no HEVC in sight -- needs its own target instead:
+        ``["-vcodec", "libx264", "-profile:v", "baseline", "-pix_fmt",
+        "yuv420p"]``.  *rotate_for_player* still applies on top.
+    :return: Path of the MP4 written.
+    """
+    povray = _find_povray(binary)
+    ffmpeg = find_ffmpeg()
+    scene_path = Path(scene).expanduser().resolve()
+    if not scene_path.is_file():
+        raise FileNotFoundError(f"POV-Ray scene not found: {scene_path}")
+
+    out_stem = Path(out_stem)
+    if out_stem.suffix.lower() == ".mp4":
+        out_stem = out_stem.with_suffix("")
+    out_path = out_stem.parent / f"{out_stem.name}_hld.mp4"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    if not any(str(a).startswith("+WT") for a in extra_args):
+        if jobs > 1:
+            extra_args = [*extra_args, f"+WT{max(1, (os.cpu_count() or jobs) // jobs)}"]
+        else:
+            capped = resolve_work_threads(threads)
+            if capped is not None:
+                extra_args = [*extra_args, f"+WT{capped}"]
+
+    render_w, render_h = resolution
+    render_aspect = render_w / render_h
+    library_paths = [scene_path.parent, *(Path(p).expanduser().resolve() for p in include_paths)]
+    lighting_prefix = lighting_declares(appearance=lighting, sun=sun)
+    if suppress_overlays:
+        lighting_prefix += "#declare QW_HLD_Turntable = 1;\n"
+    lighting_suffix = lighting_block(camera, appearance=lighting, sun=sun)
+    if sway_degrees is not None:
+        angles = [sway_degrees * math.sin(2.0 * math.pi * i / n_frames) for i in range(n_frames)]
+    else:
+        step = orbit_degrees / n_frames if n_frames else 0.0
+        angles = [step * i for i in range(n_frames)]
+
+    spin_step = spin_degrees / n_frames if (spin_degrees is not None and n_frames) else 0.0
+
+    with tempfile.TemporaryDirectory(prefix="pov_hld_") as tmp:
+        workdir = Path(tmp)
+        frames = []
+        for i in range(n_frames):
+            frame_camera = _orbit_camera(camera, angles[i])
+            frame_prefix = lighting_prefix
+            if spin_degrees is not None:
+                frame_prefix += f"#declare QW_Spin_Angle = {spin_step * i:.6g};\n"
+            wrapper = workdir / f"frame{i:05d}.pov"
+            wrapper.write_text(
+                _wrapper_source(
+                    scene_path,
+                    i,
+                    n_frames,
+                    0.0,
+                    frame_camera,
+                    render_aspect,
+                    lighting_prefix=frame_prefix,
+                    lighting_suffix=lighting_suffix,
+                )
+            )
+            frames.append((wrapper, workdir / f"frame{i:05d}.png"))
+
+        done = 0
+
+        def run(job):
+            nonlocal done
+            wrapper, out_png = job
+            _render_view(
+                povray,
+                wrapper,
+                out_png,
+                render_w,
+                render_h,
+                library_paths,
+                antialias,
+                quality,
+                extra_args,
+                workdir,
+            )
+            done += 1
+            if progress:
+                print(f"\r  pov hld frame {done}/{n_frames}", end="", flush=True)
+
+        if jobs > 1:
+            with ThreadPoolExecutor(max_workers=jobs) as pool:
+                list(pool.map(run, frames))
+        else:
+            for job in frames:
+                run(job)
+        if progress:
+            print()
+
+        if keep_frames is not None:
+            _copy_views(frames, keep_frames, wrappers=True)
+
+        args = list(encode_args) if encode_args is not None else _hld_encode_args(fps, crf)
+        if rotate_for_player:
+            args += ["-vf", "transpose=2"]  # 90 degrees counter-clockwise
+        cmd = [
+            ffmpeg,
+            "-y",
+            "-framerate",
+            str(fps),
+            "-i",
+            f"{workdir}/frame%05d.png",
+            *args,
+            str(out_path),
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            raise RuntimeError(f"ffmpeg failed ({result.returncode}):\n{result.stderr[-2000:]}")
+
+    return out_path
