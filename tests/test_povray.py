@@ -391,6 +391,14 @@ requires_povray = pytest.mark.skipif(
     shutil.which("povray") is None, reason="povray binary unavailable"
 )
 
+# ffprobe ships with a system ffmpeg install but not with imageio-ffmpeg's
+# bundled binary (the `video` extra covers encoding only), so CI -- which
+# has neither a system ffmpeg nor a reason to install one -- does not have
+# it on PATH.
+requires_ffprobe = pytest.mark.skipif(
+    shutil.which("ffprobe") is None, reason="ffprobe binary unavailable"
+)
+
 # Three emissive markers at different depths.  The green one sits exactly on
 # the focal plane; the others straddle it.  They are separated vertically so
 # none occludes another -- an occluded marker's centroid drifts with the
@@ -678,6 +686,7 @@ class TestRenderPovHldVideo:
                 progress=False,
             )
 
+    @requires_ffprobe
     def test_encode_args_override_bypasses_hevc_default(self, scene, camera, tmp_path):
         """A device that plays video directly -- not through HLD Author --
         may want a codec the official HEVC master spec never allows for, so
