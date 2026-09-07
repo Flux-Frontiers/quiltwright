@@ -71,6 +71,48 @@ def enter_orchestration(bridge_url: str, timeout: float) -> str:
     return token
 
 
+def _field(value: dict, name: str) -> str:
+    """Unwrap Bridge's ``{"name": {"value": ...}}`` envelope for one field."""
+    if not isinstance(value, dict):
+        return ""
+    return str(value.get(name, {}).get("value", ""))
+
+
+def available_output_devices(
+    bridge_url: str, timeout: float, *, token: str | None = None
+) -> list[dict[str, str]]:
+    """Ask Bridge which output devices it can see.
+
+    Every entry Bridge reports, panel or not -- an ordinary monitor shows up
+    with ``hardware_version: "thirdparty"``. Filter on that field yourself to
+    count panels only; :func:`cast_quilt`'s own check does not distinguish
+    a panel from a monitor, since ``head_index=-1`` deliberately accepts
+    either -- it only rejects an *empty* list, the state that means nothing
+    is registered at all.
+
+    :param bridge_url: Base URL of the Bridge HTTP API.
+    :param timeout: HTTP timeout in seconds.
+    :param token: An existing orchestration token, to skip a redundant
+        ``enter_orchestration`` round trip when the caller already holds one
+        (:func:`cast_quilt` does). Entered fresh when omitted.
+    :return: One dict per head: ``{"index", "hardware_version", "hwid"}``.
+    """
+    if token is None:
+        token = enter_orchestration(bridge_url, timeout)
+    payload = bridge_post(bridge_url, "available_output_devices", {"orchestration": token}, timeout)
+    heads = []
+    for index, entry in (payload.get("payload", {}).get("value", {}) or {}).items():
+        value = entry.get("value", {})
+        heads.append(
+            {
+                "index": str(index),
+                "hardware_version": _field(value, "hardwareVersion") or "?",
+                "hwid": _field(value, "hwid"),
+            }
+        )
+    return heads
+
+
 def cast_quilt(
     quilt_path: str | Path,
     spec: QuiltSpec,
@@ -99,9 +141,27 @@ def cast_quilt(
         calibration -- so on a multi-display box the default can land the
         window somewhere that is not the glass.  ``available_output_devices``
         lists the indices; ``quiltwright cast --check`` prints them.
+    :raises RuntimeError: If Bridge answers but reports zero output devices
+        -- a state its own orchestration calls do not otherwise fail on.
+        Casting to an ordinary monitor (no panel, but at least one device)
+        is unaffected; this only catches the case with nothing to show on
+        at all.
     :return: Decoded JSON response of the final ``play_playlist`` call.
     """
     token = enter_orchestration(bridge_url, timeout)
+
+    # Every orchestration call below returns 200 whether or not anything is
+    # actually listening -- confirmed live: Bridge answered `Completion` on
+    # every step while `available_output_devices` reported zero entries, so
+    # a `cast_quilt` return was never distinguishable from "showing on
+    # nothing". `--check` diagnosed this from the CLI already; casting
+    # itself did not.
+    heads = available_output_devices(bridge_url, timeout, token=token)
+    if not heads:
+        raise RuntimeError(
+            f"Looking Glass Bridge at {bridge_url} reports no output devices. "
+            "It is most likely wedged -- quit and relaunch it."
+        )
 
     bridge_post(
         bridge_url,
