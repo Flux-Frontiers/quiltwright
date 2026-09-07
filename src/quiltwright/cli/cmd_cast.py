@@ -51,13 +51,10 @@ def _describe_heads(bridge_url: str, timeout: float) -> list[tuple[str, str, str
     :raises click.ClickException: If Bridge cannot be reached or refuses a
         session.
     """
-    from quiltwright.bridge import bridge_post, enter_orchestration
+    from quiltwright.bridge import available_output_devices
 
     try:
-        token = enter_orchestration(bridge_url, timeout)
-        payload = bridge_post(
-            bridge_url, "available_output_devices", {"orchestration": token}, timeout
-        )
+        heads = available_output_devices(bridge_url, timeout)
     except Exception as exc:  # noqa: BLE001 -- surfaced verbatim to the user
         raise click.ClickException(
             f"cannot reach Looking Glass Bridge at {bridge_url}: {exc}\n"
@@ -65,17 +62,7 @@ def _describe_heads(bridge_url: str, timeout: float) -> list[tuple[str, str, str
             "holding the port -- quit and relaunch it."
         ) from exc
 
-    def _field(value: dict, name: str) -> str:
-        """Unwrap Bridge's ``{"name":..., "type":..., "value":...}`` envelope."""
-        if not isinstance(value, dict):
-            return ""
-        return str(value.get(name, {}).get("value", ""))
-
-    heads = []
-    for index, entry in (payload.get("payload", {}).get("value", {}) or {}).items():
-        value = entry.get("value", {})
-        heads.append((str(index), _field(value, "hardwareVersion") or "?", _field(value, "hwid")))
-    return heads
+    return [(h["index"], h["hardware_version"], h["hwid"]) for h in heads]
 
 
 @cli.command("cast")
