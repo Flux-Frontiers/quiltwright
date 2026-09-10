@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-09-10
+
 ### Added
 
 - **`render_pov_hld_video()` in `quiltwright.povray`, the POV-Ray counterpart
