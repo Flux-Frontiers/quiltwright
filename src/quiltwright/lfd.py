@@ -63,6 +63,7 @@ import numpy as np
 
 from quiltwright.bridge import (
     BRIDGE_URL,
+    available_output_devices,
     cast_quilt,
     pause_quilt,
     resume_quilt,
@@ -92,6 +93,7 @@ __all__ = [
     "QUILT_PRESETS",
     "QuiltSpec",
     "assemble_quilt",
+    "available_output_devices",
     "cast_quilt",
     "depth_report",
     "find_ffmpeg",

@@ -13,12 +13,14 @@ import pytest
 from render_probe import can_render
 
 from quiltwright.lfd import (
+    BRIDGE_URL,
     DEPTH_LABELS,
     LITIHOLO_SWEEP,
     QUILT_PRESETS,
     QuiltSpec,
     _encode_args,
     assemble_quilt,
+    available_output_devices,
     cast_quilt,
     depth_report,
     find_ffmpeg,
@@ -712,18 +714,32 @@ class TestRenderQuiltVideo:
 # ---------------------------------------------------------------------------
 
 
+#: A single ordinary-monitor head -- enough for `available_output_devices`
+#: to report non-empty, the way most dev machines with no panel attached
+#: still do. Tests of the zero-devices failure override this explicitly.
+ONE_FAKE_HEAD = {
+    "payload": {"value": {"0": {"value": {"hardwareVersion": {"value": "thirdparty"}}}}}
+}
+
+#: What Bridge actually sends when wedged: reachable, but nothing registered.
+NO_FAKE_HEADS = {"payload": {"value": {}}}
+
+
 class FakeBridge:
     """Records the Bridge calls a function makes, and answers them.
 
     Stands in for ``urllib.request.urlopen``.  ``enter_orchestration`` gets
-    the token-bearing response Bridge really sends; everything else gets a
-    bare success.
+    the token-bearing response Bridge really sends; ``available_output_devices``
+    gets ``devices_payload`` (one ordinary-monitor head by default, so casting
+    tests that do not care about the device list keep passing unchanged);
+    everything else gets a bare success.
     """
 
-    def __init__(self, token: str = "tok-1", orchestration_payload=None):
+    def __init__(self, token: str = "tok-1", orchestration_payload=None, devices_payload=None):
         self.token = token
         self.calls: list[tuple[str, dict]] = []
         self._orchestration_payload = orchestration_payload
+        self._devices_payload = devices_payload if devices_payload is not None else ONE_FAKE_HEAD
 
     @property
     def endpoints(self) -> list[str]:
@@ -750,6 +766,8 @@ class FakeBridge:
                 if self._orchestration_payload is not None
                 else {"payload": {"value": self.token}}
             )
+        elif endpoint == "available_output_devices":
+            body = self._devices_payload
         else:
             body = {"status": 0}
         return _FakeResponse(json.dumps(body).encode())
@@ -848,6 +866,45 @@ class TestEnterOrchestration:
         assert bridge.payload_for("enter_orchestration")["name"] == "default"
 
 
+class TestAvailableOutputDevices:
+    def test_parses_the_default_fake_head(self, bridge):
+        heads = available_output_devices(BRIDGE_URL, 10.0)
+        assert heads == [{"index": "0", "hardware_version": "thirdparty", "hwid": ""}]
+
+    def test_empty_when_bridge_reports_none(self, monkeypatch):
+        monkeypatch.setattr(urllib.request, "urlopen", FakeBridge(devices_payload=NO_FAKE_HEADS))
+        assert available_output_devices(BRIDGE_URL, 10.0) == []
+
+    def test_reuses_a_supplied_token_without_a_second_orchestration_call(self, bridge):
+        available_output_devices(BRIDGE_URL, 10.0, token="already-have-one")
+        assert bridge.endpoints == ["available_output_devices"]
+        assert bridge.payload_for("available_output_devices")["orchestration"] == (
+            "already-have-one"
+        )
+
+    def test_a_real_panel_reports_its_own_hardware_version(self, monkeypatch):
+        monkeypatch.setattr(
+            urllib.request,
+            "urlopen",
+            FakeBridge(
+                devices_payload={
+                    "payload": {
+                        "value": {
+                            "0": {
+                                "value": {
+                                    "hardwareVersion": {"value": "portrait"},
+                                    "hwid": {"value": "LKG-TEST-0001"},
+                                }
+                            }
+                        }
+                    }
+                }
+            ),
+        )
+        heads = available_output_devices(BRIDGE_URL, 10.0)
+        assert heads == [{"index": "0", "hardware_version": "portrait", "hwid": "LKG-TEST-0001"}]
+
+
 class TestCastQuilt:
     def test_orchestration_sequence(self, bridge, tmp_path, tiny_spec):
         quilt = tmp_path / "q.png"
@@ -855,6 +912,7 @@ class TestCastQuilt:
         cast_quilt(quilt, tiny_spec)
         assert bridge.endpoints == [
             "enter_orchestration",
+            "available_output_devices",
             "show_window",
             "instance_playlist",
             "insert_playlist_entry",
@@ -891,6 +949,30 @@ class TestCastQuilt:
         cast_quilt(quilt, tiny_spec)
         assert bridge.payload_for("show_window")["show_window"] is True
 
+    def test_raises_when_bridge_reports_no_devices(self, tmp_path, tiny_spec, monkeypatch):
+        """Bridge answered 200 through the whole orchestration sequence with
+        zero output devices registered, live -- verified on real hardware,
+        not assumed. Every prior test here used the default single fake
+        head; this is the one that used to slip through as a silent
+        success."""
+        monkeypatch.setattr(urllib.request, "urlopen", FakeBridge(devices_payload=NO_FAKE_HEADS))
+        quilt = tmp_path / "q.png"
+        quilt.touch()
+        with pytest.raises(RuntimeError, match="no output devices"):
+            cast_quilt(quilt, tiny_spec)
+
+    def test_no_devices_is_caught_before_any_playback_call(self, tmp_path, tiny_spec, monkeypatch):
+        fake = FakeBridge(devices_payload=NO_FAKE_HEADS)
+        monkeypatch.setattr(urllib.request, "urlopen", fake)
+        quilt = tmp_path / "q.png"
+        quilt.touch()
+        with pytest.raises(RuntimeError, match="no output devices"):
+            cast_quilt(quilt, tiny_spec)
+        assert fake.endpoints == ["enter_orchestration", "available_output_devices"], (
+            "a quilt should never be handed to show_window/instance_playlist/"
+            "play_playlist when there is nothing to play it on"
+        )
+
 
 class TestSaveAndCastQuilt:
     """The whole point is that a lost display never costs the render."""
@@ -924,6 +1006,17 @@ class TestSaveAndCastQuilt:
         out, error = save_and_cast_quilt(quilt, tmp_path / "scene", tiny_spec)
         assert error is not None and "Bridge is not running" in error
         assert out.exists(), "the render must survive a display that does not"
+
+    def test_no_devices_is_returned_not_raised(self, tmp_path, tiny_spec, monkeypatch):
+        """The zero-devices case (a wedged Bridge) is exactly the kind of
+        failure this function exists to absorb -- same contract as an
+        unreachable Bridge, just a different cause."""
+        pytest.importorskip("PIL")
+        monkeypatch.setattr(urllib.request, "urlopen", FakeBridge(devices_payload=NO_FAKE_HEADS))
+        quilt = np.zeros((128, 128, 3), dtype=np.uint8)
+        out, error = save_and_cast_quilt(quilt, tmp_path / "scene", tiny_spec)
+        assert error is not None and "no output devices" in error
+        assert out.exists()
 
     def test_returns_the_convention_filename(self, bridge, tmp_path, tiny_spec):
         pytest.importorskip("PIL")

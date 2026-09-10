@@ -73,6 +73,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   thickened non-refracting wall shows edge-on resolves into the single
   bright band real glass has.
 
+### Fixed
+
+- **`cast_quilt()` reported success with nothing to show anything on.**
+  Bridge's orchestration calls (`enter_orchestration`, `show_window`,
+  `instance_playlist`, `insert_playlist_entry`, `play_playlist`) all answer
+  `200` whether or not anything is actually registered as an output device
+  -- confirmed live: `quiltwright cast --check` on a machine with Bridge
+  running found zero devices, while a `cast_quilt()` call against the same
+  Bridge instance still returned success. `available_output_devices()` (the
+  query `cast --check` already used, factored out of the CLI into
+  `quiltwright.bridge` so `cast_quilt` can share it rather than duplicate
+  it) is now checked before any playback call, raising when Bridge reports
+  none. Casting to an ordinary monitor is unaffected -- that path still has
+  at least one device; only the empty case, previously indistinguishable
+  from a real success, now fails loudly. `available_output_devices` is
+  re-exported from `quiltwright.lfd` alongside `cast_quilt` for the same
+  reason the rest of the module is.
+
+- **`site/` is excluded from the DocKG corpus.** `make docs` renders mkdocs
+  into a gitignored `site/`, so the corpus differed between machines
+  depending on who last built the docs. Nothing is double-indexed today,
+  since mkdocs renders `.md` to `.html` -- but it copies anything it does
+  not render straight through, so the first `.txt` or `.pdf` added under
+  `docs/` would be indexed at both `docs/x.pdf` and `site/x.pdf`. A
+  duplicate document double-counts in every ranking and returns the same
+  passage twice. Same reasoning that already excludes `dist`.
+
 ## [0.11.0] - 2026-08-31
 
 ### Added
