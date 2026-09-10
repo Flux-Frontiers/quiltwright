@@ -91,6 +91,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   re-exported from `quiltwright.lfd` alongside `cast_quilt` for the same
   reason the rest of the module is.
 
+- **`site/` is excluded from the DocKG corpus.** `make docs` renders mkdocs
+  into a gitignored `site/`, so the corpus differed between machines
+  depending on who last built the docs. Nothing is double-indexed today,
+  since mkdocs renders `.md` to `.html` -- but it copies anything it does
+  not render straight through, so the first `.txt` or `.pdf` added under
+  `docs/` would be indexed at both `docs/x.pdf` and `site/x.pdf`. A
+  duplicate document double-counts in every ranking and returns the same
+  passage twice. Same reasoning that already excludes `dist`.
+
 ## [0.11.0] - 2026-08-31
 
 ### Added
