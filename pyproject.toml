@@ -239,8 +239,15 @@ include = ["src"]
 # changelog, the scene notes.  Render run-reports are generated per render
 # and near-identical, so they crowd the graph and invent SIMILAR_TO edges.
 [tool.dockg]
+# `site` for the same reason as `dist`: `make docs` renders mkdocs into a
+# gitignored site/, so the corpus would otherwise differ between machines
+# depending on who last built the docs. mkdocs renders .md to .html but copies
+# anything it does not render straight through, so the first .txt or .pdf added
+# under docs/ would be indexed twice -- once at docs/x.pdf, once at site/x.pdf.
+# A duplicate document is worse than a missing one: it double-counts in every
+# ranking and returns the same passage twice.
 exclude = [
-    "benchmarks", "bundles", "dist", "src", "scripts", "tests", "gallery", "molecules", "renders"
+    "benchmarks", "bundles", "dist", "site", "src", "scripts", "tests", "gallery", "molecules", "renders"
 ]
 
 [tool.memorykg]
