@@ -11,6 +11,8 @@ backends feed the same assembler:
     quiltwright.cycles   Blender Cycles scenes and mesh imports, path-traced
                          off-axis views -- GPU ray tracing where the
                          hardware offers it (Metal on Apple Silicon)
+    quiltwright.paraview ParaView state files, swept inside pvpython so
+                         the session's own pipeline renders the views
     quiltwright.hld      Hololuminescent Displays, which play ordinary
                          2-D video rather than quilts
     quiltwright.weave    CPU port of the lenticular shader: pre-lensed
@@ -71,6 +73,7 @@ _LAZY: dict[str, str] = {
     "LITIHOLO_SWEEP": "quilt",
     "LightSource": "povgen",
     "Mesh2": "povgen",
+    "ParaViewCamera": "paraview",
     "PovCamera": "povray",
     "PovScene": "povgen",
     "Primitive": "povgen",
@@ -131,11 +134,14 @@ _LAZY: dict[str, str] = {
     "parse_color": "povgen",
     "pause_quilt": "bridge",
     "pov_camera_from_plotter": "povgen",
+    "probe_paraview_state": "paraview",
     "render_cycles_quilt": "cycles",
     "render_cycles_quilt_from_plotter": "cycles",
     "render_cycles_views": "cycles",
     "render_hld_still": "hld",
     "render_hld_video": "hld",
+    "render_paraview_quilt": "paraview",
+    "render_paraview_views": "paraview",
     "render_pov_hld_video": "povray",
     "render_pov_quilt": "povray",
     "render_pov_views": "povray",
@@ -218,6 +224,11 @@ __all__ = [
     "render_pov_views",
     "render_pov_hld_video",
     "camera_block",
+    # ParaView backend
+    "ParaViewCamera",
+    "probe_paraview_state",
+    "render_paraview_quilt",
+    "render_paraview_views",
     # Blender Cycles backend
     "CyclesCamera",
     "render_cycles_quilt",

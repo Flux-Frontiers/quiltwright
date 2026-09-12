@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **`quiltwright.paraview` and `quiltwright paraview`: a ParaView state file,
+  straight to a quilt.** `render_paraview_quilt("session.pvsm", spec)` hands
+  the `.pvsm` back to ParaView's own `pvpython`, sweeps the render view's
+  camera in place with the same off-axis recipe every other backend uses
+  (translate along the right vector, shear with `vtkCamera.SetWindowCenter`),
+  and tiles the frames with `assemble_quilt()`. Because nothing is exported,
+  the session's pipeline, color maps, opacity transfer functions and camera
+  all come across -- the thing a `.vtm` round-trip through PyVista loses.
+  `probe_paraview_state()` reads the framed camera and visible bounds without
+  rendering, so `depth_report()` prints the budget before the sweep is paid
+  for; `render_paraview_views()` keeps the per-view frames. ParaView stays an
+  external binary found via `PARAVIEW_BINARY`, `PATH`, then the macOS bundle,
+  on the `quiltwright.pymol` pattern: what can run in a normal interpreter
+  does, and the inlined sweep arithmetic is tested against `view_offsets()`
+  and `window_shear()` so the copy cannot drift. Verified against ParaView
+  6.1.1 in builtin-server mode; client-server rendering is untested and
+  documented as such.
+
 - **`render_pov_hld_video()` in `quiltwright.povray`, the POV-Ray counterpart
   to `render_hld_video()`.** Renders a scene's own `PovCamera` revolving
   around its `look_at` point (`_orbit_camera`) rather than PyVista's

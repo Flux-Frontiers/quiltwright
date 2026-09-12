@@ -62,6 +62,7 @@ nav:
       - POV-Ray: povray.md
       - Blender Cycles: cycles.md
       - Mesh import: mesh-import.md
+      - ParaView: paraview.md
       - Writing scenes with povgen: povgen.md
       - The archive-scene workflow: pov-workflow.md
       - Molecular scenes (pypdb2pov): pdb2pov.md
@@ -78,6 +79,7 @@ nav:
       - PyVista backend (lfd): api/lfd.md
       - POV-Ray backend: api/povray.md
       - Blender Cycles backend: api/cycles.md
+      - ParaView backend: api/paraview.md
       - Scene primitives (povgen): api/povgen.md
       - Hololuminescent Displays: api/hld.md
       - Lenticular weave: api/weave.md

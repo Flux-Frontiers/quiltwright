@@ -34,6 +34,7 @@ from quiltwright.cli import (  # noqa: E402, F401
     cmd_cast,
     cmd_dynamic,
     cmd_mesh,
+    cmd_paraview,
     cmd_probe,
     cmd_wallpaper,
     cmd_weave,

@@ -251,6 +251,25 @@ render pipeline.
 
 ---
 
+## 8. ParaView (simulation state files)
+
+Skip this unless you have `.pvsm` state files to render. `quiltwright
+paraview` sweeps a saved ParaView session inside ParaView's own `pvpython`,
+so the pipeline and color maps come with it (see [paraview.md](paraview.md)).
+ParaView is a desktop application with its own Python, never a dependency:
+
+```bash
+brew install --cask paraview                # macOS
+# or the binaries at https://www.paraview.org/download/
+```
+
+`pvpython` is found through `PARAVIEW_BINARY`, then `PATH`, then the macOS
+application bundle, so the cask needs no further setup. Verify with:
+
+```bash
+quiltwright paraview --check
+```
+
 ## Checking the stack
 
 Each layer can be verified independently:
@@ -260,6 +279,7 @@ python -c "import quiltwright; print(quiltwright.__version__)"   # package
 povray --version                                                 # POV-Ray
 blender --version                                                # Cycles
 pymol -cq -d "print('ok')"                                       # PyMOL
+quiltwright paraview --check                                     # ParaView
 curl -s -X PUT -H 'Content-Type: application/json' \
      -d '{"name":"probe"}' http://localhost:33334/enter_orchestration  # Bridge
 ```
