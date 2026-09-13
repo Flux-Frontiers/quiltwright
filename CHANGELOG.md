@@ -7,8 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-## [0.12.0] - 2026-09-10
-
 ### Added
 
 - **`quiltwright.paraview` and `quiltwright paraview`: a ParaView state file,
@@ -29,6 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   6.1.1 in builtin-server mode and over a genuine single-process
   client-server connection (`Connect()` to a separate `pvserver`); IceT
   compositing across multiple MPI ranks is untested and documented as such.
+
+## [0.12.0] - 2026-09-10
+
+### Added
 
 - **`render_pov_hld_video()` in `quiltwright.povray`, the POV-Ray counterpart
   to `render_hld_video()`.** Renders a scene's own `PovCamera` revolving
