@@ -24,8 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   on the `quiltwright.pymol` pattern: what can run in a normal interpreter
   does, and the inlined sweep arithmetic is tested against `view_offsets()`
   and `window_shear()` so the copy cannot drift. Verified against ParaView
-  6.1.1 in builtin-server mode; client-server rendering is untested and
-  documented as such.
+  6.1.1 in builtin-server mode and over a genuine single-process
+  client-server connection (`Connect()` to a separate `pvserver`); IceT
+  compositing across multiple MPI ranks is untested and documented as such.
 
 - **`render_pov_hld_video()` in `quiltwright.povray`, the POV-Ray counterpart
   to `render_hld_video()`.** Renders a scene's own `PovCamera` revolving

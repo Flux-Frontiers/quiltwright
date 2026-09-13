@@ -29,11 +29,15 @@ is done here, where it is tested without ParaView present; the script that
 runs inside ``pvpython`` is short and does nothing it does not have to.
 
 **What has been verified, and what has not.**  ``SetWindowCenter`` survives
-ParaView's ``Render()`` in the default *builtin* server mode, which is what
-``pvpython`` runs and what a laptop session is.  Whether the shear reaches
-the render side in client-server or MPI mode has not been tested; ParaView
-syncs camera position, focal point, view-up and view angle to a remote server
-through named proxy properties, and ``WindowCenter`` is not among them.
+ParaView's ``Render()`` in the default *builtin* server mode (what
+``pvpython`` runs on its own, a laptop session) and over a genuine
+single-process client-server connection -- a separate ``pvserver`` reached
+with ``Connect()``, the shape this module actually asks for.  Whether the
+shear survives IceT compositing across multiple MPI ranks is still
+untested: ParaView syncs camera position, focal point, view-up and view
+angle to each rank's remote server through named proxy properties, and
+``WindowCenter`` is not among them, so a distributed-render sweep may come
+back un-sheared.
 
 Typical use::
 

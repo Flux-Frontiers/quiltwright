@@ -110,13 +110,20 @@ arithmetic. A test execs that copy and checks it against `view_offsets()` and
 ### Verified, and not
 
 `SetWindowCenter` survives ParaView's `Render()` in the default *builtin*
-server mode, which is what `pvpython` runs and what a laptop session is.
-Whether the shear reaches the render side in client-server or MPI mode has
-not been tested. ParaView syncs camera position, focal point, view-up and
-view angle to a remote server through named proxy properties, and
-`WindowCenter` is not among them, so a remote-rendered sweep may come back
-un-sheared. If you run one, look at the outer views: an un-sheared sweep has
-the subject drifting toward the tile edge.
+server mode, which is what `pvpython` runs on its own -- a laptop session --
+and it survives over a genuine client-server connection too: a separate
+`pvserver` process reached with `Connect()`, which is the shape this module
+actually asks for. The sheared frame differs from the unsheared one by the
+same shift either way.
+
+What is still untested is IceT compositing across multiple MPI ranks
+(`mpiexec -n N pvserver`), the mode a cluster uses to split one frame's
+rendering across processes. ParaView syncs camera position, focal point,
+view-up and view angle to each rank's remote server through named proxy
+properties, and `WindowCenter` is not among them, so a distributed-render
+sweep may come back un-sheared. If you run one, look at the outer views: an
+un-sheared sweep has the subject drifting toward the tile edge rather than
+staying centered on the focal plane.
 
 ## In Python
 
