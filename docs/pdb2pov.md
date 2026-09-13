@@ -1,59 +1,46 @@
-# Molecules from PDB and mmCIF files, via pdb2pov
+# Molecules from PDB and mmCIF files, via pypdb2pov
 
-**Upstream**: <https://github.com/Flux-Frontiers/pypdb2pov> (the Python port, on
-PyPI as `pypdb2pov`) and <https://github.com/suchanek/pdb2pov> (v2.2, the C
-original; its RCS logs are dated 1993-94)
+**Upstream**: <https://github.com/Flux-Frontiers/pypdb2pov>, on PyPI as
+`pypdb2pov`
 **Feeds**: [`quiltwright.povray`](povray.md)
 
-`pdb2pov` converts Brookhaven PDB atomic structure files -- and, in the Python
-port, PDBx/mmCIF -- into POV-Ray scenes. It predates this pipeline by thirty
-years and still feeds it directly: as of v2.0 the scenes it writes need no
-adaptation at all.
-
-It is also, conveniently, *better* prepared for holographic output than most
-hand-built scenes. See [Why molecules are the easy case](#why-molecules-are-the-easy-case).
-
-> **Updated for pdb2pov 2.2.** This page previously documented a set of build
-> workarounds and a `#version 3.1;` prepending step. Both are gone: v2.0 is
-> prototyped C17 and emits POV-Ray 3.7. If you are on v1.19, see
-> [Working with v1.19](#working-with-v119) at the foot of this page.
-
-> **There are now two implementations, in two repositories.** The C program
-> `pdb2pov`, and `pypdb2pov`, a Python port that has since moved into its own
-> repository and onto PyPI -- it is no longer a `python/` subdirectory of the C
-> one. They write byte-identical scenes from the same flags -- the port's test
-> suite diffs them -- so everything on this page about output, geometry and
-> framing applies to both, and the two commands differ only in name, so both can
-> sit on one `PATH`. The port additionally reads mmCIF, which is the only format
-> large structures are distributed in, and offers an importable API that
-> removes the shell step from this pipeline entirely. See
-> [Choosing one](#1-choosing-one).
-
----
-
-## 1. Choosing one
-
-**Use `pypdb2pov`, the Python port**, unless you have a reason not to. It
-reads everything the C reads, plus PDBx/mmCIF and compressed files, and it can
-be called from the same script that renders the quilt. It is on PyPI, so there
-is nothing to clone and nothing to build:
+`pypdb2pov` converts Brookhaven PDB and PDBx/mmCIF atomic structure files into
+POV-Ray scenes. It is what Quiltwright's `molecules` extra installs and what
+this page documents throughout.
 
 ```bash
-pip install pypdb2pov
+pip install pypdb2pov                      # or:
+pip install "quiltwright[molecules]"       # which depends on it
 ```
-
-Quiltwright's `molecules` extra pulls it in as a dependency, so
-`pip install "quiltwright[molecules]"` covers this step too.
 
 No compiler, no dependencies beyond the standard library, and the POV-Ray
 include files ship inside the package -- `pypdb2pov --include-dir` prints
-where, which is exactly what `render_pov_quilt`'s `include_paths` wants.
+where, which is exactly what `render_pov_quilt`'s `include_paths` wants. It is
+importable as well as runnable, so the shell step can leave this pipeline
+entirely; see
+[Doing the conversion in the same script](#doing-the-conversion-in-the-same-script).
 
-The command is `pypdb2pov`, not `pdb2pov`: the C program owns that name, and
-the two are meant to coexist. Everything after the command is identical.
+The scenes it writes need no adaptation for holographic output, and molecules
+turn out to be *better* prepared for it than most hand-built scenes. See
+[Why molecules are the easy case](#why-molecules-are-the-easy-case).
 
-**Use `pdb2pov`, the C program**, when you want the 1993 binary itself, or a
-build with no Python at all:
+> **It has an ancestor, and the name is the giveaway.** `pypdb2pov` is a Python
+> port of `pdb2pov`, a C program written in 1993 whose RCS logs are dated
+> 1993-94. The two write byte-identical scenes from the same flags -- the
+> port's test suite diffs them -- so everything on this page about output,
+> geometry and framing is true of both. The port reads mmCIF, which is the only
+> format large structures are distributed in, and the C does not. Unless you
+> specifically want the 1993 binary, you want this one; the C original is
+> covered under [The C original](#1-the-c-original).
+
+---
+
+## 1. The C original
+
+You can skip this section. It matters if you want the 1993 binary itself, or a
+build with no Python at all -- otherwise `pypdb2pov` is the whole story.
+
+`pdb2pov` v2.2 lives at <https://github.com/suchanek/pdb2pov>:
 
 ```bash
 git clone https://github.com/suchanek/pdb2pov
@@ -62,16 +49,20 @@ cd pdb2pov && make
 
 That is the whole procedure. There are no portability flags to arrange, no
 force-included prototype header, and no need to disable `_FORTIFY_SOURCE`.
-The build is clean under `-Wall -Wextra -Wpedantic`.
+The build is clean under `-Wall -Wextra -Wpedantic`. This page once documented
+a set of build workarounds and a `#version 3.1;` prepending step; both are
+gone, since v2.0 is prototyped C17 and emits POV-Ray 3.7. If you are on v1.19,
+see [Working with v1.19](#working-with-v119) at the foot of this page.
 
 `make check` converts the bundled `1CRN.pdb` several ways, asserts that the
 parser changes leave crambin's output unchanged, and renders one atom of every
 element to prove the element table and the include files agree. The port's own
 suite, including the differential tests against the C, runs from its own
-repository rather than from a `python/` tree inside this one.
+repository.
 
-`pypdb2pov` carries its own version -- 0.1.1 at the time of writing -- alongside
-the pdb2pov release it implements. Scene headers name both, on the line that
+The commands differ only in name, so both can sit on one `PATH`: the C program
+owns `pdb2pov` and the port answers to `pypdb2pov`. Everything after the
+command is identical. Scene headers name both versions, on the line that
 already varies between runs:
 
 ```

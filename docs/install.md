@@ -205,13 +205,10 @@ install time. Check with `ffmpeg -h encoder=libx265`.
 
 ## 7. pypdb2pov (molecular scenes)
 
-Optional; feeds the POV-Ray backend with molecular structures. There are two
-implementations, writing byte-identical scenes.
-
-**`pypdb2pov`, the Python port** -- no compiler, no dependencies, reads mmCIF,
-and importable from the same script that renders the quilt. It has its own
-repository and PyPI release as of 0.1.0; the `python/` tree inside the C repo
-is retired. Take it as an extra:
+Optional; feeds the POV-Ray backend with molecular structures. `pypdb2pov` is
+the one to install -- no compiler, no dependencies, reads mmCIF, and importable
+from the same script that renders the quilt. It has its own repository and PyPI
+release; the `python/` tree inside the C repo is retired. Take it as an extra:
 
 ```bash
 pip install "quiltwright[molecules]"
@@ -246,8 +243,8 @@ with the C program they sit in the clone.
 [`scripts/render_vitrine.py`](https://github.com/Flux-Frontiers/quiltwright/blob/main/scripts/render_vitrine.py) asks the package
 directly rather than being told a path.
 
-See [pdb2pov.md](pdb2pov.md) for which to choose, the build notes, and the
-render pipeline.
+See [pdb2pov.md](pdb2pov.md) for the conversion flags, the render pipeline,
+and the C original if you want it.
 
 ---
 
