@@ -71,17 +71,20 @@ _Full history: [CHANGELOG.md](CHANGELOG.md) and
   POV-Ray  -----------+        |  quilt assembly  |        |          2-D video
    (pypdb2pov, PyMOL) |        |  view sweeps     |        +-->  LitiHolo  hogel sweeps
                       |        +------------------+                       (in development)
+  ParaView  ----------+
+   (.pvsm states)     |
   Blender / meshes ---+
    (.blend, glTF, USD, OBJ)
 ```
 
-Three backends share one assembler:
+Four backends share one assembler:
 
 | Backend | Call | Input |
 |---|---|---|
 | PyVista / VTK | `render_quilt()` | In-memory plotter |
 | POV-Ray | `render_pov_quilt()` | `.pov` on disk; original never modified |
 | Cycles | `render_cycles_quilt()` | `.blend` and mesh files; GPU ray tracing where available |
+| ParaView | `render_paraview_quilt()` | `.pvsm` state file; the session's own pipeline, swept inside `pvpython` |
 
 `render_cycles_quilt_from_plotter()` takes the same PyVista plotter
 `render_quilt()` does and path-traces it instead. WaveRider, [The Virtual
@@ -224,6 +227,7 @@ verified against what Bridge reports for real hardware -- see
 | [docs/tvb-data.md](docs/tvb-data.md) | Brain geometry from The Virtual Brain: cortical surfaces, connectomes, parcellations, downloaded on demand |
 | [docs/povray.md](docs/povray.md) | The POV-Ray backend: off-axis camera derivation, depth budget, sweep clearance, a worked case study |
 | [docs/cycles.md](docs/cycles.md) | The Blender Cycles backend: hardware ray tracing (Metal/OptiX/HIP), mesh and .blend scenes, one process per sweep |
+| [docs/paraview.md](docs/paraview.md) | The ParaView backend: a saved `.pvsm` session swept inside `pvpython`, pipeline and color maps intact |
 | [docs/mesh-import.md](docs/mesh-import.md) | Any 3D object file (glTF/GLB, OBJ, FBX, USD, …) to a quilt in one command, with the camera auto-framed from the mesh's bounds |
 | [docs/povgen.md](docs/povgen.md) | Writing POV-Ray scenes from analytic primitives, so a scene composed in Python can be ray-traced rather than rasterized |
 | [docs/pov-workflow.md](docs/pov-workflow.md) | The procedure: taking an archive scene from "won't parse" to a quilt that fuses, step by step |
