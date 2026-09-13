@@ -1,7 +1,8 @@
 # Molecules from PDB and mmCIF files, via pdb2pov
 
-**Upstream**: <https://github.com/suchanek/pdb2pov> (v2.2, C and Python; the
-original RCS logs are dated 1993-94)
+**Upstream**: <https://github.com/Flux-Frontiers/pypdb2pov> (the Python port, on
+PyPI as `pypdb2pov`) and <https://github.com/suchanek/pdb2pov> (v2.2, the C
+original; its RCS logs are dated 1993-94)
 **Feeds**: [`quiltwright.povray`](povray.md)
 
 `pdb2pov` converts Brookhaven PDB atomic structure files -- and, in the Python
@@ -17,12 +18,13 @@ hand-built scenes. See [Why molecules are the easy case](#why-molecules-are-the-
 > prototyped C17 and emits POV-Ray 3.7. If you are on v1.19, see
 > [Working with v1.19](#working-with-v119) at the foot of this page.
 
-> **There are now two implementations.** The C program `pdb2pov`, and
-> `pypdb2pov`, a Python port in the same repository's `python/` directory.
-> They write byte-identical scenes from the same flags -- the port's test suite
-> diffs them -- so everything on this page about output, geometry and framing
-> applies to both, and the two commands differ only in name, so both can sit
-> on one `PATH`. The port additionally reads mmCIF, which is the only format
+> **There are now two implementations, in two repositories.** The C program
+> `pdb2pov`, and `pypdb2pov`, a Python port that has since moved into its own
+> repository and onto PyPI -- it is no longer a `python/` subdirectory of the C
+> one. They write byte-identical scenes from the same flags -- the port's test
+> suite diffs them -- so everything on this page about output, geometry and
+> framing applies to both, and the two commands differ only in name, so both can
+> sit on one `PATH`. The port additionally reads mmCIF, which is the only format
 > large structures are distributed in, and offers an importable API that
 > removes the shell step from this pipeline entirely. See
 > [Choosing one](#1-choosing-one).
@@ -33,12 +35,15 @@ hand-built scenes. See [Why molecules are the easy case](#why-molecules-are-the-
 
 **Use `pypdb2pov`, the Python port**, unless you have a reason not to. It
 reads everything the C reads, plus PDBx/mmCIF and compressed files, and it can
-be called from the same script that renders the quilt:
+be called from the same script that renders the quilt. It is on PyPI, so there
+is nothing to clone and nothing to build:
 
 ```bash
-git clone https://github.com/suchanek/pdb2pov
-pip install ./pdb2pov/python
+pip install pypdb2pov
 ```
+
+Quiltwright's `molecules` extra pulls it in as a dependency, so
+`pip install "quiltwright[molecules]"` covers this step too.
 
 No compiler, no dependencies beyond the standard library, and the POV-Ray
 include files ship inside the package -- `pypdb2pov --include-dir` prints
@@ -61,16 +66,16 @@ The build is clean under `-Wall -Wextra -Wpedantic`.
 
 `make check` converts the bundled `1CRN.pdb` several ways, asserts that the
 parser changes leave crambin's output unchanged, and renders one atom of every
-element to prove the element table and the include files agree. `make test`
-in `python/` runs the port's suite, which includes the differential tests
-against the C.
+element to prove the element table and the include files agree. The port's own
+suite, including the differential tests against the C, runs from its own
+repository rather than from a `python/` tree inside this one.
 
-`pypdb2pov` carries its own version -- 0.1.0, since the package is new --
-alongside the pdb2pov release it implements. Scene headers name both, on the
-line that already varies between runs:
+`pypdb2pov` carries its own version -- 0.1.1 at the time of writing -- alongside
+the pdb2pov release it implements. Scene headers name both, on the line that
+already varies between runs:
 
 ```
-// Prepared by pypdb2pov 0.1.0 (pdb2pov 2.2) from 4hhb.cif.gz on 2026-08-16 ...
+// Prepared by pypdb2pov 0.1.1 (pdb2pov 2.2) from 4hhb.cif.gz on 2026-08-16 ...
 ```
 
 ### What differs
