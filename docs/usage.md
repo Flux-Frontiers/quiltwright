@@ -83,6 +83,45 @@ bounds is covered in [mesh-import.md](mesh-import.md).
 
 ---
 
+## From a ParaView state file
+
+Nothing is exported. The `.pvsm` goes back to ParaView's own `pvpython` and the
+render view's camera is swept in place, so the filter pipeline, color maps,
+opacity transfer functions and volume rendering all survive -- the parts a
+round trip through an exported mesh loses.
+
+```python
+from quiltwright import QUILT_PRESETS, save_quilt
+from quiltwright.paraview import depth_report, probe_paraview_state, render_paraview_quilt
+
+spec = QUILT_PRESETS["portrait"]
+
+camera = probe_paraview_state("session.pvsm", spec, fov=14.0)
+print(depth_report(camera, spec))       # the budget, before paying for the sweep
+
+quilt = render_paraview_quilt("session.pvsm", spec, fov=14.0)
+save_quilt(quilt, "session", spec)
+```
+
+`probe_paraview_state()` loads the state without rendering, so the depth budget
+is known first. Frame the scene in ParaView the way you want it seen and save
+state: its camera becomes the center view and its focal point the holographic
+focal plane.
+
+ParaView is a desktop application with its own interpreter, never a Python
+dependency -- `quiltwright paraview --check` reports the `pvpython` it found.
+The bundled Mount Hood example is one command:
+
+```bash
+quiltwright paraview paraview-scenes/mount-hood/mount-hood.pvsm --zoom 1.62
+```
+
+Run it from the repository root: a `.pvsm` resolves its data paths against the
+working directory, and a state that cannot find its data renders an empty scene
+rather than failing. Full details in [paraview.md](paraview.md).
+
+---
+
 ## Send it to the display
 
 ```python

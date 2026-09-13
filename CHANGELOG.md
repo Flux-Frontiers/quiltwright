@@ -59,6 +59,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   imports it and exits 0 without dispatching, and a target written that way
   silently renders nothing.
 
+- **The docs describe four backends rather than three.** ParaView shipped in
+  0.13.0 with its own page and CLI reference, but the overview pages were never
+  updated, so anything read top-down still said there were three:
+  `index.md` omitted it from the intro and the Backends table, `usage.md` had a
+  recipe per backend and none for ParaView, and `architecture.md` left it out
+  of both the pipeline diagram and the module map. `usage.md` gains a "From a
+  ParaView state file" recipe covering the probe-then-render flow and the
+  working-directory rule that data paths depend on, and `architecture.md` now
+  names the one place ParaView cannot honor the dependency rule: its sweep runs
+  inside `pvpython`, which cannot import Quiltwright, so the script carries a
+  duplicate of the shear arithmetic that a test holds against `view_offsets()`
+  and `window_shear()`.
+
 - `.pre-commit-config.yaml` excludes `paraview-scenes/<subject>/` from every
   hook, on the same grounds `pov-scenes/` already is: it holds upstream data
   the README describes as unmodified, and a `.pvsm` ParaView wrote, so the

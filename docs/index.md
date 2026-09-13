@@ -6,13 +6,15 @@
 
 Quiltwright is the last stage of a scientific rendering pipeline -- any
 pipeline that ends in a scene. It takes what you already have -- a PyVista or
-VTK scene built in memory, a Blender file or an exported mesh, or a `.pov`
-file written thirty years ago by someone who is no longer around to explain
-it -- and puts it on holographic hardware in glasses-free depth. Nothing is
-rewritten to get there: your scene file is never modified, the off-axis camera
-is supplied per view, and each scene is rendered by the renderer it already
-belongs to. Where that renderer is Blender's Cycles, the views are path-traced
-on the GPU's ray-tracing cores if the hardware has them.
+VTK scene built in memory, a ParaView session saved as a `.pvsm`, a Blender
+file or an exported mesh, or a `.pov` file written thirty years ago by someone
+who is no longer around to explain it -- and puts it on holographic hardware in
+glasses-free depth. Nothing is rewritten to get there: your scene file is never
+modified, the off-axis camera is supplied per view, and each scene is rendered
+by the renderer it already belongs to. Where that renderer is Blender's Cycles,
+the views are path-traced on the GPU's ray-tracing cores if the hardware has
+them; where it is ParaView, the sweep runs inside ParaView's own `pvpython`, so
+the pipeline, color maps and transfer functions you built come across intact.
 
 It is used that way by [WaveRider](https://github.com/Flux-Frontiers/waverider)
 for geometric ML manifolds and by
@@ -34,7 +36,7 @@ light-field panels, or into 2-D video for Hololuminescent displays.
 | | |
 |---|---|
 | [Installation](install.md) | Package extras, POV-Ray, ffmpeg, Bridge, pypdb2pov |
-| [Usage recipes](usage.md) | PyVista, POV-Ray, Cycles, casting to Bridge, printer sweeps, depth budget |
+| [Usage recipes](usage.md) | PyVista, POV-Ray, Cycles, ParaView, casting to Bridge, printer sweeps, depth budget |
 | [The shell workflow](shell.md) | Every make target, the parallelism model, run reports, and what each CLI command is for |
 | [CLI reference](cli.md) | Every `quiltwright` command and flag |
 
@@ -45,6 +47,7 @@ light-field panels, or into 2-D video for Hololuminescent displays.
 | [PyVista / VTK](lfd.md) | Light-field output, Bridge/Studio setup, device presets, view sweeps for hologram printers |
 | [POV-Ray](povray.md) | Off-axis camera derivation, depth budget, sweep clearance, a worked case study |
 | [Blender Cycles](cycles.md) | Hardware ray tracing (Metal/OptiX/HIP), mesh and .blend scenes, one process per sweep |
+| [ParaView](paraview.md) | A saved `.pvsm` session swept in place by `pvpython`, pipeline and color maps intact |
 | [Mesh import](mesh-import.md) | Any 3D object file (glTF/GLB, OBJ, FBX, USD, ...) to a quilt in one command |
 | [Writing scenes with povgen](povgen.md) | Analytic primitives, so a scene composed in Python can be ray-traced rather than rasterized |
 | [The archive-scene workflow](pov-workflow.md) | Taking an archive scene from "won't parse" to a quilt that fuses, step by step |

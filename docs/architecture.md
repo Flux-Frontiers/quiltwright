@@ -11,8 +11,9 @@ scene sources                  backends                    shared middle        
 PyVista plotter   ----+                                     QuiltSpec / presets
 POV-Ray .pov      ----+--->   off-axis views  ------------> assemble_quilt  --------->  quilt PNG
 Blender / mesh    ----+       (per-backend camera math)      view_offsets              HLD video
-arrays (povgen)   ----+                                      save_quilt                 weave (no Bridge)
-PyMOL cartoons    ----+                                                                  LitiHolo sweep
+ParaView .pvsm    ----+                                      save_quilt                 weave (no Bridge)
+arrays (povgen)   ----+                                                                  LitiHolo sweep
+PyMOL cartoons    ----+
 TVB brains        ----+
 ```
 
@@ -26,6 +27,7 @@ TVB brains        ----+
 | `quiltwright.lfd` | PyVista backend: `render_quilt`, `render_quilt_video`, `scene_depths`, `frame_and_focus`, `depth_report`, `camera_frame` | `quilt`, `bridge`, `runtime`, `[viz]` |
 | `quiltwright.povray` | POV-Ray backend: `PovCamera`, `camera_block`, `render_pov_quilt`, `Clearance`, `depth_budget`, `depth_sweep` | `quilt`, `runtime`, `povray` binary |
 | `quiltwright.cycles` | Blender Cycles backend: `CyclesCamera`, `view_shift_x`, `render_cycles_quilt`, mesh import and auto-framing | `quilt`, `runtime`, `blender` binary |
+| `quiltwright.paraview` | ParaView backend: `ParaViewCamera`, `probe_paraview_state`, `render_paraview_quilt`, `render_paraview_views`, `depth_report` | `quilt`, `runtime`, `pvpython` binary |
 | `quiltwright.povgen` | Analytic `.pov` scene composer (primitives, no VTK) | numpy only |
 | `quiltwright.hld` | Hololuminescent Display video (2-D, not a quilt) | `runtime`, `[viz]` |
 | `quiltwright.weave` | CPU port of Bridge's lenticular shader -- pre-lensed native frames with no Bridge process | `quilt` |
@@ -37,9 +39,18 @@ TVB brains        ----+
 
 The dependency graph is acyclic and one-directional: `quilt` and `runtime`
 import nothing from this package; `bridge` and `weave` import only `quilt`;
-each backend (`lfd`, `povray`, `cycles`) imports `quilt` and `runtime` but
-never each other. Nothing outside `quilt.py` needs to know that another
-backend exists.
+each backend (`lfd`, `povray`, `cycles`, `paraview`) imports `quilt` and
+`runtime` but never each other. Nothing outside `quilt.py` needs to know that
+another backend exists.
+
+`paraview` is the one backend that cannot fully honor that, and the exception
+is worth naming. Its sweep executes inside ParaView's bundled interpreter,
+which cannot import Quiltwright at all, so the script sent to `pvpython`
+carries its own copy of the offset and shear arithmetic. A duplicated
+invariant is exactly the kind of thing that drifts, so a test `exec`s that
+copy and checks it against `view_offsets()` and `window_shear()` -- the same
+functions every other backend calls. The duplication is real; the divergence
+is what the test makes impossible.
 
 ## Why the geometry core is separate from every backend
 
