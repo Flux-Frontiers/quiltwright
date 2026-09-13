@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-09-13
+
 ### Added
 
 - **`quiltwright.paraview` and `quiltwright paraview`: a ParaView state file,

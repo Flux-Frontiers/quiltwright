@@ -1,79 +1,48 @@
-# Release Notes -- v0.12.0
+# Release Notes -- v0.13.0
 
-> Released: 2026-09-10
+> Released: 2026-09-13
 
-This release gives POV-Ray scenes the same Hololuminescent video path
-PyVista scenes already had, and then goes further than a plain orbit:
-`render_pov_hld_video()` can hold the camera still and spin the subject
-instead, which is what a display that only rocks through a limited angle
-actually wants. `bj_portrait.pov`'s DNA is the first scene to use it, spinning
-in place inside its bell jar rather than swinging out of frame. Named device
-presets and a companion script round out the pipeline end to end, and a
-long-standing `cast_quilt()` blind spot -- reporting success when Bridge has
-nowhere to actually show anything -- is closed.
+This release adds a fourth scene source: ParaView. A `.pvsm` state file --
+the filter pipeline, the color maps, the opacity transfer functions, the
+camera, everything a session accumulates -- goes straight to a quilt,
+because the sweep runs inside ParaView's own `pvpython` rather than on an
+export of the data. The obvious route, saving the geometry out and reading
+it back into PyVista, throws away everything that made the session worth
+having; this one doesn't.
 
 ## What changed
 
-**`render_pov_hld_video()` in `quiltwright.povray`, the POV-Ray counterpart
-to `render_hld_video()`.** It orbits a scene's own `PovCamera` around its
-`look_at` point (`_orbit_camera`) rather than reaching for PyVista's
-`camera.Azimuth`, either as a full 360-degree turntable or a seamless
-`sway_degrees` back-and-forth for a display that only rocks through a
-limited angle. `suppress_overlays` declares `QW_HLD_Turntable` before the
-scene so camera-pinned text authored for one viewpoint -- a title, a
-signature -- can guard itself with `#ifndef(QW_HLD_Turntable)` and skip
-rendering mirrored from the back of an orbit. `bj_holo_2026.pov`'s title and
-signature do this now.
+**`quiltwright.paraview` and `quiltwright paraview`.**
+`render_paraview_quilt("session.pvsm", spec)` hands the state file to
+`pvpython` and sweeps the render view's camera in place with the same
+off-axis recipe every other backend uses -- translate along the right
+vector, shear with `vtkCamera.SetWindowCenter` -- then tiles the frames with
+`assemble_quilt()`. Nothing is exported, so the session's pipeline, color
+maps, transfer functions and camera all come across. `probe_paraview_state()`
+reads the framed camera and visible bounds without rendering, so
+`depth_report()` prints the disparity budget before the sweep is paid for;
+`render_paraview_views()` keeps the per-view frames for inspection or a
+hologram printer's sweep.
 
-**`spin_degrees`, independent of camera motion entirely.** Rather than
-moving the camera, it declares `QW_Spin_Angle` before each frame and sweeps
-it linearly over the clip (360 loops seamlessly), so a scene turns its own
-subject in place while the composed shot stays exactly as authored. Getting
-this right for `bell-jar-portrait` meant pivoting the spin on the DNA's own
-tipped-upright bounding-box centre rather than its raw PDB origin or the
-pre-tip frame -- either of those sent it swinging out of the jar or tumbling
-from standing to lying flat instead of turning where it stands.
+ParaView stays an external binary, never a dependency -- a 500 MB desktop
+application with its own Python is not something a virtualenv can import.
+`pvpython` is found via `PARAVIEW_BINARY`, then `PATH`, then the macOS
+application bundle, so `brew install --cask paraview` needs no further
+setup; `quiltwright paraview --check` reports what was found.
 
-**`HLDDeviceSpec` / `HLD_DEVICES` / `MUSUBI` in `quiltwright.hld`.** Named
-device presets bundling resolution, fps, encode target, and import-duration
-cap. `MUSUBI` -- Looking Glass's small consumer HLD frame -- is measured
-from the device's own generated clips rather than a published spec, since
-LKG's musubi documentation gives no technical detail at all: 576x1024
-portrait, H.264 Baseline, yuv420p, no audio, 30 fps, imports capped at 30s.
-
-**`encode_args` on `render_pov_hld_video()`.** The default still targets
-what HLD Author and the big Portrait HLD panels want (HEVC bt709), but a
-device that plays video directly instead of through HLD Author may want
-something else entirely, so `encode_args` replaces the ffmpeg output
-arguments wholesale rather than forcing every HLD-family target through one
-codec.
-
-**`scripts/render_still_life_hld_video.py`.** Companion to
-`render_still_life_hologram.py`, driving `render_pov_hld_video()` through
-the same `SCENES` camera registry so the two renderers agree on
-eye/aim/lens/focal-plane without duplicating those measured numbers.
-
-**`bj_portrait.pov`'s glass is real now.** It picks up `bj_holo_2026.pov`'s
-`BJ_CRYSTAL` treatment: a proper Fresnel-reflecting dome (`ior` 1.52) in
-place of the 1996 jar's non-refracting wall, a thickened `BJ_WALL`, and a
-raised `max_trace_level` for the extra bounces a refracting double wall
-costs. The doubled grey outline a thickened non-refracting wall shows
-edge-on resolves into the single bright band real glass has.
-
-**`cast_quilt()` no longer reports success with nothing to show anything
-on.** Bridge's orchestration calls all answer `200` whether or not anything
-is actually registered as an output device, so a `cast_quilt()` call could
-report success against a Bridge instance with zero devices attached --
-confirmed live against a real machine. `cast_quilt` now checks
-`available_output_devices()` (the same query `cast --check` already used,
-factored out into `quiltwright.bridge` so both share it) before any
-playback call and raises when Bridge reports none. Casting to an ordinary
-monitor is unaffected.
+**What's verified, and what isn't.** `SetWindowCenter` survives ParaView's
+`Render()` both in the default builtin-server mode and over a genuine
+single-process client-server connection -- a separate `pvserver` reached
+with `Connect()`, confirmed against real ParaView 6.1.1 with pixels that
+actually moved, not just a property that read back unchanged. IceT
+compositing across multiple MPI ranks is untested; a distributed-render
+sweep may come back un-sheared, and the docs say so.
 
 ## Upgrading
 
-No breaking changes -- `pip install -U quiltwright` is enough. HLD video
-rendering needs the existing `video` extra: `pip install "quiltwright[video]"`.
+No breaking changes -- `pip install -U quiltwright` is enough. The ParaView
+backend needs no new extra; it only needs a `pvpython` reachable on the
+machine, per [docs/paraview.md](docs/paraview.md).
 
 ---
 

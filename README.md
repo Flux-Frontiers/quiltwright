@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Flux-Frontiers/quiltwright/v0.12.0/assets/logo_pack/quiltwright_logo_512.png" alt="Quiltwright" width="512"/>
+  <img src="https://raw.githubusercontent.com/Flux-Frontiers/quiltwright/v0.13.0/assets/logo_pack/quiltwright_logo_512.png" alt="Quiltwright" width="512"/>
 </p>
 
 [![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](LICENSE)
 [![PyPI](https://img.shields.io/pypi/v/quiltwright.svg)](https://pypi.org/project/quiltwright/)
-[![Version](https://img.shields.io/badge/version-0.12.0-blue.svg)](https://github.com/Flux-Frontiers/quiltwright/releases)
+[![Version](https://img.shields.io/badge/version-0.13.0-blue.svg)](https://github.com/Flux-Frontiers/quiltwright/releases)
 [![Tests](https://github.com/Flux-Frontiers/quiltwright/actions/workflows/tests.yml/badge.svg)](https://github.com/Flux-Frontiers/quiltwright/actions/workflows/tests.yml)
 [![Docs](https://img.shields.io/badge/docs-flux--frontiers.github.io-blue.svg)](https://flux-frontiers.github.io/quiltwright/)
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.22180300-blue.svg)](https://doi.org/10.5281/zenodo.22180300)
@@ -29,7 +29,7 @@ for geometric ML manifolds and by
 [pypdb2pov](https://github.com/Flux-Frontiers/pypdb2pov) for molecular
 structures, but neither is a prerequisite. If you can render it, you can hang it in the air.
 
-![Eric's Science Museum, the canonical POV-Ray render](https://raw.githubusercontent.com/Flux-Frontiers/quiltwright/v0.12.0/gallery/museum.png)
+![Eric's Science Museum, the canonical POV-Ray render](https://raw.githubusercontent.com/Flux-Frontiers/quiltwright/v0.13.0/gallery/museum.png)
 
 *A career in structural biophysics, arranged as exhibits: B-DNA and Z-DNA
 under bell jars, Ras and my original **DNA Under Glass** on the walls. The molecular
@@ -43,17 +43,16 @@ panels, or into 2-D video for Hololuminescent displays. A third output -- a
 
 ## Latest news
 
-**v0.12.0 (2026-09-10).** POV-Ray scenes get their own Hololuminescent
-video path: `render_pov_hld_video()` orbits a scene's own `PovCamera`
-around its `look_at` point, or sways it back and forth, without switching
-to PyVista's camera model. `spin_degrees` goes further and turns the
-subject itself in place while the camera holds still -- `bj_portrait.pov`'s
-DNA now spins on its own tipped-upright centre inside a held frame. Named
-device presets (`HLDDeviceSpec` / `HLD_DEVICES`, including a measured
-`MUSUBI` preset for Looking Glass's small consumer frame) and a companion
-`render_still_life_hld_video.py` script round out the video pipeline. On
-the fix side, `cast_quilt()` no longer reports success when Bridge has
-nowhere to actually show anything.
+**v0.13.0 (2026-09-13).** A fourth backend: `quiltwright paraview` sweeps a
+saved ParaView session into a quilt by handing the `.pvsm` back to
+ParaView's own `pvpython` and moving the render view's camera in place,
+off-axis, the same recipe every other backend uses. Nothing is exported,
+so the session's filter pipeline, color maps, opacity transfer functions
+and camera all come across intact -- the thing a `.vtm` round-trip through
+PyVista loses. `probe_paraview_state()` reads the framed camera and depth
+range before the sweep is paid for. Verified against ParaView 6.1.1 in
+builtin-server mode and over a genuine client-server connection; IceT
+compositing across multiple MPI ranks is untested and documented as such.
 
 _Full history: [CHANGELOG.md](CHANGELOG.md) and
 [releases](https://github.com/Flux-Frontiers/quiltwright/releases)._
@@ -277,7 +276,7 @@ on Zenodo.
   title   = {Quiltwright: Holographic Output for Looking Glass Displays},
   url     = {https://github.com/Flux-Frontiers/quiltwright},
   doi     = {10.5281/zenodo.22180300},
-  version = {0.12.0},
+  version = {0.13.0},
   year    = {2026}
 }
 ```
