@@ -102,10 +102,13 @@ video = ["imageio-ffmpeg>=0.4"]
 
 # Optional for the same reason `viz` is: only the molecular scenes need it,
 # and a machine that renders anything else should not carry it.  (It is
-# BSD-3-Clause, like this project -- the 0.1.0 metadata on PyPI says
-# GPL-2.0-or-later, which is a packaging error corrected in its repository
-# and fixed on PyPI by the next release, since per-release metadata is
-# immutable.)
+# BSD-3-Clause, like this project.  0.1.0 went out declaring
+# GPL-2.0-or-later, a packaging error; 0.1.1 declares BSD-3-Clause and is
+# what the floor below requires, since per-release metadata is immutable and
+# 0.1.0's cannot be corrected in place.  Both declare it through PEP 639's
+# `License-Expression` field, so the legacy `License:` field and the license
+# classifiers are empty by design -- read `license_expression` when checking,
+# not `info.license`, which reports nothing for either release.)
 molecules = ["pypdb2pov>=0.1.1"]
 
 # Dynamic Desktop HEIC encoding.  Metadata construction is stdlib; this extra
