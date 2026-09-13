@@ -16,6 +16,10 @@
 
 POVRAY  ?= povray
 PYTHON  ?= .venv/bin/python
+# The console script, not `$(PYTHON) -m quiltwright.cli.main`: main.py defines
+# the click group but has no __main__ guard, so -m imports it and exits 0
+# without running anything -- a target built that way silently renders nothing.
+QUILTWRIGHT ?= .venv/bin/quiltwright
 
 # Rendering leaves two cores for the rest of the machine, so a multi-minute
 # quilt does not make the desktop unusable.  Override to use the whole box:
@@ -206,6 +210,54 @@ quilt-museum:  $(THREAD_INI)  ## museum quilt, 16" landscape (~6 min uncapped; t
 
 quilts: quilt-bell-jar quilt-porin quilt-lambda quilt-museum  ## all four quilts
 
+# The PyVista subjects. Seconds each, not minutes -- VTK rasterises where
+# POV-Ray ray-traces -- so there is no --jobs and no preview variant.
+#
+# Two of them need a cone narrower than the 35 deg the script falls back to:
+# both are wide terrain with the horizon at true infinity, which puts far
+# disparity past the 4-5 px a panel can fuse. The values below are measured,
+# not guessed -- st-helens runs 8.0 px at 35 deg and 4.5 at 20; damavand 5.4
+# and 4.4 at 29. brain and mouse-brain are bounded volumes and stay in budget
+# on the default.
+.PHONY: quilt-brain quilt-damavand quilt-mouse-brain quilt-st-helens quilts-pyvista
+quilt-brain:  ## brain quilt, 16" landscape (PyVista)
+	$(PYTHON) scripts/render_pyvista_hologram.py brain $(EXTRA_ARGS)
+
+quilt-damavand:  ## Damavand terrain quilt, 16" landscape (PyVista, cone 29)
+	$(PYTHON) scripts/render_pyvista_hologram.py damavand --view-cone 29 $(EXTRA_ARGS)
+
+quilt-mouse-brain:  ## Allen Institute mouse brain quilt, portrait (PyVista)
+	$(PYTHON) scripts/render_pyvista_hologram.py mouse-brain $(EXTRA_ARGS)
+
+quilt-st-helens:  ## Mount St Helens quilt, 16" landscape (PyVista, cone 20)
+	$(PYTHON) scripts/render_pyvista_hologram.py st-helens --view-cone 20 $(EXTRA_ARGS)
+
+quilts-pyvista: quilt-brain quilt-damavand quilt-mouse-brain quilt-st-helens  ## all four PyVista quilts
+
+# The ParaView subjects. The sweep runs inside ParaView's own pvpython, so
+# this needs a ParaView install (`quiltwright paraview --check`) and nothing
+# from the Python environment beyond quiltwright itself.
+#
+# Run from the repository root, always: the state file locates terrain.csv by
+# a path relative to the working directory, not to itself, and a state that
+# cannot find its data renders an empty scene rather than failing. See
+# paraview-scenes/README.md. --zoom 1.62 is the measured ceiling, 5.49 px
+# against a 5.5 px threshold.
+.PHONY: quilt-mount-hood still-mount-hood
+quilt-mount-hood:  ## Mount Hood terrain quilt, portrait (ParaView)
+	$(QUILTWRIGHT) paraview paraview-scenes/mount-hood/mount-hood.pvsm \
+		--zoom 1.62 --out renders/quilts/mount-hood $(EXTRA_ARGS)
+
+# Not in STILL_TARGETS, so `make gallery` does not require a ParaView install.
+# save_quilt() appends the _qs metadata suffix every backend writes, and that
+# pattern is gitignored everywhere, so the committed gallery name is taken
+# from under it afterwards.
+still-mount-hood:  ## Mount Hood flat still -> gallery/mount_hood.png (ParaView)
+	@mkdir -p $(GALLERY)
+	$(QUILTWRIGHT) paraview paraview-scenes/mount-hood/mount-hood.pvsm \
+		--zoom 1.62 --still --out $(GALLERY)/mount_hood $(EXTRA_ARGS)
+	mv $(GALLERY)/mount_hood_qs*.png $(GALLERY)/mount_hood.png
+
 .PHONY: preview-bell-jar preview-bell-jar-holo preview-bell-jar-holo-2026 preview-bell-jar-portrait preview-porin preview-lambda preview-museum
 preview-bell-jar: $(THREAD_INI)  ## quarter-size bell jar quilt for iterating
 	$(PYTHON) scripts/render_still_life_hologram.py bell-jar --preview --jobs $(JOBS)
@@ -239,12 +291,19 @@ preview-museum: $(THREAD_INI)  ## quarter-size museum quilt
 # and variant inserts a -suffix before _qs. Override per release when the
 # "current" cut of a scene changes, e.g.
 #   make release-assets TAG=v1.2.3 RELEASE_QUILT_SUBJECTS="bell-jar porin museum"
-RELEASE_QUILT_SUBJECTS ?= bell-jar-holo-2026 porin museum
+RELEASE_QUILT_SUBJECTS ?= bell-jar-holo-2026 bell-jar-portrait porin porin-litiholo \
+                          museum lambda vitrine-hemoglobin mount-hood \
+                          brain damavand mouse-brain st-helens
 
-# Dynamic Desktop HEICs to bundle, if a release ships one. Not every release
-# does, so this is empty by default -- pass it explicitly, e.g.
-#   make release-assets TAG=v1.2.3 RELEASE_DYNAMIC_ASSETS="renders/dynamic/bj_holo_2026_appearance.heic renders/dynamic/bj_holo_2026_appearance_native_LKG-J00332.heic"
-RELEASE_DYNAMIC_ASSETS ?=
+# Dynamic Desktop HEICs and HLD videos to bundle. Both are backend output a
+# quilt cannot stand in for -- the HEICs carry the day/night appearance pair,
+# the mp4s the HLD sweep -- so they ship alongside rather than instead. Clear
+# it for a release that ships neither:
+#   make release-assets TAG=v1.2.3 RELEASE_DYNAMIC_ASSETS=
+RELEASE_DYNAMIC_ASSETS ?= renders/dynamic/bj_holo_2026_appearance.heic \
+                          renders/dynamic/bj_holo_2026_appearance_native_LKG-J00332.heic \
+                          renders/hld/bell-jar-holo-2026_hld.mp4 \
+                          renders/hld/bell-jar-portrait_hld.mp4
 
 .PHONY: release-assets clean-views help
 release-assets:  ## attach the release-bundle quilts (and any dynamic HEICs) to a GitHub release: make release-assets TAG=v1.2.3

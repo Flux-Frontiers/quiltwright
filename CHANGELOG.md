@@ -7,6 +7,68 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **`paraview-scenes/`, the ParaView counterpart to `pov-scenes/`,** with
+  `mount-hood/` as its first subject: Mount Hood as an elevation surface,
+  from the teaching set on
+  [Mike Bailey's ParaView course page](https://web.engr.oregonstate.edu/~mjb/paraview/).
+  The state ships with the data it reads, because a `.pvsm` records an
+  absolute path to every file its readers open and the one distributed
+  upstream points at a drive letter from the machine it was authored on. Two
+  camera-only changes from that original: the data path, and an 18 degree
+  downward pitch (`vtkCamera.Elevation(-18)` about the focal point) that
+  drops a near-overhead relief-map view to a raking angle the terrain reads
+  as landscape from. `make quilt-mount-hood` and `make still-mount-hood`
+  render the quilt and the gallery still at `--zoom 1.62`, the measured
+  ceiling for this framing at 5.49 px adjacent-view disparity against the
+  5.5 px `depth_report()` flags as soft.
+
+  The directory's README documents the trap that costs the most time here:
+  ParaView resolves a relative data path against the process working
+  directory rather than the state file, and a state that cannot find its
+  data does not fail -- it loads, reports a plausible camera, and renders an
+  empty scene with the color legend floating on the background. The states
+  here use repo-root-relative paths and must be rendered from the root.
+
+- **`make` targets for the PyVista and ParaView subjects**, which previously
+  had none: `quilt-brain`, `quilt-damavand`, `quilt-mouse-brain`,
+  `quilt-st-helens` (and `quilts-pyvista` for all four), plus
+  `quilt-mount-hood` and `still-mount-hood`. Two of the PyVista subjects
+  carry a view cone narrower than the 35 degrees the script falls back to:
+  both are wide terrain with the horizon at true infinity, which puts far
+  disparity past what a panel can fuse. The values are measured rather than
+  guessed -- st-helens runs 8.0 px at 35 degrees and 4.5 px at 20, damavand
+  5.4 px and 4.4 px at 29 -- and now live in the target rather than in
+  whoever last rendered them.
+
+### Changed
+
+- **The release bundle covers twelve subjects instead of three**, adding
+  `bell-jar-portrait`, `porin-litiholo`, `lambda`, `vitrine-hemoglobin`,
+  `mount-hood` and the four PyVista subjects to
+  `RELEASE_QUILT_SUBJECTS`. `RELEASE_DYNAMIC_ASSETS` is no longer empty by
+  default: it carries the Dynamic Desktop HEIC pair and both HLD videos,
+  neither of which a quilt can stand in for. Quilts stay release assets
+  rather than repository content -- rendering them locally and attaching
+  them costs no CI time and nothing in clone size.
+
+- `Makefile` invokes the `quiltwright` console script through a new
+  `QUILTWRIGHT` variable rather than `$(PYTHON) -m quiltwright.cli.main`.
+  `cli/main.py` defines the click group but has no `__main__` guard, so `-m`
+  imports it and exits 0 without dispatching, and a target written that way
+  silently renders nothing.
+
+- `.pre-commit-config.yaml` excludes `paraview-scenes/<subject>/` from every
+  hook, on the same grounds `pov-scenes/` already is: it holds upstream data
+  the README describes as unmodified, and a `.pvsm` ParaView wrote, so the
+  whitespace and end-of-file hooks would rewrite both and make the provenance
+  claim false. It also lifts the 1 MB `check-added-large-files` ceiling for
+  that data, which `pov-scenes/` has effectively had all along -- four files
+  there run from 2.0 to 4.2 MB, having been committed before the hook existed
+  and never retested, since the hook only inspects newly added files. The
+  directory's own `README.md` sits above the exclude and stays linted.
+
 ## [0.13.0] - 2026-09-13
 
 ### Added

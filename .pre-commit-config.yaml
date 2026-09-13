@@ -2,7 +2,13 @@
 # `docs/about-the-image.md` both state that Quiltwright ray-traces these files
 # unmodified. Without this exclude, the whitespace hooks rewrite 60 of them:
 # 2624 insertions, 2713 deletions, no functional change.
-exclude: '^pov-scenes/'
+#
+# Each `paraview-scenes/<subject>/` carries the same kind of content for the
+# same reason: upstream data a README claims is unmodified, plus a `.pvsm`
+# ParaView itself wrote. Reformatting either would make the provenance claim
+# false and risks a state file that no longer parses. The directory's own
+# `README.md` is ours and stays linted, so the exclude starts one level down.
+exclude: '^pov-scenes/|^paraview-scenes/[^/]+/'
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
