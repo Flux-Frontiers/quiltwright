@@ -193,6 +193,40 @@ quiltwright mesh statue.ply --view-direction 0.5 -1 0.3 --fov 20
 
 ---
 
+## `paraview`
+
+```
+quiltwright paraview [OPTIONS] [STATE]
+```
+
+Renders the ParaView state file `STATE` (a `.pvsm`) as a quilt, by sweeping
+the render view's camera inside ParaView's own `pvpython`. The session's
+pipeline, color maps and camera all come with it. The depth budget is printed
+before the sweep starts. See [paraview.md](paraview.md).
+
+| Option | Default | Effect |
+|---|---|---|
+| `--device [16-landscape\|16-portrait\|27-landscape\|27-portrait\|32-landscape\|32-portrait\|65\|go\|portrait]` | `portrait` | Target display, which sets the quilt grid, size and view cone |
+| `--fov FLOAT` | `14.0` | Vertical field of view in degrees; the camera is dollied back to keep the state's framing. `0` keeps the state's own FOV |
+| `--zoom FLOAT` | -- | Dolly factor after framing; above 1 fills more of each tile, which is what drives perceived depth |
+| `--view-cone FLOAT` | device's | Override the device's view cone in degrees |
+| `--orientation-axes` | off | Keep ParaView's corner axes widget. Hidden by default: it is pinned to the screen, so it would sit on the glass in every view |
+| `--preview` | off | Quarter-size quilt, for iterating on framing |
+| `--still` | off | One center view as a flat image, at the device's aspect, instead of a quilt |
+| `--keep-views DIR` | -- | Directory to keep the per-view PNGs and `camera.json` probe in |
+| `--out TEXT` | state name | Output stem; defaults to the state name under `renders/quilts/` (or `gallery/` with `--still`) |
+| `--cast` | off | Send the result to Looking Glass Bridge |
+| `--check` | off | Report where `pvpython` was found and exit, rendering nothing |
+
+```bash
+quiltwright paraview session.pvsm
+quiltwright paraview session.pvsm --still
+quiltwright paraview session.pvsm --device 27-portrait --zoom 1.4 --cast
+quiltwright paraview --check
+```
+
+---
+
 ## `probe`
 
 ```
