@@ -349,3 +349,79 @@ def test_cli_missing_paraview_is_a_message_not_a_traceback(monkeypatch):
     assert result.exit_code != 0
     assert "brew install --cask paraview" in result.output
     assert "Traceback" not in result.output
+
+
+@pytest.fixture
+def paraview_cli(monkeypatch, tmp_path):
+    """Stand in for pvpython: a fixed camera in, the rendered spec recorded out."""
+    from types import SimpleNamespace
+
+    seen: dict = {}
+    camera = SimpleNamespace(
+        view="RenderView1", position=(0.0, 0.0, 1.0), focal_distance=1.0, fov=14.0
+    )
+    monkeypatch.setattr(
+        "quiltwright.paraview.probe_paraview_state", lambda state, spec, **kw: camera
+    )
+    monkeypatch.setattr("quiltwright.paraview.depth_report", lambda camera, spec: "")
+
+    def fake_render(state, spec, **kwargs):
+        seen["spec"] = spec
+        return np.zeros((4, 4, 3), dtype="uint8")
+
+    monkeypatch.setattr("quiltwright.paraview.render_paraview_quilt", fake_render)
+    monkeypatch.setattr(
+        "quiltwright.cli.cmd_paraview.save_quilt", lambda quilt, stem, spec: tmp_path / "out.png"
+    )
+    state = tmp_path / "session.pvsm"
+    state.write_text("")
+    seen["state"] = state
+    seen["out"] = str(tmp_path / "out")
+    return seen
+
+
+def test_cli_defaults_to_the_landscape_panel(paraview_cli):
+    from click.testing import CliRunner
+
+    from quiltwright.cli.main import cli
+    from quiltwright.quilt import QUILT_PRESETS
+
+    result = CliRunner().invoke(
+        cli, ["paraview", str(paraview_cli["state"]), "--out", paraview_cli["out"]]
+    )
+    assert result.exit_code == 0, result.output
+    landscape = QUILT_PRESETS["16-landscape"]
+    spec = paraview_cli["spec"]
+    assert (spec.columns, spec.rows, spec.aspect) == (
+        landscape.columns,
+        landscape.rows,
+        landscape.aspect,
+    )
+
+
+def test_cli_caps_the_landscape_native_cone(paraview_cli):
+    """Uncapped, 16-landscape's 50 deg cone put Mount Hood at 10.4 px -- ghosting."""
+    from click.testing import CliRunner
+
+    from quiltwright.cli.main import cli
+
+    result = CliRunner().invoke(
+        cli, ["paraview", str(paraview_cli["state"]), "--out", paraview_cli["out"]]
+    )
+    assert result.exit_code == 0, result.output
+    assert paraview_cli["spec"].view_cone == 35.0
+    assert "50 deg native -> 35" in result.output
+
+
+def test_cli_view_cone_overrides_the_cap(paraview_cli):
+    from click.testing import CliRunner
+
+    from quiltwright.cli.main import cli
+
+    result = CliRunner().invoke(
+        cli,
+        ["paraview", str(paraview_cli["state"]), "--view-cone", "50", "--out", paraview_cli["out"]],
+    )
+    assert result.exit_code == 0, result.output
+    assert paraview_cli["spec"].view_cone == 50.0
+    assert "native ->" not in result.output

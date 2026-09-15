@@ -119,7 +119,7 @@ def bridge(monkeypatch) -> FakeBridge:
     fake = FakeBridge()
     monkeypatch.setattr(urllib.request, "urlopen", fake)
     monkeypatch.setattr(cmd_bridge, "_port_open", lambda *a, **k: True)
-    monkeypatch.setattr(cmd_bridge, "_bridge_pids", lambda: [111])
+    monkeypatch.setattr(cmd_bridge, "_bridge_processes", lambda: ([111], []))
     return fake
 
 
@@ -349,7 +349,68 @@ class TestWallpaper:
 # ---------------------------------------------------------------------------
 
 
+#: `ps -Ao pid=,comm=` as macOS prints it on a machine running Bridge 2.6.3,
+#: with the neighbours that the old command-line substring match caught or
+#: nearly caught.
+PS_COMM_OUTPUT = """\
+  958 /System/Library/PrivateFrameworks/XprotectFramework.framework/Versions/A/XPCServices/XProtectBridgeService.xpc/Contents/MacOS/XProtectBridgeService
+ 1615 /Applications/Looking Glass Bridge 2.6.3.app/Contents/MacOS/crashpad_handler
+ 5241 /Applications/Visual Studio Code.app/Contents/Frameworks/Electron Framework.framework/Helpers/chrome_crashpad_handler
+23105 /bin/bash
+97746 /Applications/Looking Glass Bridge 2.6.3.app/Contents/MacOS/LookingGlassBridge
+97748 /Applications/Looking Glass Bridge 2.6.3.app/Contents/MacOS/crashpad_handler
+"""
+
+
+class TestBridgeProcesses:
+    def test_separates_bridge_from_its_crash_handlers(self):
+        bridge, handlers = cmd_bridge._classify_processes(PS_COMM_OUTPUT)
+        assert bridge == [97746]
+        assert handlers == [1615, 97748]
+
+    def test_other_crash_handlers_and_bridge_named_services_are_not_bridge(self):
+        bridge, handlers = cmd_bridge._classify_processes(PS_COMM_OUTPUT)
+        assert 958 not in bridge + handlers  # XProtectBridgeService
+        assert 5241 not in bridge + handlers  # VS Code's chrome_crashpad_handler
+        assert 23105 not in bridge + handlers  # a shell
+
+    def test_reads_the_executable_path_not_the_command_line(self, monkeypatch):
+        """The old match searched every argument, so reset could kill a shell.
+
+        A process whose command line merely *mentioned* LookingGlassBridge --
+        a grep, a `tail -f` on its log, the shell running either -- was
+        counted by `status` and sent SIGTERM then SIGKILL by `reset`. `comm`
+        is the executable path alone, so no argument text can reach the match.
+        """
+        seen = {}
+
+        class Done:
+            stdout = b""
+
+        def fake_run(argv, **kwargs):
+            seen["argv"] = argv
+            return Done()
+
+        monkeypatch.setattr(cmd_bridge.subprocess, "run", fake_run)
+        cmd_bridge._bridge_processes()
+        fields = " ".join(seen["argv"])
+        assert "comm" in fields
+        assert "command" not in fields and "args" not in fields
+
+    def test_reset_still_kills_the_crash_handlers(self, monkeypatch):
+        monkeypatch.setattr(cmd_bridge, "_bridge_processes", lambda: ([97746], [97748]))
+        assert sorted(cmd_bridge._bridge_pids()) == [97746, 97748]
+
+
 class TestBridgeStatus:
+    def test_orphaned_crash_handlers_are_not_a_running_bridge(self, runner, monkeypatch):
+        """What `status` showed as '3 running' while Bridge itself was gone."""
+        monkeypatch.setattr(cmd_bridge, "_port_open", lambda *a, **k: False)
+        monkeypatch.setattr(cmd_bridge, "_bridge_processes", lambda: ([], [1615, 1626]))
+        result = runner.invoke(cli, ["bridge", "status"])
+        assert "no Bridge process" in result.output
+        assert "orphaned" in result.output
+
     def test_healthy_reports_the_panel_and_exits_zero(self, runner, bridge):
         result = runner.invoke(cli, ["bridge", "status"])
         assert result.exit_code == 0, result.output
@@ -358,7 +419,7 @@ class TestBridgeStatus:
 
     def test_closed_port_is_not_running(self, runner, monkeypatch):
         monkeypatch.setattr(cmd_bridge, "_port_open", lambda *a, **k: False)
-        monkeypatch.setattr(cmd_bridge, "_bridge_pids", lambda: [])
+        monkeypatch.setattr(cmd_bridge, "_bridge_processes", lambda: ([], []))
         result = runner.invoke(cli, ["bridge", "status"])
         assert result.exit_code == 1
         assert "NOT RUNNING" in result.output
@@ -368,7 +429,7 @@ class TestBridgeStatus:
         fake = FakeBridge(hang={"enter_orchestration"})
         monkeypatch.setattr(urllib.request, "urlopen", fake)
         monkeypatch.setattr(cmd_bridge, "_port_open", lambda *a, **k: True)
-        monkeypatch.setattr(cmd_bridge, "_bridge_pids", lambda: [111])
+        monkeypatch.setattr(cmd_bridge, "_bridge_processes", lambda: ([111], []))
         result = runner.invoke(cli, ["bridge", "status"])
         assert result.exit_code == 1
         assert "WEDGED" in result.output
@@ -377,7 +438,7 @@ class TestBridgeStatus:
     def test_answering_without_a_token_is_unusable(self, runner, monkeypatch):
         monkeypatch.setattr(urllib.request, "urlopen", FakeBridge(token=""))
         monkeypatch.setattr(cmd_bridge, "_port_open", lambda *a, **k: True)
-        monkeypatch.setattr(cmd_bridge, "_bridge_pids", lambda: [111])
+        monkeypatch.setattr(cmd_bridge, "_bridge_processes", lambda: ([111], []))
         result = runner.invoke(cli, ["bridge", "status"])
         assert result.exit_code == 1
         assert "UNUSABLE" in result.output
@@ -398,7 +459,7 @@ class TestBridgeStatus:
         }
         monkeypatch.setattr(urllib.request, "urlopen", FakeBridge(devices=only_monitor))
         monkeypatch.setattr(cmd_bridge, "_port_open", lambda *a, **k: True)
-        monkeypatch.setattr(cmd_bridge, "_bridge_pids", lambda: [111])
+        monkeypatch.setattr(cmd_bridge, "_bridge_processes", lambda: ([111], []))
         result = runner.invoke(cli, ["bridge", "status"])
         assert result.exit_code == 1
         assert "NO PANEL" in result.output
@@ -663,6 +724,23 @@ class TestMesh:
         source = tmp_path / name
         source.write_text("")
         return source
+
+    def test_landscape_native_cone_is_capped(self, runner, tmp_path, stub):
+        """Same cap the render scripts and `paraview` apply: 50 deg overruns the budget."""
+        result = runner.invoke(
+            cli, ["mesh", str(self._source(tmp_path)), "--device", "16-landscape"]
+        )
+        assert result.exit_code == 0, result.output
+        assert stub["spec"].view_cone == 35.0
+        assert "50 deg native -> 35" in result.output
+
+    def test_view_cone_overrides_the_cap(self, runner, tmp_path, stub):
+        result = runner.invoke(
+            cli,
+            ["mesh", str(self._source(tmp_path)), "--device", "16-landscape", "--view-cone", "50"],
+        )
+        assert result.exit_code == 0, result.output
+        assert stub["spec"].view_cone == 50.0
 
     def test_a_blend_is_refused_with_the_reason(self, runner, tmp_path):
         """A .blend carries its own camera, so there is nothing to frame --

@@ -102,9 +102,10 @@ def _describe_heads(bridge_url: str, timeout: float) -> list[tuple[str, str, str
 )
 @click.option(
     "--playlist",
-    default="quiltwright",
-    show_default=True,
-    help="Bridge playlist name to create or replace.",
+    default=None,
+    help="Bridge playlist name. Defaults to a fresh name per cast, which is what "
+    "replaces the picture: reusing a name Bridge already holds adds to that "
+    "playlist, and the panel keeps showing the first quilt.",
 )
 @click.option(
     "--bridge-url",
@@ -124,7 +125,7 @@ def cast_cmd(
     grid_str: str | None,
     aspect: float | None,
     head: int,
-    playlist: str,
+    playlist: str | None,
     bridge_url: str | None,
     check: bool,
 ) -> None:
@@ -204,6 +205,7 @@ def cast_cmd(
 
     click.echo(
         f"{quilt.name}  ({columns}x{rows} views, aspect {aspect:g})  ->  "
-        f"playlist {playlist!r}" + (f", head {head}" if head >= 0 else ", Bridge's default head")
+        + (f"playlist {playlist!r}" if playlist else "a fresh playlist")
+        + (f", head {head}" if head >= 0 else ", Bridge's default head")
     )
     click.echo("Glass still black? Quit Looking Glass Studio, then `cast --check`.")

@@ -138,7 +138,7 @@ exclusively, and Bridge will report success while the glass stays black.
 | `--grid COLSxROWS` | from filename | Quilt tiling grid, explicit (e.g. `8x6`); defaults to parsing the `_qs<cols>x<rows>a<aspect>` filename suffix |
 | `--aspect FLOAT` | from filename | Tile aspect, overriding the filename's. Rarely needed -- a value disagreeing with the panel is letterboxed by it |
 | `--head INTEGER` | `-1` | Bridge head index to play on. `-1` lets Bridge choose, which is right until it picks an ordinary monitor; run `--check` for the list |
-| `--playlist TEXT` | `quiltwright` | Bridge playlist name to create or replace |
+| `--playlist TEXT` | a fresh name per cast | Bridge playlist name. Leave it unset: a fresh name is what replaces the picture. Reusing a name Bridge already holds adds to that playlist, and the panel keeps showing the first quilt |
 | `--bridge-url TEXT` | `http://localhost:33334` | Bridge HTTP API base URL |
 | `--check` | off | List the output devices Bridge can see and exit without casting. The first thing to run when the glass stays black |
 
@@ -172,6 +172,7 @@ all. See [mesh-import.md](mesh-import.md).
 | Option | Default | Effect |
 |---|---|---|
 | `--device [16-landscape\|16-portrait\|27-landscape\|27-portrait\|32-landscape\|32-portrait\|65\|go\|portrait]` | `portrait` | Target display, which sets the quilt grid, size and view cone |
+| `--view-cone FLOAT` | device's, capped at 35 | View cone in degrees. Defaults to the device's own, capped at 35 so a wide panel does not overrun the disparity budget: `16-landscape` declares 50. An explicit value is used as given |
 | `--lighting TEXT` | `studio` | Light rig for a mesh that carries none: one of `soft`, `studio`, `sky`, or a path to an `.hdr`/`.exr` environment map |
 | `--fov FLOAT` | `14.0` | Vertical field of view in degrees. Object-centric, so narrow |
 | `--view-direction X Y Z` | `0.0 -1.0 0.0` | Direction from the object's center to the eye (+z is up) |
@@ -206,10 +207,10 @@ before the sweep starts. See [paraview.md](paraview.md).
 
 | Option | Default | Effect |
 |---|---|---|
-| `--device [16-landscape\|16-portrait\|27-landscape\|27-portrait\|32-landscape\|32-portrait\|65\|go\|portrait]` | `portrait` | Target display, which sets the quilt grid, size and view cone |
+| `--device [16-landscape\|16-portrait\|27-landscape\|27-portrait\|32-landscape\|32-portrait\|65\|go\|portrait]` | `16-landscape` | Target display, which sets the quilt grid, size and view cone |
 | `--fov FLOAT` | `14.0` | Vertical field of view in degrees; the camera is dollied back to keep the state's framing. `0` keeps the state's own FOV |
 | `--zoom FLOAT` | -- | Dolly factor after framing; above 1 fills more of each tile, which is what drives perceived depth |
-| `--view-cone FLOAT` | device's | Override the device's view cone in degrees |
+| `--view-cone FLOAT` | device's, capped at 35 | View cone in degrees. Defaults to the device's own, capped at 35 so a wide panel does not overrun the disparity budget: `16-landscape` declares 50. An explicit value is used as given |
 | `--orientation-axes` | off | Keep ParaView's corner axes widget. Hidden by default: it is pinned to the screen, so it would sit on the glass in every view |
 | `--preview` | off | Quarter-size quilt, for iterating on framing |
 | `--still` | off | One center view as a flat image, at the device's aspect, instead of a quilt |

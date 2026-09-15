@@ -48,10 +48,10 @@ quiltwright paraview --check
 
 | Flag | What it does |
 |---|---|
-| `--device` | Target display preset (`portrait` default; `27-portrait`, `go`, ...) |
+| `--device` | Target display preset (`16-landscape` default; `portrait`, `27-portrait`, `go`, ...) |
 | `--fov` | Vertical field of view (14 default). The camera is dollied back so the state's framing is kept; `0` keeps the state's own FOV and distance |
 | `--zoom` | Dolly factor after framing. Values above 1 fill more of each tile, which is what drives perceived depth |
-| `--view-cone` | Override the device's view cone in degrees |
+| `--view-cone` | View cone in degrees. Defaults to the device's own, capped at 35: `16-landscape` declares 50, which overruns the disparity budget. Narrowing it lets `--zoom` go higher at the same depth |
 | `--orientation-axes` | Keep ParaView's corner axes widget. Hidden by default: it is pinned to the screen, so it would sit on the glass in every view |
 | `--still` | One center view as a flat image at the device's aspect, instead of a quilt |
 | `--preview` | Quarter-size quilt, for iterating |
