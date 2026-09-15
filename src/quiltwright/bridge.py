@@ -20,6 +20,7 @@ from __future__ import annotations
 import json
 import urllib.request
 import uuid
+from collections.abc import Sequence
 from pathlib import Path
 
 import numpy as np
@@ -126,28 +127,67 @@ def cast_quilt(
     """Show a saved quilt on the connected Looking Glass via Bridge.
 
     Requires `Looking Glass Bridge <https://lookingglassfactory.com/software/looking-glass-bridge>`_
-    (>= 2.2) running on the machine the display is plugged into.  Follows
-    Bridge's orchestration sequence: enter orchestration, show the display
-    window, create a playlist holding the quilt, and play it.
-
-    Every call plays a playlist of its own. ``instance_playlist`` on a name
-    Bridge already holds does not start that playlist over: it hands back the
-    existing one, ``insert_playlist_entry`` adds the new quilt to it, and
-    ``play_playlist`` carries on showing what was already playing. Reusing
-    one name therefore makes every cast after the first a silent no-op --
-    each returns ``Completion`` while the panel keeps the first quilt, which
-    was confirmed on a real panel under Bridge 2.6.3. Clearing the old
-    playlist first is not available: ``delete_playlist`` hangs Bridge (see
-    :func:`stop_quilt`). A fresh name per cast is what reliably replaces the
-    picture.
+    (>= 2.2) running on the machine the display is plugged into.  A one-quilt
+    :func:`cast_playlist`: see it for the orchestration sequence, for why
+    every call plays a playlist of its own, and for the full parameters.
 
     :param quilt_path: Path to a quilt PNG on the *Bridge host's* filesystem.
     :param spec: Quilt specification (tiling + aspect sent to Bridge).
     :param bridge_url: Base URL of the Bridge HTTP API.
-    :param playlist: Bridge playlist name. ``None`` (the default) generates a
-        unique ``quiltwright-<id>`` name, so the cast replaces whatever is
-        showing. Passing a name Bridge already holds adds to that playlist
-        rather than replacing it, for the reason above.
+    :param playlist: Bridge playlist name; ``None`` generates a fresh one, so
+        the cast replaces whatever is showing.
+    :param timeout: HTTP timeout in seconds per request.
+    :param head_index: Which Bridge output device to play on; ``-1`` lets
+        Bridge choose.
+    :raises RuntimeError: If Bridge answers but reports zero output devices.
+    :return: Decoded JSON response of the final ``play_playlist`` call.
+    """
+    return cast_playlist(
+        [(quilt_path, spec)],
+        bridge_url=bridge_url,
+        playlist=playlist,
+        timeout=timeout,
+        head_index=head_index,
+    )
+
+
+def cast_playlist(
+    entries: Sequence[tuple[str | Path, QuiltSpec]],
+    *,
+    bridge_url: str = BRIDGE_URL,
+    playlist: str | None = None,
+    timeout: float = 10.0,
+    head_index: int = -1,
+    duration_ms: int = 20000,
+    loop: bool = True,
+) -> dict:
+    """Play several saved quilts on the connected Looking Glass as one playlist.
+
+    Follows Bridge's orchestration sequence: enter orchestration, show the
+    display window, create a playlist, insert every quilt into it, and only
+    then play it.  The order is the contract.  A playlist built completely
+    before ``play_playlist`` advances through its entries and loops -- verified
+    on a Looking Glass Go under Bridge 2.6.3, with 11x6 and 8x6 quilts mixed in
+    one list.  Entries inserted into a playlist that is *already* playing do
+    not take effect.
+
+    Every call plays a playlist of its own.  ``instance_playlist`` on a name
+    Bridge already holds does not start that playlist over: it hands back the
+    existing one, ``insert_playlist_entry`` adds to it, and ``play_playlist``
+    carries on showing what was already playing.  Reusing one name therefore
+    made every cast after the first a silent no-op -- each returned
+    ``Completion`` while the panel kept the first quilt, confirmed on a real
+    panel.  Clearing the old playlist first is not available:
+    ``delete_playlist`` hangs Bridge (see :func:`stop_quilt`).  A fresh name
+    per call is what reliably replaces the picture.
+
+    :param entries: ``(path, spec)`` pairs, in playing order.  Each path is on
+        the *Bridge host's* filesystem; each spec carries that quilt's own
+        tiling and aspect, so grids may differ between entries.
+    :param bridge_url: Base URL of the Bridge HTTP API.
+    :param playlist: Bridge playlist name.  ``None`` (the default) generates a
+        unique ``quiltwright-<id>`` name.  Passing a name Bridge already holds
+        adds to that playlist rather than replacing it, for the reason above.
     :param timeout: HTTP timeout in seconds per request.
     :param head_index: Which Bridge output device to play on.  ``-1`` lets
         Bridge choose, which is right on a single-panel machine.  Bridge
@@ -156,6 +196,11 @@ def cast_quilt(
         calibration -- so on a multi-display box the default can land the
         window somewhere that is not the glass.  ``available_output_devices``
         lists the indices; ``quiltwright cast --check`` prints them.
+    :param duration_ms: How long each entry shows before the next, in
+        milliseconds.
+    :param loop: Start over after the last entry.
+    :raises ValueError: If *entries* is empty -- checked before Bridge is
+        contacted, so nothing on the panel changes.
     :raises RuntimeError: If Bridge answers but reports zero output devices
         -- a state its own orchestration calls do not otherwise fail on.
         Casting to an ordinary monitor (no panel, but at least one device)
@@ -163,6 +208,8 @@ def cast_quilt(
         at all.
     :return: Decoded JSON response of the final ``play_playlist`` call.
     """
+    if not entries:
+        raise ValueError("a playlist needs at least one quilt")
     if playlist is None:
         playlist = f"quiltwright-{uuid.uuid4().hex[:8]}"
     token = enter_orchestration(bridge_url, timeout)
@@ -189,26 +236,27 @@ def cast_quilt(
     bridge_post(
         bridge_url,
         "instance_playlist",
-        {"orchestration": token, "name": playlist, "loop": True},
+        {"orchestration": token, "name": playlist, "loop": loop},
         timeout,
     )
-    bridge_post(
-        bridge_url,
-        "insert_playlist_entry",
-        {
-            "orchestration": token,
-            "name": playlist,
-            "index": 0,
-            "uri": str(Path(quilt_path).resolve()),
-            "rows": spec.rows,
-            "cols": spec.columns,
-            "aspect": spec.aspect,
-            "view_count": spec.n_views,
-            "durationMS": 20000,
-            "isRGBD": 0,
-        },
-        timeout,
-    )
+    for index, (quilt_path, spec) in enumerate(entries):
+        bridge_post(
+            bridge_url,
+            "insert_playlist_entry",
+            {
+                "orchestration": token,
+                "name": playlist,
+                "index": index,
+                "uri": str(Path(quilt_path).resolve()),
+                "rows": spec.rows,
+                "cols": spec.columns,
+                "aspect": spec.aspect,
+                "view_count": spec.n_views,
+                "durationMS": duration_ms,
+                "isRGBD": 0,
+            },
+            timeout,
+        )
     return bridge_post(
         bridge_url,
         "play_playlist",

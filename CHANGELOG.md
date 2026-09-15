@@ -50,6 +50,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   `quiltwright mesh` use it. The POV-Ray and PyVista render scripts still
   carry their own `STANDARD_VIEW_CONE = 35.0`.
 
+- **`quiltwright playlist` and `quiltwright.bridge.cast_playlist()`**: several
+  quilts as one playlist that advances on a timer and loops.  The playlist is
+  built completely before `play_playlist`, which is what makes it advance --
+  verified on a Looking Glass Go under Bridge 2.6.3 with 11x6 and 8x6 quilts
+  mixed in one list, where quilts inserted into a playlist already playing
+  never show.  Each entry carries its own spec, so grids may differ.  The
+  command takes quilt files in playing order or folders: a folder with a
+  `playlist.json` is read as a Looking Glass Studio 1.x playlist and plays in
+  that order, any other folder plays its quilt files by name.  Tiling comes
+  from each file's `_qs` suffix, and a file without one is refused by name.
+  `--duration` is in seconds, with `--head` and `--once`.  `cast_quilt()` is
+  now a one-entry `cast_playlist()`; its behavior is unchanged.
+
+- **Two POV-Ray scenes composed for the Looking Glass Go**, 9:16, registered
+  as still-life subjects `bdna-go` and `dna-ribbon-go`.  `bell_jar/bdna_go.pov`
+  is the space-filling B-DNA from DNA Under Glass (`bna7_full_obj`, 758 atoms)
+  stood upright and out of the jar -- upright it is a 0.56 frame, the Go's own
+  9:16 to within a few percent.  `museum/dna_ribbon_go.pov` is the museum
+  alcove's metallic DNA ribbon (`obj_DNA_Cartoon`, 3450 smooth triangles) on
+  its own, with `no_image` softboxes supplying the reflections a silver
+  surface needs against a dark ground.  Both are framed at a 26-degree lens
+  and rendered at the Go's native 54-degree cone, since a dark ground has
+  nothing to ghost: 1.46 px and 2.07 px of adjacent-view disparity.  An
+  earlier ribbon cut hung it between the museum's dishes in a crystal column;
+  on the panel the glass and dishes read as a flat capsule and took the depth
+  budget, so the ribbon stands alone.
+
+- **`make` targets for a Looking Glass Go set**: `quilt-bdna-go`,
+  `quilt-dna-ribbon-go`, `quilt-f1atpase-go`, `quilt-mount-hood-go`,
+  `quilt-brain-go`, `quilts-go` for all of them with `quilt-bell-jar-portrait`,
+  and `playlist-go` to play the set (`PANEL_HEAD=<index>`).
+
 ### Changed
 
 - **The release bundle covers thirteen subjects instead of three**, adding
@@ -106,6 +138,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - **`quiltwright mesh` gains `--view-cone`**, the override its newly capped
   default needs. Its default device stays `portrait`.
 
+- **The `go` preset records the Go's native 54-degree view cone**, the
+  calibration Bridge reports for `go_p` (LKG-E14851), instead of the
+  35-degree `QuiltSpec` default it carried.  Renders are unchanged by default,
+  since the cap narrows 54 to 35 exactly as the default did, but a render at
+  the native cone is now possible and the cap says when it applies.
+
 ### Fixed
 
 - **The DOI badge, `CITATION.cff` and the README BibTeX cited v0.10.0, not
@@ -149,6 +187,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   scripts have always capped at 35 degrees; these two commands did not. It
   never showed on portrait, whose presets are all 35 degrees natively. Both
   now cap by default and print the narrowing, with `--view-cone` to override.
+
+- **`render_vitrine.py`, `render_dna_helix_hologram.py` and
+  `render_cartoon_hologram.py` used a preset's native view cone uncapped**,
+  the same bug fixed in `quiltwright paraview` and `mesh`, which the go
+  preset's move to 54 degrees would have made worse: `--device go` would have
+  rendered at 54 where it had rendered at 35.  All three now cap through
+  `resolve_view_cone()` and gain `--view-cone`.  For F1-ATPase on the Go the cap
+  lands at 2.46 px, inside the vitrine room's 67.4-degree legal cone.
 
 ## [0.13.0] - 2026-09-13
 

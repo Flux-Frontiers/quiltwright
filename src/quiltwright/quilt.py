@@ -168,7 +168,12 @@ class QuiltSpec:
 #: official docs: https://lfdocs.lookingglassfactory.com/keyconcepts/quilts
 QUILT_PRESETS: dict[str, QuiltSpec] = {
     "portrait": QuiltSpec(columns=8, rows=6, quilt_width=3360, quilt_height=3360, aspect=0.75),
-    "go": QuiltSpec(columns=11, rows=6, quilt_width=4092, quilt_height=4092, aspect=0.5625),
+    # Looking Glass Go (hardwareVersion "go_p"), verified against the
+    # defaultQuilt and calibration Bridge reports for LKG-E14851.  Its native
+    # view cone is 54 degrees, the widest panel here.
+    "go": QuiltSpec(
+        columns=11, rows=6, quilt_width=4092, quilt_height=4092, aspect=0.5625, view_cone=54.0
+    ),
     # Gen3 16" Landscape (hardwareVersion "16_gen3_l"), verified against the
     # defaultQuilt Bridge reports for LKG-J00332.  Its native view cone is 50
     # degrees, wider than the 35-degree QuiltSpec default.

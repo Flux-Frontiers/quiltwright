@@ -276,6 +276,40 @@ still-mount-hood:  ## Mount Hood flat still -> gallery/mount_hood.png (ParaView,
 		--device portrait --zoom 1.62 --still --out $(GALLERY)/mount_hood $(EXTRA_ARGS)
 	mv $(GALLERY)/mount_hood_qs*.png $(GALLERY)/mount_hood.png
 
+# The Looking Glass Go set: 9:16, 11x6, 66 views.  The Go's native cone is 54
+# deg, the calibration Bridge reports.  The two DNA scenes are composed for it
+# and render at that cone -- on a dark ground there is nothing to ghost, and
+# the 35-degree cap would drop a third of their parallax.  Everything else
+# takes the cap.  bell-jar-portrait is already composed 9:16 and plays on the
+# Go as quilt-bell-jar-portrait renders it.
+.PHONY: quilt-bdna-go quilt-dna-ribbon-go quilt-f1atpase-go quilt-mount-hood-go quilt-brain-go quilts-go playlist-go
+quilt-bdna-go:  $(THREAD_INI)  ## B-DNA from DNA Under Glass, Looking Glass Go (cone 54)
+	$(PYTHON) scripts/render_still_life_hologram.py bdna-go --device go --view-cone 54 --jobs $(JOBS) --report $(EXTRA_ARGS)
+
+quilt-dna-ribbon-go:  $(THREAD_INI)  ## the museum's metallic DNA ribbon, Looking Glass Go (cone 54)
+	$(PYTHON) scripts/render_still_life_hologram.py dna-ribbon-go --device go --view-cone 54 --jobs $(JOBS) --report $(EXTRA_ARGS)
+
+quilt-f1atpase-go:  $(THREAD_INI)  ## F1-ATPase exhibit, Looking Glass Go
+	$(PYTHON) scripts/render_vitrine.py f1atpase --device go --jobs $(JOBS) $(EXTRA_ARGS)
+
+quilt-mount-hood-go:  ## Mount Hood terrain, Looking Glass Go (ParaView)
+	$(QUILTWRIGHT) paraview paraview-scenes/mount-hood/mount-hood.pvsm \
+		--device go --zoom 1.62 --out renders/quilts/mount-hood-go $(EXTRA_ARGS)
+
+quilt-brain-go:  ## brain, Looking Glass Go (PyVista)
+	$(PYTHON) scripts/render_pyvista_hologram.py brain --device go --out renders/quilts/brain-go $(EXTRA_ARGS)
+
+quilts-go: quilt-bdna-go quilt-dna-ribbon-go quilt-bell-jar-portrait quilt-f1atpase-go quilt-mount-hood-go quilt-brain-go  ## the whole Go set
+
+# The Go set in playing order.  PANEL_HEAD is the Bridge head the Go is on --
+# `quiltwright cast --check` lists them; -1 lets Bridge choose, which is right
+# with no other display attached.
+GO_QUILTS  := bdna-go dna-ribbon-go bell-jar-portrait vitrine-f1atpase mount-hood-go brain-go
+PANEL_HEAD ?= -1
+playlist-go:  ## play the Go set as one looping playlist (PANEL_HEAD=<index>)
+	$(QUILTWRIGHT) playlist $(foreach s,$(GO_QUILTS),renders/quilts/$(s)_qs11x6a0.5625.png) \
+		--head $(PANEL_HEAD) $(EXTRA_ARGS)
+
 .PHONY: preview-bell-jar preview-bell-jar-holo preview-bell-jar-holo-2026 preview-bell-jar-portrait preview-porin preview-lambda preview-museum
 preview-bell-jar: $(THREAD_INI)  ## quarter-size bell jar quilt for iterating
 	$(PYTHON) scripts/render_still_life_hologram.py bell-jar --preview --jobs $(JOBS)

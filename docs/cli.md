@@ -228,6 +228,51 @@ quiltwright paraview --check
 
 ---
 
+## `playlist`
+
+```
+quiltwright playlist [OPTIONS] SOURCES...
+```
+
+Plays several quilts on the connected Looking Glass as one playlist that
+advances on a timer and loops. `SOURCES` are quilt files, played in the
+order given, or folders. A folder holding a `playlist.json` is read the way
+Looking Glass Studio 1.x keeps a playlist -- a folder of media and a list of
+`{"filename": ...}` entries -- and plays in that order, so a Studio playlist
+folder plays unchanged. Any other folder plays its quilt files by name.
+
+Each quilt's tiling comes from its own `_qs<cols>x<rows>a<aspect>` filename
+suffix, so one playlist can mix grids. A file without the suffix is refused
+by name rather than guessed at.
+
+The whole playlist is built before it starts playing, which is what makes it
+advance: quilts inserted into a playlist that is already playing never show.
+Each run plays a fresh playlist, so it replaces whatever is on the panel.
+
+| Option | Default | Effect |
+|---|---|---|
+| `--duration FLOAT` | `20.0` | Seconds each quilt shows before the next |
+| `--head INTEGER` | `-1` | Bridge head index to play on. `-1` lets Bridge choose; `quiltwright cast --check` lists them |
+| `--once` | off | Play through once instead of looping |
+| `--playlist TEXT` | a fresh name | Bridge playlist name. Leave it unset: a fresh name is what replaces the picture |
+| `--bridge-url TEXT` | `http://localhost:33334` | Bridge HTTP API base URL |
+
+```bash
+# Two quilts, 10 seconds each, on the panel at head 1
+quiltwright playlist bdna-go_qs11x6a0.5625.png bell-jar-portrait_qs11x6a0.5625.png --duration 10 --head 1
+
+# A Looking Glass Studio playlist folder, in its own order
+quiltwright playlist ~/Documents/HoloPlayStudio/"EGS Science Go"
+
+# Every quilt in a folder, by name, once through
+quiltwright playlist renders/quilts/go --once
+
+# The Looking Glass Go set, from the Makefile
+make playlist-go PANEL_HEAD=1
+```
+
+---
+
 ## `probe`
 
 ```

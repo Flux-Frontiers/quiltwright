@@ -143,6 +143,23 @@ raising, so a Bridge that isn't running never costs you the render. Saved
 filenames carry the `_qs<cols>x<rows>a<aspect>` suffix that Looking Glass Studio
 and Bridge parse.
 
+Several quilts play as one playlist that advances on a timer and loops. Each
+entry carries its own spec, so grids can differ:
+
+```python
+from quiltwright import QUILT_PRESETS, cast_playlist
+
+go = QUILT_PRESETS["go"]
+cast_playlist(
+    [("bdna-go_qs11x6a0.5625.png", go), ("bell-jar-portrait_qs11x6a0.5625.png", go)],
+    duration_ms=10_000,
+    head_index=1,
+)
+```
+
+From the shell, `quiltwright playlist` does the same and reads each quilt's
+tiling from its filename; see [cli.md](cli.md#playlist).
+
 ---
 
 ## Send it to a hologram printer (in development)

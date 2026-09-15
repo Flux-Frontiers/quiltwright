@@ -224,6 +224,47 @@ SCENES = {
         far=89.0,
         backdrop="sea and sky",
     ),
+    "bdna-go": StillLife(
+        scene="bell_jar/bdna_go.pov",
+        # The duplex from DNA Under Glass, out of the jar and stood upright,
+        # composed 9:16 for the Go.  location <0,12,-113>, look_at origin,
+        # |direction| 2.165746 with a unit `up`: a 26-degree vertical lens,
+        # tight for depth -- see the scene's note.  Render with --view-cone 54:
+        # the dark ground has nothing to ghost, so the Go's native cone is
+        # safe here, and the 35-degree cap would throw away a third of the
+        # parallax (1.44 px at 54 against ~0.9 at 35).
+        eye=(0.0, 12.0, -113.0),
+        aim=(0.0, 0.0, 0.0),
+        fov=26.0,
+        # As swept.  The nearest atoms appear at 101.7 and 95% of what can
+        # occlude is in by 115.4 -- well short of the duplex's back face at
+        # ~130, because a space-filling model hides its own far side.  The
+        # focal plane lands at 108.1, just in front of the molecule's centre.
+        near=101.7,
+        far=115.4,
+        backdrop="dark gradient",
+        caveat="composed 9:16 for the Looking Glass Go -- pass --device go",
+    ),
+    "dna-ribbon-go": StillLife(
+        scene="museum/dna_ribbon_go.pov",
+        # The museum's metallic DNA ribbon on its own, composed 9:16 for the
+        # Go.  location <0,8,-95>, look_at origin, |direction| 2.165746: a
+        # 26-degree vertical lens.  Render with --view-cone 54 -- the dark
+        # ground has nothing to ghost, as for bdna-go.
+        eye=(0.0, 8.0, -95.0),
+        aim=(0.0, 0.0, 0.0),
+        fov=26.0,
+        # As swept, with no correction needed now the crystal column is gone
+        # (glass inflated the far bound of the earlier capsule cut).  The near
+        # strand appears at 86.3 and 95% of the ribbon is in by 103.2 -- 16.9
+        # units, nearly its whole 19.6 diameter, because an open helix shows
+        # its far strand through the near one.  Focal plane 94.0, on the
+        # ribbon's centre at 95.3.
+        near=86.3,
+        far=103.2,
+        backdrop="dark gradient",
+        caveat="composed 9:16 for the Looking Glass Go -- pass --device go",
+    ),
 }
 
 

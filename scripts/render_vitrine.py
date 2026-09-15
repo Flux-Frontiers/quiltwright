@@ -33,6 +33,7 @@ from pathlib import Path
 
 from quiltwright.lfd import QUILT_PRESETS, focal_distance_for_range, save_quilt
 from quiltwright.povray import Clearance, PovCamera, format_depth_budget, render_pov_quilt
+from quiltwright.quilt import resolve_view_cone
 from quiltwright.runreport import RunReport, povray_parallelism
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -97,6 +98,12 @@ def main(argv: list[str] | None = None) -> int:
         help="exhibit stem, e.g. hemoglobin (renders exhibit_<stem>.pov)",
     )
     parser.add_argument("--device", default="16-landscape", help="quilt preset")
+    parser.add_argument(
+        "--view-cone",
+        type=float,
+        default=None,
+        help="view cone in degrees; defaults to the device's own, capped at 35",
+    )
     parser.add_argument("--preview", action="store_true", help="quarter-scale, fast")
     parser.add_argument("--cast", action="store_true", help="send to Looking Glass Bridge")
     parser.add_argument("--jobs", type=int, default=1, help="concurrent POV-Ray processes")
@@ -121,11 +128,16 @@ def main(argv: list[str] | None = None) -> int:
         focal_distance=focal,
     )
 
-    spec = QUILT_PRESETS[args.device]
+    spec, capped_from = resolve_view_cone(QUILT_PRESETS[args.device], args.view_cone)
     if args.preview:
         spec = spec.scaled(0.25)
 
     print(f"\nExhibit: {args.exhibit}   scene: {scene.name}")
+    if capped_from is not None:
+        print(
+            f"  view cone        {capped_from:.0f} deg native -> {spec.view_cone:.0f} to keep "
+            f"the budget in range (--view-cone {capped_from:.0f} to override)"
+        )
     print(format_depth_budget(spec, camera, {"near": NEAR, "far": FAR}, clearance=ROOM))
     print(f"  widest legal cone: {ROOM.cone(focal):.1f} deg (spec asks {spec.view_cone:.1f})")
     if args.budget_only:
