@@ -44,7 +44,7 @@ import click
 
 from quiltwright.cli.main import cli
 from quiltwright.cycles import LIGHTING_RIGS, frame_camera, mesh_bounds, render_cycles_quilt
-from quiltwright.quilt import QUILT_PRESETS, save_quilt
+from quiltwright.quilt import QUILT_PRESETS, STANDARD_VIEW_CONE, resolve_view_cone, save_quilt
 
 
 @cli.command("mesh")
@@ -55,6 +55,13 @@ from quiltwright.quilt import QUILT_PRESETS, save_quilt
     default="portrait",
     show_default=True,
     help="Target display, which sets the quilt grid, size and view cone.",
+)
+@click.option(
+    "--view-cone",
+    type=float,
+    default=None,
+    help=f"View cone in degrees. Defaults to the device's own, capped at "
+    f"{STANDARD_VIEW_CONE:g} so a wide panel does not overrun the disparity budget.",
 )
 @click.option(
     "--lighting",
@@ -119,6 +126,7 @@ from quiltwright.quilt import QUILT_PRESETS, save_quilt
 def mesh(
     source: Path,
     device: str,
+    view_cone: float | None,
     lighting: str,
     fov: float,
     view_direction: tuple[float, float, float],
@@ -145,13 +153,18 @@ def mesh(
             "Render it through quiltwright.cycles.render_cycles_quilt(scene, spec, None)."
         )
 
-    spec = QUILT_PRESETS[device]
+    spec, capped_from = resolve_view_cone(QUILT_PRESETS[device], view_cone)
     if preview:
         spec = spec.scaled(0.25)
     if still:
         spec = spec.still()
 
     click.echo(f"mesh hologram <- {source.name}{' (preview)' if preview else ''}")
+    if capped_from is not None and not still:
+        click.echo(
+            f"  view cone        {capped_from:.0f} deg native -> {spec.view_cone:.0f} to keep "
+            f"the budget in range (--view-cone {capped_from:.0f} to override)"
+        )
 
     try:
         lo, hi = mesh_bounds(source)

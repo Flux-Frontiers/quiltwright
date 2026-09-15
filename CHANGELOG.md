@@ -42,11 +42,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   5.4 px and 4.4 px at 29 -- and now live in the target rather than in
   whoever last rendered them.
 
+- **`quiltwright.quilt.resolve_view_cone()` and `STANDARD_VIEW_CONE`**, the
+  view-cone cap as one shared function instead of a copy per caller. An
+  explicit cone is honored as given, including one wider than the cap;
+  otherwise a native cone above 35 degrees is narrowed, and the native value
+  is returned so the caller can say what it did. `quiltwright paraview` and
+  `quiltwright mesh` use it. The POV-Ray and PyVista render scripts still
+  carry their own `STANDARD_VIEW_CONE = 35.0`.
+
 ### Changed
 
-- **The release bundle covers twelve subjects instead of three**, adding
+- **The release bundle covers thirteen subjects instead of three**, adding
   `bell-jar-portrait`, `porin-litiholo`, `lambda`, `vitrine-hemoglobin`,
-  `mount-hood` and the four PyVista subjects to
+  `mount-hood` and `mount-hood-portrait`, and the four PyVista subjects to
   `RELEASE_QUILT_SUBJECTS`. `RELEASE_DYNAMIC_ASSETS` is no longer empty by
   default: it carries the Dynamic Desktop HEIC pair and both HLD videos,
   neither of which a quilt can stand in for. Quilts stay release assets
@@ -82,6 +90,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   and never retested, since the hook only inspects newly added files. The
   directory's own `README.md` sits above the exclude and stays linted.
 
+- **`quiltwright paraview` defaults to `--device 16-landscape`** instead of
+  `portrait`, since landscape is the layout this project is developed and
+  viewed on. It depends on the view-cone fix below: uncapped, the new default
+  would have ghosted out of the box.
+
+- **`make quilt-mount-hood` builds the landscape quilt, and the portrait one
+  is `make quilt-mount-hood-portrait`.** Landscape renders at `--view-cone 20
+  --zoom 2.10` (5.41 px near), portrait at `--zoom 1.62` (5.49 px). Every
+  ParaView target now names its `--device` explicitly. The default-device
+  change above would otherwise have silently switched `quilt-mount-hood` and
+  `still-mount-hood` to landscape at portrait zoom, which ghosts. The release
+  bundle carries both, as `mount-hood` and `mount-hood-portrait`.
+
+- **`quiltwright mesh` gains `--view-cone`**, the override its newly capped
+  default needs. Its default device stays `portrait`.
+
 ### Fixed
 
 - **The DOI badge, `CITATION.cff` and the README BibTeX cited v0.10.0, not
@@ -92,6 +116,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   never changed: `10.5281/zenodo.21798503`, which resolves to the newest
   archive (v0.13.0 today). `CITATION.cff` now carries a comment saying not to
   replace it at release time.
+
+- **Every cast after the first was silently ignored.** `cast_quilt()` sent
+  each cast to the same playlist name, `quiltwright`. `instance_playlist` on a
+  name Bridge already holds does not start that playlist over: it hands back
+  the existing one, `insert_playlist_entry` adds the new quilt to it, and
+  `play_playlist` carries on with what was already showing. Each cast returned
+  `Completion` while the panel kept the first quilt, so a re-rendered quilt
+  looked unchanged because it never reached the glass. Confirmed on a real
+  panel under Bridge 2.6.3 by A/B: same quilt, same head, fresh playlist name,
+  and it appeared at once. Each cast now gets a fresh `quiltwright-<id>` name
+  unless one is passed. Clearing the old playlist first is not an option,
+  because `delete_playlist` hangs Bridge. `quiltwright cast --playlist`
+  defaults to a fresh name too, and its help no longer claims to replace.
+
+- **`bridge reset` could kill processes that merely mentioned Bridge, and
+  `bridge status` counted them.** Both matched `LookingGlassBridge` anywhere in
+  a process's command line, so a grep, a `tail -f` on its log, or the shell
+  running either was treated as Bridge -- and `reset` sends that list SIGTERM,
+  then SIGKILL. Matching now uses the executable path (`ps -o comm`), so no
+  argument text can reach it. `status` also reports Bridge separately from its
+  crash handlers and names orphaned ones. It had reported "3 running" and a
+  HEALTHY verdict while two of those were crash handlers and the third had
+  exited by the time it was checked. This does not make `status` able to tell
+  that a Bridge which answers HTTP can actually draw; a wedged Bridge can still
+  read as healthy.
+
+- **`quiltwright paraview` and `quiltwright mesh` used a wide panel's native
+  view cone uncapped.** The 16" Landscape declares 50 degrees, and the Mount
+  Hood terrain rendered at 10.4 px of adjacent-view disparity, nearly double
+  the ceiling, with only the depth report's "soft" flag as warning. The render
+  scripts have always capped at 35 degrees; these two commands did not. It
+  never showed on portrait, whose presets are all 35 degrees natively. Both
+  now cap by default and print the narrowing, with `--view-cone` to override.
 
 ## [0.13.0] - 2026-09-13
 

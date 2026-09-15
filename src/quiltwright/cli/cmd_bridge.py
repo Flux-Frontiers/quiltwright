@@ -43,9 +43,12 @@ from quiltwright.cli.main import cli
 #: in the bundle name (``Looking Glass Bridge 2.6.3.app``).
 _APP_GLOB = "/Applications/Looking Glass Bridge*.app"
 
-#: Substring identifying Bridge's own processes, as opposed to unrelated
-#: things with "bridge" in the name (``XProtectBridgeService`` among them).
+#: Executable name of Bridge itself, as opposed to unrelated things with
+#: "bridge" in the name (``XProtectBridgeService`` among them).
 _PROCESS_MATCH = "LookingGlassBridge"
+
+#: Bridge's crash reporter, which lives in the same bundle and survives it.
+_CRASH_HANDLER = "crashpad_handler"
 
 
 def _port_open(url: str, timeout: float = 3.0) -> bool:
@@ -94,26 +97,58 @@ def _put(url: str, endpoint: str, payload: dict, timeout: float) -> dict | None:
     return json.loads(body) if body.strip() else {}
 
 
-def _bridge_pids() -> list[int]:
-    """PIDs of every running Bridge process.
+def _classify_processes(ps_output: str) -> tuple[list[int], list[int]]:
+    """Split ``ps -Ao pid=,comm=`` output into Bridge and its crash handlers.
 
-    :return: PIDs, including the crash handlers Bridge spawns.
+    Matches on the executable path alone. The previous version searched the
+    whole command line, so any process whose *arguments* mentioned
+    ``LookingGlassBridge`` -- a grep, a ``tail -f`` on its log, the shell
+    running them -- was counted by ``status`` and signalled by ``reset``.
+
+    :param ps_output: One ``<pid> <executable path>`` per line, no header.
+        Paths contain spaces (``Looking Glass Bridge 2.6.3.app``), so each
+        line is split once on the first run of whitespace.
+    :return: ``(bridge_pids, crash_handler_pids)``.
+    """
+    bridge: list[int] = []
+    handlers: list[int] = []
+    for line in ps_output.splitlines():
+        pid, _, path = line.strip().partition(" ")
+        if not pid.isdigit():
+            continue
+        path = path.strip()
+        name = path.rsplit("/", 1)[-1]
+        if name == _PROCESS_MATCH:
+            bridge.append(int(pid))
+        elif name == _CRASH_HANDLER and "Looking Glass Bridge" in path:
+            handlers.append(int(pid))
+    return bridge, handlers
+
+
+def _bridge_processes() -> tuple[list[int], list[int]]:
+    """PIDs of Bridge and of the crash handlers its bundle spawns.
+
+    ``comm`` is the executable path on macOS, which is what separates Bridge
+    from anything that merely names it.
+
+    :return: ``(bridge_pids, crash_handler_pids)``; both empty if ``ps`` fails.
     """
     try:
         out = subprocess.run(
-            ["ps", "-Ao", "pid,command"], capture_output=True, timeout=10, check=True
+            ["ps", "-Ao", "pid=,comm="], capture_output=True, timeout=10, check=True
         ).stdout.decode("utf-8", "replace")
     except (subprocess.SubprocessError, OSError):
-        return []
-    pids = []
-    for line in out.splitlines()[1:]:
-        pid, _, command = line.strip().partition(" ")
-        if _PROCESS_MATCH in command or (
-            "Looking Glass Bridge" in command and "crashpad_handler" in command
-        ):
-            if pid.isdigit():
-                pids.append(int(pid))
-    return pids
+        return [], []
+    return _classify_processes(out)
+
+
+def _bridge_pids() -> list[int]:
+    """PIDs of every Bridge process, crash handlers included -- what reset kills.
+
+    :return: Bridge's PIDs followed by its crash handlers'.
+    """
+    bridge, handlers = _bridge_processes()
+    return bridge + handlers
 
 
 @cli.group("bridge")
@@ -146,9 +181,20 @@ def status_cmd(bridge_url: str | None, timeout: float) -> None:
     from quiltwright.bridge import BRIDGE_URL
 
     url = bridge_url or BRIDGE_URL
-    pids = _bridge_pids()
+    bridge, handlers = _bridge_processes()
     click.echo(f"Bridge at {url}")
-    click.echo(f"  processes    {len(pids)} running" + (f" (pids {pids})" if pids else ""))
+    if bridge:
+        click.echo(
+            f"  processes    Bridge running (pid {', '.join(map(str, bridge))})"
+            + (f", {len(handlers)} crash handler(s)" if handlers else "")
+        )
+    elif handlers:
+        click.echo(
+            f"  processes    no Bridge process; {len(handlers)} orphaned crash "
+            f"handler(s) {handlers} left by one that exited"
+        )
+    else:
+        click.echo("  processes    no Bridge process")
 
     if not _port_open(url):
         click.echo("  port         closed")

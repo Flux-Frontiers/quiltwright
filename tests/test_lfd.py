@@ -943,6 +943,33 @@ class TestCastQuilt:
         assert bridge.payload_for("instance_playlist")["name"] == "custom"
         assert bridge.payload_for("play_playlist")["name"] == "custom"
 
+    def test_consecutive_default_casts_use_distinct_playlists(self, bridge, tmp_path, tiny_spec):
+        """Live regression on Bridge 2.6.3: a reused playlist name is not replaced.
+
+        instance_playlist on an existing name hands back that playlist, and
+        insert_playlist_entry adds to it, so every cast after the first was
+        silently ignored while the panel kept showing the first quilt. Proven
+        by A/B against a real panel -- same quilt, same head, fresh name ->
+        it appeared at once.
+        """
+        quilt = tmp_path / "q.png"
+        quilt.touch()
+        cast_quilt(quilt, tiny_spec)
+        cast_quilt(quilt, tiny_spec)
+        names = [p["name"] for e, p in bridge.calls if e == "instance_playlist"]
+        assert len(names) == 2
+        assert names[0] != names[1]
+
+    def test_one_cast_uses_one_playlist_name_throughout(self, bridge, tmp_path, tiny_spec):
+        quilt = tmp_path / "q.png"
+        quilt.touch()
+        cast_quilt(quilt, tiny_spec)
+        names = {
+            bridge.payload_for(endpoint)["name"]
+            for endpoint in ("instance_playlist", "insert_playlist_entry", "play_playlist")
+        }
+        assert len(names) == 1
+
     def test_shows_the_window(self, bridge, tmp_path, tiny_spec):
         quilt = tmp_path / "q.png"
         quilt.touch()

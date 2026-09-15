@@ -113,8 +113,13 @@ dependency -- `quiltwright paraview --check` reports the `pvpython` it found.
 The bundled Mount Hood example is one command:
 
 ```bash
-quiltwright paraview paraview-scenes/mount-hood/mount-hood.pvsm --zoom 1.62
+quiltwright paraview paraview-scenes/mount-hood/mount-hood.pvsm --view-cone 20 --zoom 2.10
 ```
+
+The two flags trade against each other. The default device is `16-landscape`,
+whose native cone is capped at 35 degrees; a narrower cone leaves room for more
+zoom at the same disparity, so the terrain fills the panel without ghosting.
+`make quilt-mount-hood` runs exactly this.
 
 Run it from the repository root: a `.pvsm` resolves its data paths against the
 working directory, and a state that cannot find its data renders an empty scene

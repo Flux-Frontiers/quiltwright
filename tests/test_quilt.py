@@ -55,3 +55,27 @@ def test_package_lazy_map_points_at_the_new_homes() -> None:
     assert quiltwright._LAZY["render_quilt"] == "lfd"
     assert quiltwright._LAZY["sweep_extent"] == "quilt"
     assert quiltwright._LAZY["window_shear"] == "quilt"
+
+
+class TestResolveViewCone:
+    """A wide panel's native cone overruns the disparity budget unless capped."""
+
+    def test_caps_a_native_cone_wider_than_the_standard(self):
+        spec, capped_from = quilt.resolve_view_cone(quilt.QUILT_PRESETS["16-landscape"], None)
+        assert spec.view_cone == quilt.STANDARD_VIEW_CONE == 35.0
+        assert capped_from == 50.0
+
+    def test_leaves_a_native_cone_already_within_the_standard(self):
+        spec, capped_from = quilt.resolve_view_cone(quilt.QUILT_PRESETS["portrait"], None)
+        assert spec.view_cone == 35.0
+        assert capped_from is None
+
+    def test_an_explicit_cone_is_honored_even_when_wider(self):
+        spec, capped_from = quilt.resolve_view_cone(quilt.QUILT_PRESETS["16-landscape"], 50.0)
+        assert spec.view_cone == 50.0
+        assert capped_from is None
+
+    def test_an_explicit_narrow_cone_is_honored(self):
+        spec, capped_from = quilt.resolve_view_cone(quilt.QUILT_PRESETS["16-landscape"], 20.0)
+        assert spec.view_cone == 20.0
+        assert capped_from is None

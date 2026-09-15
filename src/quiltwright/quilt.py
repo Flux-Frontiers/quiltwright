@@ -190,6 +190,35 @@ QUILT_PRESETS: dict[str, QuiltSpec] = {
 }
 
 
+#: Widest view cone a render uses unless one is asked for explicitly.
+#:
+#: A device's native cone can overrun the disparity budget on its own. The
+#: 16" Landscape declares 50 degrees; on its 960x720 tiles that put the sea in
+#: the still-life scenes at 14.3 px of adjacent-view disparity, nearly double
+#: where ghosting becomes obvious, and the Mount Hood ParaView terrain at
+#: 10.4 px. The cost
+#: of narrowing is look-around range, not sharpness. The POV-Ray and PyVista
+#: render scripts carry the same value for the same reason.
+STANDARD_VIEW_CONE = 35.0
+
+
+def resolve_view_cone(spec: QuiltSpec, view_cone: float | None) -> tuple[QuiltSpec, float | None]:
+    """Apply an explicit view cone, or cap the device's native one.
+
+    :param spec: Quilt specification carrying the device's native cone.
+    :param view_cone: Cone asked for explicitly, in degrees; ``None`` to take
+        the native one, capped at :data:`STANDARD_VIEW_CONE`. An explicit value
+        is honored as given, including one wider than the cap.
+    :return: ``(spec, capped_from)``, where ``capped_from`` is the native cone
+        if it was narrowed and ``None`` otherwise, so a caller can say so.
+    """
+    if view_cone is not None:
+        return replace(spec, view_cone=view_cone), None
+    if spec.view_cone > STANDARD_VIEW_CONE:
+        return replace(spec, view_cone=STANDARD_VIEW_CONE), spec.view_cone
+    return spec, None
+
+
 def sweep_spec(n_views: int, view_cone: float, tile_width: int, tile_height: int) -> QuiltSpec:
     """Geometry for a plain ordered view sweep rather than a tiled quilt.
 

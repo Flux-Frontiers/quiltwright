@@ -241,21 +241,39 @@ quilts-pyvista: quilt-brain quilt-damavand quilt-mouse-brain quilt-st-helens  ##
 # Run from the repository root, always: the state file locates terrain.csv by
 # a path relative to the working directory, not to itself, and a state that
 # cannot find its data renders an empty scene rather than failing. See
-# paraview-scenes/README.md. --zoom 1.62 is the measured ceiling, 5.49 px
-# against a 5.5 px threshold.
-.PHONY: quilt-mount-hood still-mount-hood
-quilt-mount-hood:  ## Mount Hood terrain quilt, portrait (ParaView)
+# paraview-scenes/README.md.
+#
+# Every target passes --device explicitly. The command's default device is a
+# convenience that can change -- it moved from portrait to 16-landscape -- and a
+# target that leaned on it would silently render something else afterwards.
+.PHONY: quilt-mount-hood quilt-mount-hood-portrait still-mount-hood
+
+# Landscape is the primary layout. Its tiles are wider than portrait's (960x720
+# against 420x560) and its native cone is 50 deg, so the portrait settings do
+# not carry over: at zoom 1.62 and 50 deg this measured 10.4 px, nearly double
+# the ceiling. Cone and zoom trade against each other at constant disparity --
+# 35 deg allows zoom 1.30, 25 deg about 1.75, 20 deg about 2.1. This takes
+# 20 deg for the tightest framing: 5.41 px near, 4.32 px far, with a narrower
+# look-around range as the price.
+quilt-mount-hood:  ## Mount Hood terrain quilt, 16" landscape (ParaView, cone 20)
 	$(QUILTWRIGHT) paraview paraview-scenes/mount-hood/mount-hood.pvsm \
-		--zoom 1.62 --out renders/quilts/mount-hood $(EXTRA_ARGS)
+		--device 16-landscape --view-cone 20 --zoom 2.10 \
+		--out renders/quilts/mount-hood $(EXTRA_ARGS)
+
+# The portrait companion. Portrait's native cone is already 35 deg, so no
+# override is needed; --zoom 1.62 is its measured ceiling, 5.49 px against 5.5.
+quilt-mount-hood-portrait:  ## Mount Hood terrain quilt, portrait (ParaView)
+	$(QUILTWRIGHT) paraview paraview-scenes/mount-hood/mount-hood.pvsm \
+		--device portrait --zoom 1.62 --out renders/quilts/mount-hood-portrait $(EXTRA_ARGS)
 
 # Not in STILL_TARGETS, so `make gallery` does not require a ParaView install.
 # save_quilt() appends the _qs metadata suffix every backend writes, and that
 # pattern is gitignored everywhere, so the committed gallery name is taken
-# from under it afterwards.
-still-mount-hood:  ## Mount Hood flat still -> gallery/mount_hood.png (ParaView)
+# from under it afterwards. Portrait, to reproduce the committed image.
+still-mount-hood:  ## Mount Hood flat still -> gallery/mount_hood.png (ParaView, portrait)
 	@mkdir -p $(GALLERY)
 	$(QUILTWRIGHT) paraview paraview-scenes/mount-hood/mount-hood.pvsm \
-		--zoom 1.62 --still --out $(GALLERY)/mount_hood $(EXTRA_ARGS)
+		--device portrait --zoom 1.62 --still --out $(GALLERY)/mount_hood $(EXTRA_ARGS)
 	mv $(GALLERY)/mount_hood_qs*.png $(GALLERY)/mount_hood.png
 
 .PHONY: preview-bell-jar preview-bell-jar-holo preview-bell-jar-holo-2026 preview-bell-jar-portrait preview-porin preview-lambda preview-museum
@@ -292,7 +310,7 @@ preview-museum: $(THREAD_INI)  ## quarter-size museum quilt
 # "current" cut of a scene changes, e.g.
 #   make release-assets TAG=v1.2.3 RELEASE_QUILT_SUBJECTS="bell-jar porin museum"
 RELEASE_QUILT_SUBJECTS ?= bell-jar-holo-2026 bell-jar-portrait porin porin-litiholo \
-                          museum lambda vitrine-hemoglobin mount-hood \
+                          museum lambda vitrine-hemoglobin mount-hood mount-hood-portrait \
                           brain damavand mouse-brain st-helens
 
 # Dynamic Desktop HEICs and HLD videos to bundle. Both are backend output a

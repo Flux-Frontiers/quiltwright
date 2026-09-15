@@ -44,6 +44,7 @@ quiltwright mesh statue.ply --view-direction 0.5 -1 0.3 --fov 20
 | Flag | What it does |
 |---|---|
 | `--device` | Target display preset (`portrait` default; `27-portrait`, `go`, …) |
+| `--view-cone` | View cone in degrees. Defaults to the device's own, capped at 35: `16-landscape` declares 50, which overruns the disparity budget |
 | `--lighting` | `studio` (default), `soft`, `sky`, or a path to an `.hdr`/`.exr` — an imported mesh has no lights, and a path tracer renders an unlit scene *black* |
 | `--fov` | Vertical field of view; the framing distance follows from it |
 | `--view-direction` | Direction from the object center to the eye (default `0 -1 0`, front-on) |

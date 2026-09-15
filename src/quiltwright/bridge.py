@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import urllib.request
+import uuid
 from pathlib import Path
 
 import numpy as np
@@ -118,7 +119,7 @@ def cast_quilt(
     spec: QuiltSpec,
     *,
     bridge_url: str = BRIDGE_URL,
-    playlist: str = "quiltwright",
+    playlist: str | None = None,
     timeout: float = 10.0,
     head_index: int = -1,
 ) -> dict:
@@ -129,10 +130,24 @@ def cast_quilt(
     Bridge's orchestration sequence: enter orchestration, show the display
     window, create a playlist holding the quilt, and play it.
 
+    Every call plays a playlist of its own. ``instance_playlist`` on a name
+    Bridge already holds does not start that playlist over: it hands back the
+    existing one, ``insert_playlist_entry`` adds the new quilt to it, and
+    ``play_playlist`` carries on showing what was already playing. Reusing
+    one name therefore makes every cast after the first a silent no-op --
+    each returns ``Completion`` while the panel keeps the first quilt, which
+    was confirmed on a real panel under Bridge 2.6.3. Clearing the old
+    playlist first is not available: ``delete_playlist`` hangs Bridge (see
+    :func:`stop_quilt`). A fresh name per cast is what reliably replaces the
+    picture.
+
     :param quilt_path: Path to a quilt PNG on the *Bridge host's* filesystem.
     :param spec: Quilt specification (tiling + aspect sent to Bridge).
     :param bridge_url: Base URL of the Bridge HTTP API.
-    :param playlist: Name of the Bridge playlist to (re)create.
+    :param playlist: Bridge playlist name. ``None`` (the default) generates a
+        unique ``quiltwright-<id>`` name, so the cast replaces whatever is
+        showing. Passing a name Bridge already holds adds to that playlist
+        rather than replacing it, for the reason above.
     :param timeout: HTTP timeout in seconds per request.
     :param head_index: Which Bridge output device to play on.  ``-1`` lets
         Bridge choose, which is right on a single-panel machine.  Bridge
@@ -148,6 +163,8 @@ def cast_quilt(
         at all.
     :return: Decoded JSON response of the final ``play_playlist`` call.
     """
+    if playlist is None:
+        playlist = f"quiltwright-{uuid.uuid4().hex[:8]}"
     token = enter_orchestration(bridge_url, timeout)
 
     # Every orchestration call below returns 200 whether or not anything is
@@ -287,7 +304,8 @@ def stop_quilt(*, bridge_url: str = BRIDGE_URL, timeout: float = 10.0) -> dict:
     ``delete_playlist`` and reaches the same end state (nothing visible,
     playback halted) through calls already proven safe: the playlist from
     :func:`cast_quilt` is left instantiated but paused and hidden, rather
-    than deleted, so :func:`cast_quilt` can safely replace it later.
+    than deleted. The next :func:`cast_quilt` plays a playlist of its own
+    rather than reusing this one, so what is left behind does not block it.
 
     :param bridge_url: Base URL of the Bridge HTTP API.
     :param timeout: HTTP timeout in seconds.

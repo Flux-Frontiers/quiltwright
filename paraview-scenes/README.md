@@ -49,13 +49,25 @@ pipeline and colour map are as distributed:
   `vtkCamera.Elevation(-18)` about the focal point drops it to a raking angle
   where the peak stands above the surrounding ridges.
 
-The release quilt is rendered at `--zoom 1.62`, which is the ceiling for this
-framing: it lands at 5.49 px near-view disparity against the 5.5 px soft
-threshold `depth_report()` flags. Going further ghosts on the panel. Going
-much below wastes the depth the tilt bought.
+Each render is taken to the edge of its disparity budget, the 5.5 px soft
+threshold `depth_report()` flags. Going further ghosts on the panel; going much
+below wastes the depth the tilt bought. The two layouts get there differently:
 
-`make quilt-mount-hood` and `make still-mount-hood` reproduce the release
-quilt and the gallery still. Reproduce, not reproduce bit-for-bit: two runs of
+| Target | Device | Cone | Zoom | Near / far |
+|---|---|---|---|---|
+| `make quilt-mount-hood` | `16-landscape` | 20 deg | 2.10 | 5.41 / 4.32 px |
+| `make quilt-mount-hood-portrait` | `portrait` | 35 deg | 1.62 | 5.49 / 4.85 px |
+
+Landscape is the primary layout, and the portrait settings do not carry over to
+it: its tiles are wider, and its native 50 degree cone at zoom 1.62 measured
+10.4 px.
+Narrowing the cone is what buys the zoom back, since cone and zoom trade against
+each other at constant disparity -- 35 degrees allows zoom 1.30, 25 degrees
+about 1.75, 20 degrees about 2.1. The cost of the narrower cone is look-around
+range.
+
+The two quilt targets and `make still-mount-hood` reproduce the release quilts
+and the gallery still, which is portrait. Reproduce, not reproduce bit-for-bit: two runs of
 the same state differ across about 4% of pixels, almost all of it the specular
 sparkle on the terrain, which VTK's renderer does not resolve identically run
 to run. The mean difference is 0.26/255 and the images are indistinguishable.
