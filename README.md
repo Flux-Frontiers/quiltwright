@@ -8,7 +8,7 @@
 [![Version](https://img.shields.io/badge/version-0.13.0-blue.svg)](https://github.com/Flux-Frontiers/quiltwright/releases)
 [![Tests](https://github.com/Flux-Frontiers/quiltwright/actions/workflows/tests.yml/badge.svg)](https://github.com/Flux-Frontiers/quiltwright/actions/workflows/tests.yml)
 [![Docs](https://img.shields.io/badge/docs-flux--frontiers.github.io-blue.svg)](https://flux-frontiers.github.io/quiltwright/)
-[![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.22180300-blue.svg)](https://doi.org/10.5281/zenodo.22180300)
+[![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.21798503-blue.svg)](https://doi.org/10.5281/zenodo.21798503)
 
 **Quiltwright** -- holographic output for scientific visualization.
 
@@ -275,7 +275,7 @@ on Zenodo.
   author  = {Suchanek, Eric G.},
   title   = {Quiltwright: Holographic Output for Looking Glass Displays},
   url     = {https://github.com/Flux-Frontiers/quiltwright},
-  doi     = {10.5281/zenodo.22180300},
+  doi     = {10.5281/zenodo.21798503},
   version = {0.13.0},
   year    = {2026}
 }
