@@ -82,6 +82,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   `quilt-brain-go`, `quilts-go` for all of them with `quilt-bell-jar-portrait`,
   and `playlist-go` to play the set (`PANEL_HEAD=<index>`).
 
+- **`porin-portrait`, the 3:4 porin trimer recomposed 9:16 for the Go**, and
+  `quilt-porin-portrait-go` to render it. `3porin.pov`'s own `ASPECT` was a
+  bare `#declare`; it and two new declares, `CAM_X` and `CAM_Z`, are now
+  `#ifndef`-guarded so `porin/porin_portrait.pov` can set all three before
+  `#include`-ing it -- the same molecule, camera and lights, at a different
+  frame, with no duplicated geometry. `CAM_Z` pulls the camera back from
+  -1100 to -1300: unchanged, the barrel overflowed a 9:16 frame on both
+  sides and clipped the signature.
+
+  `CAM_X` recentres the barrel horizontally, and getting it right took two
+  tries. The first used the barrel's vertex bounding-box centroid (72.47,
+  from `xmin -222.48`/`xmax 367.43`) and overshot -- confirmed live on a
+  Looking Glass Go as "offset to the left a bit". The fix was to render,
+  mask the subject from the sea-and-sky backdrop by hue and saturation, and
+  measure the actual pixel centroid directly: -7.2% of frame width at
+  72.47, +0.7% at the corrected value, 20. The bounding box is not where
+  the rendered pixels sit; a mesh's vertex extents and a viewer's sense of
+  "centered" are two different things, and only one of them is measurable
+  from source coordinates alone.
+
+  Depth bounds (near 880.2, far 1590.7) were measured with
+  `quiltwright.povray.depth_sweep()` called directly rather than through
+  `quiltwright probe`'s CLI, which reported its "did not close" sentinel
+  (5000) -- the sea never closes here, the same as porin's original 16:9
+  cut. Fitting the tail's linear creep and taking 95% of the corrected
+  curve gives a real bound instead. 3.07 px of adjacent-view disparity on
+  the subject at the Go's native 54-degree cone.
+
 ### Changed
 
 - **The release bundle covers thirteen subjects instead of three**, adding

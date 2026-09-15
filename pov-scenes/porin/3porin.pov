@@ -10,15 +10,32 @@ global_settings { assumed_gamma 2.2 }
 
 // 16:9, matching the 16" landscape panel the hologram targets.  The
 // vertical framing (up 1, direction 1) is unchanged; the extra width
-// over the old 3/4 portrait frame is sea and sky.
+// over the old 3/4 portrait frame is sea and sky.  Guarded so a wrapper
+// scene can #declare ASPECT before #include-ing this file and get the
+// same camera, lights and geometry at a different frame -- see
+// porin_portrait.pov.
+#ifndef (ASPECT)
 #declare ASPECT = 16/9;
+#end
+
+// Also guarded, for the same reason: the barrel's own horizontal centroid
+// (measured from its vertex extents, xmin -222.48/xmax 367.43) is 72.47, not
+// 0 -- invisible in the wide 16:9 frame's margin, not in a 9:16 one. A
+// narrower frame also wants the camera pulled back for room; porin_portrait.pov
+// sets both.
+#ifndef (CAM_X)
+#declare CAM_X = 0;
+#end
+#ifndef (CAM_Z)
+#declare CAM_Z = -1100.000000;
+#end
 
 camera {
-	location  <0, 0, -1100.000000>
+	location  <CAM_X, 0, CAM_Z>
 	direction <0, 0,  1>
 	up        <0, 1,  0>
 	right   <ASPECT, 0,  0>
-	look_at   <0, 0, 0>
+	look_at   <CAM_X, 0, 0>
 }
 
 light_source {<0, -0, -1200.000000> color White }
