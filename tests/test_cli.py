@@ -349,6 +349,102 @@ class TestWallpaper:
 # ---------------------------------------------------------------------------
 
 
+class TestPlaylist:
+    """``quiltwright playlist`` -- several quilts, one looping playlist."""
+
+    @pytest.fixture
+    def seen(self, monkeypatch):
+        seen: dict = {}
+
+        def fake_cast_playlist(entries, **kwargs):
+            seen["entries"] = [
+                (Path(path).name, (spec.columns, spec.rows, spec.aspect)) for path, spec in entries
+            ]
+            seen["kwargs"] = kwargs
+
+        monkeypatch.setattr("quiltwright.bridge.cast_playlist", fake_cast_playlist)
+        return seen
+
+    def test_files_play_in_the_order_given_each_with_its_own_tiling(self, runner, tmp_path, seen):
+        go = _quilt(tmp_path, "a_qs11x6a0.5625.png")
+        landscape = _quilt(tmp_path, "b_qs8x6a1.77778.png")
+        result = runner.invoke(cli, ["playlist", str(landscape), str(go)])
+        assert result.exit_code == 0, result.output
+        assert seen["entries"] == [
+            ("b_qs8x6a1.77778.png", (8, 6, 1.77778)),
+            ("a_qs11x6a0.5625.png", (11, 6, 0.5625)),
+        ]
+
+    def test_duration_is_given_in_seconds(self, runner, tmp_path, seen):
+        result = runner.invoke(cli, ["playlist", str(_quilt(tmp_path)), "--duration", "8"])
+        assert result.exit_code == 0, result.output
+        assert seen["kwargs"]["duration_ms"] == 8000
+
+    def test_head_and_once_reach_cast_playlist(self, runner, tmp_path, seen):
+        result = runner.invoke(cli, ["playlist", str(_quilt(tmp_path)), "--head", "1", "--once"])
+        assert result.exit_code == 0, result.output
+        assert seen["kwargs"]["head_index"] == 1
+        assert seen["kwargs"]["loop"] is False
+
+    def test_a_studio_folder_plays_in_its_playlist_json_order(self, runner, tmp_path, seen):
+        """Looking Glass Studio 1.x keeps a playlist as a folder of media plus a
+        playlist.json of {filename, ...} entries; that order is the playlist."""
+        folder = tmp_path / "EGS Science Go"
+        folder.mkdir()
+        _quilt(folder, "a_qs11x6a0.5625.png")
+        _quilt(folder, "b_qs11x6a0.5625.png")
+        (folder / "playlist.json").write_text(
+            json.dumps(
+                [
+                    {
+                        "filename": "b_qs11x6a0.5625.png",
+                        "last_updated": "never",
+                        "needs_sync": False,
+                    },
+                    {
+                        "filename": "a_qs11x6a0.5625.png",
+                        "last_updated": "never",
+                        "needs_sync": False,
+                    },
+                ]
+            )
+        )
+        result = runner.invoke(cli, ["playlist", str(folder)])
+        assert result.exit_code == 0, result.output
+        assert [name for name, _ in seen["entries"]] == [
+            "b_qs11x6a0.5625.png",
+            "a_qs11x6a0.5625.png",
+        ]
+
+    def test_a_plain_folder_plays_its_quilts_by_name(self, runner, tmp_path, seen):
+        folder = tmp_path / "go"
+        folder.mkdir()
+        _quilt(folder, "c_qs11x6a0.5625.png")
+        _quilt(folder, "a_qs11x6a0.5625.png")
+        (folder / "notes.txt").write_text("not a quilt")
+        result = runner.invoke(cli, ["playlist", str(folder)])
+        assert result.exit_code == 0, result.output
+        assert [name for name, _ in seen["entries"]] == [
+            "a_qs11x6a0.5625.png",
+            "c_qs11x6a0.5625.png",
+        ]
+
+    def test_an_unsuffixed_quilt_is_refused_by_name(self, runner, tmp_path, seen):
+        """Guessing a grid would shuffle the views, so it names the file instead."""
+        plain = _quilt(tmp_path, "mystery.png")
+        result = runner.invoke(cli, ["playlist", str(_quilt(tmp_path)), str(plain)])
+        assert result.exit_code != 0
+        assert "mystery.png" in result.output
+        assert "entries" not in seen
+
+    def test_nothing_to_play_is_refused(self, runner, tmp_path, seen):
+        empty = tmp_path / "empty"
+        empty.mkdir()
+        result = runner.invoke(cli, ["playlist", str(empty)])
+        assert result.exit_code != 0
+        assert "entries" not in seen
+
+
 #: `ps -Ao pid=,comm=` as macOS prints it on a machine running Bridge 2.6.3,
 #: with the neighbours that the old command-line substring match caught or
 #: nearly caught.

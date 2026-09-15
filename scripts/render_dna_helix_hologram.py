@@ -45,7 +45,8 @@ from pathlib import Path
 
 import numpy as np
 
-from quiltwright.lfd import QUILT_PRESETS, QuiltSpec, save_quilt
+from quiltwright.lfd import QUILT_PRESETS, save_quilt
+from quiltwright.quilt import resolve_view_cone
 
 # --- Geometry ----------------------------------------------------------------
 # Right-handed, +z up -- the convention both quiltwright.povgen and pyvista
@@ -204,6 +205,12 @@ def main() -> int:
     parser.add_argument(
         "--device", default="portrait", choices=sorted(QUILT_PRESETS), help="target display"
     )
+    parser.add_argument(
+        "--view-cone",
+        type=float,
+        default=None,
+        help="view cone in degrees; defaults to the device's own, capped at 35",
+    )
     parser.add_argument("--fov", type=float, default=32.0, help="vertical field of view, degrees")
     parser.add_argument("--samples", type=int, default=128, help="Cycles only: samples per pixel")
     parser.add_argument("--preview", action="store_true", help="quarter-size quilt, for iterating")
@@ -218,13 +225,18 @@ def main() -> int:
     parser.add_argument("--cast", action="store_true", help="send to Looking Glass Bridge")
     args = parser.parse_args()
 
-    spec: QuiltSpec = QUILT_PRESETS[args.device]
+    spec, capped_from = resolve_view_cone(QUILT_PRESETS[args.device], args.view_cone)
     if args.preview:
         spec = spec.scaled(0.25)
     if args.still:
         spec = spec.still()
 
     print(f"dna helix hologram -> {args.backend}{' (preview)' if args.preview else ''}")
+    if capped_from is not None and not args.still:
+        print(
+            f"  view cone        {capped_from:.0f} deg native -> {spec.view_cone:.0f} to keep "
+            f"the budget in range (--view-cone {capped_from:.0f} to override)"
+        )
     print(
         f"  quilt            {spec.quilt_width}x{spec.quilt_height}, "
         f"tiles {spec.tile_width}x{spec.tile_height}, cone {spec.view_cone:.0f} deg"

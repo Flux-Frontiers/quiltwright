@@ -94,6 +94,7 @@ _LAZY: dict[str, str] = {
     "assemble_quilt": "quilt",
     "camera_block": "povray",
     "camera_frame": "lfd",
+    "cast_playlist": "bridge",
     "cast_quilt": "bridge",
     "connectome_polydata": "tvb_data",
     "depth_budget": "povray",
@@ -288,6 +289,7 @@ __all__ = [
     # Looking Glass Bridge
     "BRIDGE_URL",
     "DEPTH_LABELS",
+    "cast_playlist",
     "cast_quilt",
     "depth_report",
     "pause_quilt",

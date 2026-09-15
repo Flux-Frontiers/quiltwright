@@ -12,6 +12,7 @@ import numpy as np
 import pytest
 from render_probe import can_render
 
+from quiltwright.bridge import cast_playlist
 from quiltwright.lfd import (
     BRIDGE_URL,
     DEPTH_LABELS,
@@ -268,6 +269,13 @@ class TestSixteenLandscape:
         default = QuiltSpec(columns=1, rows=1, quilt_width=8, quilt_height=8, aspect=1.0)
         assert landscape.view_cone == 50.0
         assert default.view_cone == 35.0
+
+    def test_go_native_cone_is_54_degrees(self):
+        """Calibration ``viewCone`` Bridge reports for hardware version "go_p"
+        (LKG-E14851). The preset carried the 35 deg default until then, so the
+        cap in resolve_view_cone never engaged for the Go and nothing said
+        the render was narrower than the panel."""
+        assert QUILT_PRESETS["go"].view_cone == 54.0
 
     # -- Anamorphic tile geometry ------------------------------------------
 
@@ -960,6 +968,13 @@ class TestCastQuilt:
         assert len(names) == 2
         assert names[0] != names[1]
 
+    def test_is_a_one_entry_playlist(self, bridge, tmp_path, tiny_spec):
+        quilt = tmp_path / "q.png"
+        quilt.touch()
+        cast_quilt(quilt, tiny_spec)
+        assert bridge.endpoints.count("insert_playlist_entry") == 1
+        assert bridge.payload_for("insert_playlist_entry")["index"] == 0
+
     def test_one_cast_uses_one_playlist_name_throughout(self, bridge, tmp_path, tiny_spec):
         quilt = tmp_path / "q.png"
         quilt.touch()
@@ -999,6 +1014,72 @@ class TestCastQuilt:
             "a quilt should never be handed to show_window/instance_playlist/"
             "play_playlist when there is nothing to play it on"
         )
+
+
+class TestCastPlaylist:
+    """Several quilts, one looping playlist.
+
+    Verified live on a Looking Glass Go, Bridge 2.6.3: three mixed-grid quilts
+    inserted into a fresh playlist *before* play_playlist auto-advanced and
+    looped.  Inserting into one already playing does nothing -- the cast bug
+    TestCastQuilt guards against -- so the order of calls is the contract.
+    """
+
+    @staticmethod
+    def _entries(tmp_path, specs):
+        entries = []
+        for i, spec in enumerate(specs):
+            path = tmp_path / f"q{i}.png"
+            path.touch()
+            entries.append((path, spec))
+        return entries
+
+    def test_every_entry_is_inserted_before_playing(self, bridge, tmp_path, tiny_spec):
+        cast_playlist(self._entries(tmp_path, [tiny_spec] * 3))
+        assert bridge.endpoints == [
+            "enter_orchestration",
+            "available_output_devices",
+            "show_window",
+            "instance_playlist",
+            "insert_playlist_entry",
+            "insert_playlist_entry",
+            "insert_playlist_entry",
+            "play_playlist",
+        ]
+
+    def test_entries_keep_their_order(self, bridge, tmp_path, tiny_spec):
+        cast_playlist(self._entries(tmp_path, [tiny_spec] * 3))
+        inserts = [p for e, p in bridge.calls if e == "insert_playlist_entry"]
+        assert [p["index"] for p in inserts] == [0, 1, 2]
+        assert [Path(p["uri"]).name for p in inserts] == ["q0.png", "q1.png", "q2.png"]
+
+    def test_each_entry_carries_its_own_tiling(self, bridge, tmp_path, tiny_spec):
+        go = QUILT_PRESETS["go"]
+        cast_playlist(self._entries(tmp_path, [tiny_spec, go]))
+        first, second = [p for e, p in bridge.calls if e == "insert_playlist_entry"]
+        assert (first["cols"], first["rows"], first["view_count"]) == (2, 2, 4)
+        assert (second["cols"], second["rows"], second["view_count"]) == (11, 6, 66)
+        assert second["aspect"] == pytest.approx(0.5625)
+
+    def test_duration_reaches_every_entry(self, bridge, tmp_path, tiny_spec):
+        cast_playlist(self._entries(tmp_path, [tiny_spec] * 2), duration_ms=8000)
+        assert all(p["durationMS"] == 8000 for e, p in bridge.calls if e == "insert_playlist_entry")
+
+    def test_loops_unless_told_not_to(self, bridge, tmp_path, tiny_spec):
+        cast_playlist(self._entries(tmp_path, [tiny_spec]))
+        cast_playlist(self._entries(tmp_path, [tiny_spec]), loop=False)
+        loops = [p["loop"] for e, p in bridge.calls if e == "instance_playlist"]
+        assert loops == [True, False]
+
+    def test_one_playlist_name_throughout(self, bridge, tmp_path, tiny_spec):
+        cast_playlist(self._entries(tmp_path, [tiny_spec] * 3))
+        names = {p["name"] for e, p in bridge.calls if e != "enter_orchestration" and "name" in p}
+        assert len(names) == 1
+
+    def test_an_empty_playlist_is_refused_before_bridge_is_touched(self, bridge):
+        with pytest.raises(ValueError, match="at least one"):
+            cast_playlist([])
+        assert bridge.calls == []
 
 
 class TestSaveAndCastQuilt:
