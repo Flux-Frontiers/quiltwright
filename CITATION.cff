@@ -19,7 +19,9 @@ authors:
     affiliation: "Flux-Frontiers"
 version: "0.13.0"
 date-released: "2026-09-13"
-doi: "10.5281/zenodo.22180300"
+# Concept DOI: version-independent, always resolves to the newest archived
+# release. Do not replace it with a version-specific DOI at release time.
+doi: "10.5281/zenodo.21798503"
 license: BSD-3-Clause
 repository-code: "https://github.com/Flux-Frontiers/quiltwright"
 url: "https://github.com/Flux-Frontiers/quiltwright"

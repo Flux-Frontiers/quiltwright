@@ -82,6 +82,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   and never retested, since the hook only inspects newly added files. The
   directory's own `README.md` sits above the exclude and stays linted.
 
+### Fixed
+
+- **The DOI badge, `CITATION.cff` and the README BibTeX cited v0.10.0, not
+  the project.** All three carried `10.5281/zenodo.22180300`, which is the
+  version DOI of the v0.10.0 archive and resolves to that release forever.
+  It went in during the 2026-08-31 transfer to Flux-Frontiers, read as "the
+  DOI moved" when only a new version record had been minted. The concept DOI
+  never changed: `10.5281/zenodo.21798503`, which resolves to the newest
+  archive (v0.13.0 today). `CITATION.cff` now carries a comment saying not to
+  replace it at release time.
+
 ## [0.13.0] - 2026-09-13
 
 ### Added
