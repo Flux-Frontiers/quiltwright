@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- **`--view-direction` on `scripts/render_cartoon_hologram.py`**, and the
+  Go's `f1atpase-cartoon-go` quilt using it: a real PyMOL cartoon of 1BMF,
+  bovine mitochondrial F1-ATP synthase (alpha3beta3gamma), with no vitrine
+  exhibit case around it. `cartoon_inc()` does not reorient a structure, so
+  the script's fixed elevated-3/4 default view is arbitrary against any
+  particular subject's shape; the new flag takes a camera direction in the
+  structure's own frame, and `f1atpase-cartoon-go` uses one measured from
+  PCA on the assembly's own CA coordinates rather than the default. This is
+  the first real end-to-end exercise of the `--backend povray` cartoon
+  path (154668 vertices, 307824 faces) -- correct secondary-structure
+  colouring and folding, so its coordinate handling can now be trusted; the
+  `--backend cycles` / `cartoon_obj()` path remains unverified.
+
 - **`paraview-scenes/`, the ParaView counterpart to `pov-scenes/`,** with
   `mount-hood/` as its first subject: Mount Hood as an elevation surface,
   from the teaching set on
@@ -78,9 +91,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   budget, so the ribbon stands alone.
 
 - **`make` targets for a Looking Glass Go set**: `quilt-bdna-go`,
-  `quilt-dna-ribbon-go`, `quilt-f1atpase-go`, `quilt-mount-hood-go`,
-  `quilt-brain-go`, `quilts-go` for all of them with `quilt-bell-jar-portrait`,
-  and `playlist-go` to play the set (`PANEL_HEAD=<index>`).
+  `quilt-dna-ribbon-go`, `quilt-f1atpase-go`, `quilt-f1atpase-cartoon-go`,
+  `quilt-mount-hood-go`, `quilt-brain-go`, `quilts-go` for all of them with
+  `quilt-bell-jar-portrait`, and `playlist-go` to play the set
+  (`PANEL_HEAD=<index>`). `playlist-go` plays `f1atpase-cartoon-go` --
+  the molecule alone, described above -- in place of the vitrine exhibit
+  case `quilt-f1atpase-go` still renders for anyone who wants it back.
 
 ### Changed
 
