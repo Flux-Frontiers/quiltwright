@@ -282,15 +282,45 @@ still-mount-hood:  ## Mount Hood flat still -> gallery/mount_hood.png (ParaView,
 # the 35-degree cap would drop a third of their parallax.  Everything else
 # takes the cap.  bell-jar-portrait is already composed 9:16 and plays on the
 # Go as quilt-bell-jar-portrait renders it.
-.PHONY: quilt-bdna-go quilt-dna-ribbon-go quilt-f1atpase-go quilt-mount-hood-go quilt-brain-go quilts-go playlist-go
+.PHONY: quilt-bdna-go quilt-dna-ribbon-go quilt-f1atpase-go quilt-f1atpase-cartoon-go quilt-porin-portrait-go quilt-mount-hood-go quilt-brain-go quilts-go playlist-go
 quilt-bdna-go:  $(THREAD_INI)  ## B-DNA from DNA Under Glass, Looking Glass Go (cone 54)
 	$(PYTHON) scripts/render_still_life_hologram.py bdna-go --device go --view-cone 54 --jobs $(JOBS) --report $(EXTRA_ARGS)
 
 quilt-dna-ribbon-go:  $(THREAD_INI)  ## the museum's metallic DNA ribbon, Looking Glass Go (cone 54)
 	$(PYTHON) scripts/render_still_life_hologram.py dna-ribbon-go --device go --view-cone 54 --jobs $(JOBS) --report $(EXTRA_ARGS)
 
-quilt-f1atpase-go:  $(THREAD_INI)  ## F1-ATPase exhibit, Looking Glass Go
+quilt-f1atpase-go:  $(THREAD_INI)  ## F1-ATPase exhibit (vitrine case), Looking Glass Go
 	$(PYTHON) scripts/render_vitrine.py f1atpase --device go --jobs $(JOBS) $(EXTRA_ARGS)
+
+# The molecule alone, no exhibit case: a real PyMOL cartoon (154668 vertices,
+# 307824 faces) of 1BMF, bovine mitochondrial F1-ATPase -- alpha3beta3gamma,
+# the rotary motor headpiece.  cartoon_inc() does not reorient the structure,
+# so the default elevated-3/4 VIEW_DIRECTION is arbitrary against it; this one
+# is measured instead, PCA on the CA atoms of the biological assembly
+# (see scripts/render_cartoon_hologram.py's module docstring for the method).
+# The assembly turns out close to isotropic -- no long axis with an obvious
+# "top" -- so the three PCA axes were compared by eye rather than picked by
+# variance; this one gave the clearest read of the alternating alpha/beta
+# arrangement.  --view-direction takes it in the structure's own frame.
+# --view-cone 54, the Go's native one: the cartoon fills almost the whole
+# frame, so there is little backdrop to ghost, the same reasoning
+# quilt-bdna-go and quilt-dna-ribbon-go apply.
+quilt-f1atpase-cartoon-go:  ## F1-ATPase cartoon, molecule only, Looking Glass Go (cone 54)
+	$(PYTHON) scripts/render_cartoon_hologram.py molecules/1bmf.cif.gz \
+		--backend povray --device go --view-cone 54 --view-direction 0.961 0.114 -0.251 \
+		--out renders/quilts/f1atpase-cartoon-go $(EXTRA_ARGS)
+
+# 3porin.pov's ASPECT/CAM_X/CAM_Z declares are guarded (#ifndef), and
+# porin_portrait.pov sets all three itself before #include-ing it, so
+# nothing scene-specific needs passing here beyond --device.  --view-cone 54
+# is the Go's own, same as the two DNA scenes above: the subject itself
+# measures 3.07 px at that cone, well inside budget.  Only the "sea and sky
+# (infinite)" residual runs soft (10.7 px), and that is the *backdrop* field
+# every still-life subject already excludes from its depth budget on
+# purpose -- porin's original 16:9 cut carries the same "sea and sky"
+# backdrop and the same exclusion, not something new to the portrait cut.
+quilt-porin-portrait-go:  $(THREAD_INI)  ## porin trimer, recomposed 9:16, Looking Glass Go
+	$(PYTHON) scripts/render_still_life_hologram.py porin-portrait --device go --view-cone 54 --jobs $(JOBS) --report $(EXTRA_ARGS)
 
 quilt-mount-hood-go:  ## Mount Hood terrain, Looking Glass Go (ParaView)
 	$(QUILTWRIGHT) paraview paraview-scenes/mount-hood/mount-hood.pvsm \
@@ -299,12 +329,15 @@ quilt-mount-hood-go:  ## Mount Hood terrain, Looking Glass Go (ParaView)
 quilt-brain-go:  ## brain, Looking Glass Go (PyVista)
 	$(PYTHON) scripts/render_pyvista_hologram.py brain --device go --out renders/quilts/brain-go $(EXTRA_ARGS)
 
-quilts-go: quilt-bdna-go quilt-dna-ribbon-go quilt-bell-jar-portrait quilt-f1atpase-go quilt-mount-hood-go quilt-brain-go  ## the whole Go set
+quilts-go: quilt-bdna-go quilt-dna-ribbon-go quilt-bell-jar-portrait quilt-f1atpase-go quilt-f1atpase-cartoon-go quilt-porin-portrait-go quilt-mount-hood-go quilt-brain-go  ## the whole Go set
 
 # The Go set in playing order.  PANEL_HEAD is the Bridge head the Go is on --
 # `quiltwright cast --check` lists them; -1 lets Bridge choose, which is right
-# with no other display attached.
-GO_QUILTS  := bdna-go dna-ribbon-go bell-jar-portrait vitrine-f1atpase mount-hood-go brain-go
+# with no other display attached.  f1atpase-cartoon-go plays in place of the
+# vitrine exhibit case: the molecule alone reads better on the panel than the
+# case's atomic-sphere model, which quilt-f1atpase-go still renders for anyone
+# who wants the exhibit framing back.
+GO_QUILTS  := bdna-go dna-ribbon-go bell-jar-portrait f1atpase-cartoon-go porin-portrait mount-hood-go brain-go
 PANEL_HEAD ?= -1
 playlist-go:  ## play the Go set as one looping playlist (PANEL_HEAD=<index>)
 	$(QUILTWRIGHT) playlist $(foreach s,$(GO_QUILTS),renders/quilts/$(s)_qs11x6a0.5625.png) \

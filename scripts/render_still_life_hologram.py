@@ -206,6 +206,28 @@ SCENES = {
         far=1265.0,
         backdrop="sea and sky",
     ),
+    "porin-portrait": StillLife(
+        scene="porin/porin_portrait.pov",
+        # The wrapper scene declares ASPECT, CAM_X and CAM_Z itself before
+        # #include-ing 3porin.pov -- see its own header for why CAM_Z pulls
+        # the camera back to -1300 and CAM_X=20 recentres the barrel (and why
+        # that is not its vertex bounding-box centroid). eye/aim here just
+        # restate those two numbers for the sweep math; the scene file is the
+        # source of truth, not this entry.
+        eye=(20.0, 0.0, -1300.0),
+        aim=(20.0, 0.0, 0.0),
+        fov=53.13,
+        # Measured with quiltwright.povray.depth_sweep() directly rather than
+        # `quiltwright probe`'s CLI reduction, which reported 5000 (its
+        # sentinel for "did not close") -- the sea never closes here either.
+        # Nearest geometry at 880; fitting the tail's linear creep (0.0124%/
+        # unit past 1650, against a 21.6% subject once backdrop is subtracted)
+        # and taking 95% of the corrected curve gives 1591.
+        near=880.2,
+        far=1590.7,
+        backdrop="sea and sky",
+        caveat="composed 9:16 for the Looking Glass Go -- pass --device go",
+    ),
     "lambda": StillLife(
         scene="lambda/lambda_main.pov",
         # location <0,0,-70>, look_at origin, direction <0,0,1>, up <0,1,0>.

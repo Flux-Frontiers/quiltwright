@@ -24,10 +24,15 @@ modelled scenes:
 
 **Requires PyMOL** (see ``quiltwright cartoon --check`` for install routes)
 and either a ``povray`` or ``blender`` binary depending on ``--backend``.
-Not exercised end to end in this development environment -- no PyMOL here --
-so treat first real output with the usual scrutiny that comes with
-unverified code, most of all the coordinate flip
-:func:`~quiltwright.pymol.cartoon_obj` documents.
+
+``--backend povray`` (``cartoon_inc()``) has now been run end to end against
+a real PyMOL export -- 1BMF, F1-ATP synthase, 154668 vertices / 307824 faces
+-- and the output is a correctly folded, correctly coloured cartoon, so its
+own coordinate handling can be trusted. ``--backend cycles``
+(``cartoon_obj()``) has not been exercised the same way; treat a first real
+render from it with the scrutiny unverified code deserves, most of all the
+coordinate flip its docstring documents (negate *z*, reverse each face's
+winding).
 
 Usage::
 
@@ -35,6 +40,8 @@ Usage::
     python scripts/render_cartoon_hologram.py molecules/2omf.cif.gz --backend povray --still
     python scripts/render_cartoon_hologram.py molecules/1gfl.pdb --rep surface --backend cycles --still
     python scripts/render_cartoon_hologram.py 2omf.cif.gz --device portrait --cast
+    python scripts/render_cartoon_hologram.py molecules/1bmf.cif.gz --backend povray \
+        --device go --view-direction 0.961 0.114 -0.251
 
 Author: Eric G. Suchanek, PhD
 """
@@ -92,9 +99,14 @@ def render_povray(
     assembly: str,
     surface_quality: int | None,
     antialias: float,
+    view_direction: np.ndarray = VIEW_DIRECTION,
 ):
     """Export via :func:`~quiltwright.pymol.cartoon_inc` and ray-trace it.
 
+    :param view_direction: Unit vector the camera looks along, from the
+        subject's centre.  Defaults to :data:`VIEW_DIRECTION`, a generic
+        elevated 3/4 angle; pass a measured one for a subject whose principal
+        axes are not arbitrary relative to it (see ``--view-direction``).
     :return: The rendered quilt.
     """
     from quiltwright.povgen import Instance, PovScene, lights_from_bounds, to_pov
@@ -124,7 +136,7 @@ def render_povray(
         (-radius, -radius, -radius),
         (radius, radius, radius),
         up=(0.0, 0.0, 1.0),
-        key_side=tuple(VIEW_DIRECTION),
+        key_side=tuple(view_direction),
         fill=True,
         rim=True,
     ):
@@ -134,7 +146,7 @@ def render_povray(
     scene.write(scene_path)
 
     distance = framing_distance(radius, fov)
-    eye = tuple((VIEW_DIRECTION * distance).tolist())
+    eye = tuple((view_direction * distance).tolist())
     camera = PovCamera(
         location=to_pov(eye), look_at=to_pov((0.0, 0.0, 0.0)), sky=to_pov((0.0, 0.0, 1.0)), fov=fov
     )
@@ -154,9 +166,11 @@ def render_cycles(
     surface_quality: int | None,
     lighting: str,
     samples: int,
+    view_direction: np.ndarray = VIEW_DIRECTION,
 ):
     """Export via :func:`~quiltwright.pymol.cartoon_obj` and path-trace it.
 
+    :param view_direction: See :func:`render_povray`.
     :return: The rendered quilt.
     """
     from quiltwright.cycles import CyclesCamera, render_cycles_quilt
@@ -179,7 +193,7 @@ def render_cycles(
     )
 
     distance = framing_distance(result.enclosing_radius, fov)
-    eye = tuple((VIEW_DIRECTION * distance).tolist())
+    eye = tuple((view_direction * distance).tolist())
     camera = CyclesCamera(location=eye, look_at=(0.0, 0.0, 0.0), up=(0.0, 0.0, 1.0), fov=fov)
     return render_cycles_quilt(
         obj_path,
@@ -247,6 +261,18 @@ def main() -> int:
         help="view cone in degrees; defaults to the device's own, capped at 35",
     )
     parser.add_argument("--fov", type=float, default=20.0, help="vertical field of view, degrees")
+    parser.add_argument(
+        "--view-direction",
+        type=float,
+        nargs=3,
+        default=None,
+        metavar=("X", "Y", "Z"),
+        help="camera direction from the subject's centre, in the structure's own "
+        "(crystallographic) frame -- cartoon_inc() does not reorient it. Defaults to a "
+        "generic elevated 3/4 angle, arbitrary relative to any particular subject's shape; "
+        "for one where that matters, measure a real axis (e.g. PCA on CA coordinates) and "
+        "pass it here.",
+    )
     parser.add_argument("--samples", type=int, default=128, help="Cycles only: samples per pixel")
     parser.add_argument("--antialias", type=float, default=0.1, help="POV-Ray only: +A threshold")
     parser.add_argument("--preview", action="store_true", help="quarter-size quilt, for iterating")
@@ -262,6 +288,11 @@ def main() -> int:
     args = parser.parse_args()
 
     source = Path(args.source)
+    view_direction = (
+        VIEW_DIRECTION
+        if args.view_direction is None
+        else np.array(args.view_direction) / np.linalg.norm(args.view_direction)
+    )
     spec, capped_from = resolve_view_cone(QUILT_PRESETS[args.device], args.view_cone)
     if args.preview:
         spec = spec.scaled(0.25)
@@ -297,6 +328,7 @@ def main() -> int:
                 args.surface_quality,
                 args.lighting,
                 args.samples,
+                view_direction,
             )
         else:
             quilt = render_povray(
@@ -311,6 +343,7 @@ def main() -> int:
                 args.assembly,
                 args.surface_quality,
                 args.antialias,
+                view_direction,
             )
     elapsed = time.time() - started
 
