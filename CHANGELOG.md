@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-09-16
+
 ### Added
 
 - **`--view-direction` on `scripts/render_cartoon_hologram.py`**, and the
