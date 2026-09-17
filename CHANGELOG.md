@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.14.1] - 2026-09-17
+
 ### Fixed
 
 - **`frame_and_focus()` takes `spec=`, and `depth_report()` takes
