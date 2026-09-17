@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **`frame_and_focus()` takes `spec=`, and `depth_report()` takes
+  `view_cone=`,** so the framing and the budget can describe the render
+  `render_quilt()` actually makes. `frame_and_focus()` framed at whatever
+  aspect the caller had sized the window to, while `render_quilt()` resizes
+  it to the display aspect before sweeping. Sizing it to the quilt tile, the
+  obvious reading, is wrong on any preset whose tile and view shapes differ:
+  `16-landscape` tiles are 960x720 (4:3) but its views are 1280x720 (16:9),
+  and a torus framed at the tile shape put the focal plane at 34.3 instead
+  of 26.2. With `spec=` the window is set the way `render_quilt()` sets it.
+  Separately, `depth_report()` had no cone override, so a render capped with
+  `render_quilt(..., view_cone=35)` on `16-landscape` was reported at the
+  preset's 50 degrees (8.58 px against a real 5.80). Both parameters are
+  keyword-only and optional; existing calls behave as before. Both
+  docstrings now also say to frame and report before adding a floor or
+  backdrop, since both measure the plotter's full bounds.
+
 ## [0.14.0] - 2026-09-16
 
 ### Added
