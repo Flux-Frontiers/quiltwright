@@ -114,11 +114,24 @@ __all__ = [
 ]
 
 
+def _view_window(spec: QuiltSpec) -> tuple[int, int]:
+    """Window size :func:`render_quilt` captures each view at.
+
+    Views are captured at the display aspect, not the tile's: 16-landscape
+    tiles are 960x720 but its views are 1280x720, resampled into the tile.
+
+    :param spec: Quilt specification.
+    :return: ``(width, height)`` in pixels.
+    """
+    return round(spec.tile_height * spec.aspect), spec.tile_height
+
+
 def frame_and_focus(
     plotter,
     *,
     fov: float = 14.0,
     margin: float = 1.15,
+    spec: QuiltSpec | None = None,
 ) -> tuple[float, float, float]:
     """Frame a PyVista scene tightly at its final view, and focus it.
 
@@ -146,21 +159,31 @@ def frame_and_focus(
     ``fov=None`` to :func:`render_quilt` so it does not frame the scene a
     second time from scratch.
 
-    :param plotter: A ``pv.Plotter`` with the data added, ``window_size``
-        already set to the final render resolution (the aspect matters), and
-        the camera pointing in the desired direction.
+    The fit uses the plotter's bounds, so call this before adding a floor,
+    backdrop or anything else that should not be framed -- a floor that
+    reaches past the camera is framed, and measured, as the subject.
+
+    :param plotter: A ``pv.Plotter`` with the data added and the camera
+        pointing in the desired direction.  Without *spec*, ``window_size``
+        must already have the aspect the views render at.
     :param fov: Vertical field of view to lock the camera to, in degrees.
         Must match what the render actually uses, or the depth budget
         describes a different camera than the one that renders.
     :param margin: Headroom beyond the tight corner-projected fit, as a
         fraction -- ``1.15`` leaves 15% so the subject does not touch the
         frame edges.
+    :param spec: Quilt specification the scene will render with.  When
+        given, ``window_size`` is set to the view size :func:`render_quilt`
+        uses before framing.  That is the display aspect, not the tile
+        aspect, which is the mistake sizing the window by hand invites.
     :return: ``(near, far, focal_distance)`` in scene units, measured from
         the final camera position -- the numbers :func:`view_disparity`
         expects.
     :raises ImportError: If PyVista is not installed.
     """
     require_pyvista("frame_and_focus")
+    if spec is not None:
+        plotter.window_size = _view_window(spec)
     camera = plotter.camera
     position = np.asarray(camera.position, dtype="d")
     focus = np.asarray(camera.focal_point, dtype="d")
@@ -286,6 +309,7 @@ def depth_report(
     plotter,
     spec: QuiltSpec,
     *,
+    view_cone: float | None = None,
     fov: float | None = 14.0,
     zoom: float | None = None,
     labels: tuple[str, str, str] = DEPTH_LABELS,
@@ -295,13 +319,17 @@ def depth_report(
     """Depth budget for a PyVista scene, as a report to print before rendering.
 
     The PyVista counterpart to
-    :func:`~quiltwright.povray.format_depth_budget`.  Pass the same *fov*
-    and *zoom* you will pass to :func:`render_quilt`, so the numbers
-    describe the render you are about to make.
+    :func:`~quiltwright.povray.format_depth_budget`.  Pass the same
+    *view_cone*, *fov* and *zoom* you will pass to :func:`render_quilt`, so
+    the numbers describe the render you are about to make.  Depths come from
+    the plotter's bounds, so report before adding a floor or backdrop.
 
     :param plotter: Plotter with the scene composed and the camera framed.
     :param spec: Quilt specification.
+    :param view_cone: Override the spec's view cone in degrees; see
+        :func:`render_quilt`.
     :param fov: FOV that will be used for the render; see :func:`render_quilt`.
+        Pass ``None`` after :func:`frame_and_focus`, as for the render.
     :param zoom: Zoom that will be used for the render.
     :param labels: Names for the near, focal and far depths.
     :param extra_depths: Further labelled depths to include, e.g.
@@ -311,6 +339,8 @@ def depth_report(
     """
     from quiltwright.povray import format_depth_budget
 
+    if view_cone is not None:
+        spec = replace(spec, view_cone=view_cone)
     depths = scene_depths(plotter, fov=fov, zoom=zoom, labels=labels)
     if extra_depths:
         depths.update(extra_depths)
@@ -406,8 +436,7 @@ def render_quilt(
     # the frustum is undistorted, then resampled into the tile.  For most
     # devices these match; some ideal quilts (e.g. 27") store views
     # anamorphically, with tile pixel aspect != view aspect.
-    render_h = spec.tile_height
-    render_w = round(render_h * spec.aspect)
+    render_w, render_h = _view_window(spec)
     plotter.window_size = (render_w, render_h)
     if not plotter.camera.is_set:
         # Mirror pyvista's first-render behaviour (it only runs on

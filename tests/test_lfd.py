@@ -1369,6 +1369,26 @@ class TestFrameAndFocus:
             np.asarray(square.camera.position)
         )
 
+    def test_a_spec_sizes_the_window_as_render_quilt_will(self):
+        """render_quilt captures views at the display aspect, not the tile's.
+
+        16-landscape tiles are 960x720 (4:3) but its views are 1280x720
+        (16:9). A caller who sized the window to the tile framed the wrong
+        shape and put the focal plane in the wrong place.
+        """
+        spec = QUILT_PRESETS["16-landscape"]
+        plotter = self._tilted(window=(spec.tile_width, spec.tile_height))
+        frame_and_focus(plotter, fov=14.0, spec=spec)
+        assert plotter.window_size == (round(spec.tile_height * spec.aspect), spec.tile_height)
+
+    def test_a_spec_frames_as_if_the_window_were_already_right(self):
+        spec = QUILT_PRESETS["16-landscape"]
+        wrong = self._tilted(window=(spec.tile_width, spec.tile_height))
+        right = self._tilted(window=(round(spec.tile_height * spec.aspect), spec.tile_height))
+        assert frame_and_focus(wrong, fov=14.0, spec=spec) == pytest.approx(
+            frame_and_focus(right, fov=14.0)
+        )
+
 
 class TestDepthReport:
     def test_reports_every_depth_including_extras(self):
@@ -1398,3 +1418,13 @@ class TestDepthReport:
         as_composed = depth_report(_stub(view_angle=30.0), spec, fov=None)
 
         assert as_rendered != as_composed
+
+    def test_it_takes_the_same_cone_override_as_render_quilt(self):
+        """render_quilt(view_cone=35) on 16-landscape sweeps 35 degrees; a
+        report with no way to say so described the preset's 50.
+        """
+        spec = QUILT_PRESETS["16-landscape"]
+        overridden = depth_report(_stub(), spec, view_cone=35.0)
+
+        assert overridden == depth_report(_stub(), replace(spec, view_cone=35.0))
+        assert overridden != depth_report(_stub(), spec)
