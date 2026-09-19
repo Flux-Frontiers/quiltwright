@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **`--sweep tool` on `scripts/render_still_life_hologram.py`,** which renders
+  `LITIHOLO_TOOL_SWEEP` -- the shape LitiHolo's own capture tool emits, 23
+  views over 55 degrees at 400x400 -- rather than the specification sheet's
+  `LITIHOLO_SWEEP`. Bare `--sweep` still means the spec sheet and is
+  unchanged. The two are different shapes of the same subject, so a tool
+  sweep writes `<subject>-litiholo-tool` rather than landing on the spec
+  sweep's filenames and destroying them, and `porin-litiholo-tool` joins the
+  release bundle alongside `porin-litiholo`.
+
 ## [0.15.0] - 2026-09-19
 
 ### Added

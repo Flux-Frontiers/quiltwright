@@ -376,7 +376,8 @@ preview-museum: $(THREAD_INI)  ## quarter-size museum quilt
 # and variant inserts a -suffix before _qs. Override per release when the
 # "current" cut of a scene changes, e.g.
 #   make release-assets TAG=v1.2.3 RELEASE_QUILT_SUBJECTS="bell-jar porin museum"
-RELEASE_QUILT_SUBJECTS ?= bell-jar-holo-2026 bell-jar-portrait porin porin-litiholo \
+RELEASE_QUILT_SUBJECTS ?= bell-jar-holo-2026 bell-jar-portrait porin \
+                          porin-litiholo porin-litiholo-tool \
                           museum lambda vitrine-hemoglobin mount-hood mount-hood-portrait \
                           brain damavand mouse-brain st-helens
 

@@ -47,7 +47,7 @@ from pathlib import Path
 
 from quiltwright.lfd import QUILT_PRESETS, focal_distance_for_range, save_quilt
 from quiltwright.povray import PovCamera, format_depth_budget, render_pov_quilt
-from quiltwright.quilt import LITIHOLO_SWEEP
+from quiltwright.quilt import LITIHOLO_SWEEP, LITIHOLO_TOOL_SWEEP
 from quiltwright.runreport import RunReport, povray_flags, povray_parallelism
 
 POV_SCENES = Path(__file__).resolve().parents[1] / "pov-scenes"
@@ -372,12 +372,18 @@ def main() -> int:
     )
     parser.add_argument(
         "--sweep",
-        action="store_true",
-        help="render LITIHOLO_SWEEP instead of a device quilt: 23 views over "
-        "45 degrees in a single row, 1600x2000 tiles, which is the layout a "
-        "hologram printer asks for and no columns x rows grid can express.  "
-        "The views are kept as separate frames as well, since that is what "
-        "the printer actually consumes.  Overrides --device.",
+        nargs="?",
+        const="spec",
+        choices=("spec", "tool"),
+        default=None,
+        help="render a LitiHolo sweep instead of a device quilt: 23 views in "
+        "a single row, which is the layout a hologram printer asks for and no "
+        "columns x rows grid can express.  Bare --sweep (or 'spec') is "
+        "LITIHOLO_SWEEP, the specification sheet: 45 degrees, 1600x2000 "
+        "tiles.  'tool' is LITIHOLO_TOOL_SWEEP, what LitiHolo's own capture "
+        "tool emits at its factory defaults: 55 degrees, 400x400 tiles.  The "
+        "views are kept as separate frames as well, since that is what the "
+        "printer actually consumes.  Overrides --device.",
     )
     parser.add_argument(
         "--view-cone",
@@ -456,13 +462,20 @@ def main() -> int:
     if args.fov is not None:
         subject = replace(subject, fov=args.fov)
     camera = subject.camera()
-    spec = LITIHOLO_SWEEP if args.sweep else QUILT_PRESETS[args.device]
+    if args.sweep:
+        spec = LITIHOLO_TOOL_SWEEP if args.sweep == "tool" else LITIHOLO_SWEEP
+    else:
+        spec = QUILT_PRESETS[args.device]
+    # The tool sweep is a different shape of the same subject, so it needs its
+    # own filenames or it lands on the spec sweep's and destroys it.
+    sweep_slug = "litiholo-tool" if args.sweep == "tool" else "litiholo"
     if args.view_cone is not None:
         spec = replace(spec, view_cone=args.view_cone)
     elif args.sweep:
-        # The sweep's 45 degrees is the published specification, not a preset
-        # the panel budget gets to talk down.  It is coarse on purpose: 2.05
-        # degrees between views against a Portrait quilt's 0.74.
+        # A sweep's cone is the printer's, not a preset the panel budget gets
+        # to talk down.  Both are coarse on purpose: 2.05 degrees between
+        # views for the spec sheet, 2.5 for the tool, against a Portrait
+        # quilt's 0.74.
         pass
     elif spec.view_cone > STANDARD_VIEW_CONE:
         print(
@@ -476,7 +489,7 @@ def main() -> int:
     if args.preview:
         spec = replace(spec, quilt_width=spec.quilt_width // 4, quilt_height=spec.quilt_height // 4)
 
-    target = "LitiHolo sweep" if args.sweep else args.device
+    target = f"LitiHolo {args.sweep} sweep" if args.sweep else args.device
     print(f"{args.subject} hologram -> {target}{' (preview)' if args.preview else ''}")
     print(
         f"  {'sweep' if args.sweep else 'quilt':16} {spec.quilt_width}x{spec.quilt_height}, "
@@ -503,7 +516,7 @@ def main() -> int:
         # The -preview suffix for the same reason the quilt carries one:
         # iterating on a preview must not destroy the frames of a full run.
         suffix = "-preview" if args.preview else ""
-        keep_views = f"renders/views/{args.subject}-litiholo{suffix}"
+        keep_views = f"renders/views/{args.subject}-{sweep_slug}{suffix}"
 
     antialias_used = None if args.preview else args.antialias
     quality_used = 11
@@ -532,7 +545,7 @@ def main() -> int:
     # land on the full render's filename -- iterating on one would silently
     # destroy the other.
     stem = args.out or (
-        f"renders/quilts/{args.subject}-litiholo"
+        f"renders/quilts/{args.subject}-{sweep_slug}"
         if args.sweep
         else f"renders/quilts/{args.subject}"
     )
