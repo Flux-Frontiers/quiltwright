@@ -490,9 +490,11 @@ requires_povray = pytest.mark.skipif(
 )
 
 # ffprobe ships with a system ffmpeg install but not with imageio-ffmpeg's
-# bundled binary (the `video` extra covers encoding only), so CI -- which
-# has neither a system ffmpeg nor a reason to install one -- does not have
-# it on PATH.
+# bundled binary (the `video` extra covers encoding only), so a machine that
+# installed only the extra can encode but cannot read a codec back.  CI does
+# install a system ffmpeg, for this test and only this test -- it is the one
+# check that an `encode_args` override reaches ffmpeg rather than being
+# dropped silently.  The guard stays for local runs without one.
 requires_ffprobe = pytest.mark.skipif(
     shutil.which("ffprobe") is None, reason="ffprobe binary unavailable"
 )
