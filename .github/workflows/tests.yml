@@ -80,10 +80,17 @@ jobs:
       # VTK needs a GL stack and an X server; povray exercises the ray-traced
       # backend.  Without these the relevant tests skip rather than fail, but
       # then they are not actually testing anything.
+      #
+      # ffmpeg is here for `ffprobe`, not for encoding.  The `video` extra's
+      # imageio-ffmpeg bundles an encoder and `find_ffmpeg()` falls back to
+      # it, so the video tests already run -- but it ships no ffprobe, and
+      # the one test that reads a written file's codec back is the only
+      # check that an `encode_args` override reaches ffmpeg at all.  Without
+      # this it skipped, and a skipped test asserts nothing.
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb libgl1 libglx-mesa0 libxrender1 povray
+          sudo apt-get install -y xvfb libgl1 libglx-mesa0 libxrender1 povray ffmpeg
 
       - name: Install package
         run: |

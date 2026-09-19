@@ -355,28 +355,97 @@ not. Aspect 0.8 is that plate in portrait; transpose for landscape. If you use
 this preset, you are inheriting a guess on that one field and should size it
 yourself once you know the real figure.
 
+### Matching the vendor's tool rather than the spec sheet
+
+LitiHolo publishes a second, more useful description of its input: the
+[3DHP Render Tool](https://www.litiholo.com/Sketchfab/3d-hologram-printer-renderizer.html),
+a web page that captures a sweep from a Sketchfab model and hands the result to
+the printer. It is not a specification, it is the thing that actually feeds the
+machine, and it disagrees with the spec sheet in three ways that matter. Its
+logic is one readable file, [`render-script.js`](https://www.litiholo.com/Sketchfab/render-script.js),
+so none of this is inference.
+
+| | Published spec (`LITIHOLO_SWEEP`) | Vendor tool (`LITIHOLO_TOOL_SWEEP`) |
+|---|---|---|
+| Views | 23 | 23 |
+| View cone | 45° | **55°** (23 stops, 2.5° apart) |
+| Geometry | off-axis, assumed | **toe-in**, observed |
+| Per-view pixels | 1600×2000, guessed | 400×400 default, user-set |
+| Files | `view000.png` … | `render-400x400-HPO-01.jpg` … |
+
+**The cone.** `captureHPOSequence()` steps left by `delta * ((23 - 1) / 2 + 1)`
+degrees, then captures *after* each of 23 steps back to the right. At the
+default 2.5° per move that puts the stops at -27.5° to +27.5°: **55°**, not 45.
+The step size is a field in the tool's own UI, so 45° is reachable by setting
+2.045, but 55° is what the machine has been fed by default.
+
+**The geometry.** The tool orbits the Sketchfab camera around a pinned aim point
+and screenshots each stop. There is no frustum shear anywhere in it. That is
+toe-in, the projection this page spends its Concept section telling you not to
+use -- and it is correct here, because a hogel slicer is not a lens sheet. Pass
+`geometry="toe-in"` to `render_pov_views()` to match it:
+
+```python
+from quiltwright import LITIHOLO_TOOL_SWEEP, pack_litiholo_sweep
+from quiltwright.povray import render_pov_views
+
+views = render_pov_views("risedronate.pov", LITIHOLO_TOOL_SWEEP, camera,
+                         "renders/raw/", geometry="toe-in")
+pack_litiholo_sweep(views, "renders/litiholo/", LITIHOLO_TOOL_SWEEP,
+                    zip_output=True)
+# -> renders/litiholo/render-400x400-HPO-01.jpg ... -23.jpg
+#    renders/litiholo/render-400x400-HPO-captures.zip
+```
+
+`toe_in_cameras()` is the geometry on its own if you want to inspect it. It
+swings the eye along an arc of constant radius about `look_at` and re-aims every
+view, so each frame is a plain symmetric frustum with the subject dead centre.
+`view_angles()` is the angle list both geometries sample, which is why a depth
+budget still reads the same sampling interval either way.
+
+`pack_litiholo_sweep()` is the delivery step and changes no geometry: it
+re-encodes an already-rendered sweep as JPEG under the vendor's names, and
+optionally writes the zip its tool downloads. Transparent frames are composited
+onto **black**, which is the ground the tool's own transparent capture ends up
+with.
+
+**Full parallax is not implemented.** The tool also has an FP mode: 23 columns ×
+17 rows, 391 images, the same 2.5° step, spanning 55° × 40°, named
+`FP-h{col}v{row}`. So the printer accepts vertical parallax. Quiltwright renders
+no vertical sweep at all, and `litiholo_names(mode="FP")` raises rather than
+name a grid it cannot fill.
+
 ### What this does and does not establish
 
 **Nothing produced this way has been through the printer's software.** The
 claim quiltwright supports is that it *emits a sweep matching the published
-specification*. That is not the same as "compatible with the LitiHolo printer",
-and two open questions sit between them:
+specification*, and now also one matching what the vendor's own tool emits.
+Neither is the same as "compatible with the LitiHolo printer":
 
-- **Off-axis or toe-in?** Quiltwright sweeps with off-axis sheared frusta,
-  which is unambiguously correct for a lenticular panel -- it is the whole point
-  of the Concept section above. But the 2003 hologram submission of one of these
-  same scenes used a *circular arc with the aim point pinned to the subject*,
-  which is toe-in. These are not interchangeable, and which one a hogel slicer
-  expects is unknown.
+- **Off-axis or toe-in?** Answered by example, not by the vendor. The tool is
+  toe-in, and the 2003 hologram submission of one of these same scenes was
+  toe-in too -- a 180-frame circular arc with the aim point pinned to the
+  molecule -- and it printed. What is still unknown is whether the slicer
+  *requires* toe-in or merely tolerates it, i.e. whether it corrects the
+  keystone or ignores it. Until that is answered, `geometry="toe-in"` is the
+  conservative choice for a plate and off-axis remains the default everywhere
+  else.
+- **Does the slicer resample?** The tool always emits exactly 23. Whether a
+  denser source set would be used or discarded is unknown, so there is no
+  reason yet to spend render time on one.
 - **Is 23 views over 45° too coarse?** It works out to **2.05° between adjacent
   views** (45° over 22 intervals), against **0.74°** for a Looking Glass
-  Portrait quilt (35° over 47) -- about 2.75× coarser. On a lenticular panel,
-  that much would step visibly as you moved rather than glide. Whether a
-  hogel-based recording is more forgiving is genuinely unknown.
+  Portrait quilt (35° over 47) -- about 2.75× coarser. The tool's 55° default is
+  coarser still at **2.5°**. On a lenticular panel, that much would step visibly
+  as you moved rather than glide. Whether a hogel-based recording is more
+  forgiving is genuinely unknown.
 
-Because of the second point, run `format_depth_budget()` *before* rendering a
+Because of the last point, run `format_depth_budget()` *before* rendering a
 sweep rather than after. Coarse angular sampling and a generous depth budget
-compound, and a sweep has less margin than a quilt, not more.
+compound, and a sweep has less margin than a quilt, not more. The budget is
+derived for the off-axis projection; under toe-in it reports the disparity that
+same angular sampling would give and leaves the keystone term out, so read it as
+a floor.
 
 ---
 

@@ -17,6 +17,7 @@ from quiltwright.lfd import (
     BRIDGE_URL,
     DEPTH_LABELS,
     LITIHOLO_SWEEP,
+    LITIHOLO_TOOL_SWEEP,
     QUILT_PRESETS,
     QuiltSpec,
     _encode_args,
@@ -27,6 +28,8 @@ from quiltwright.lfd import (
     find_ffmpeg,
     focal_distance_for_range,
     frame_and_focus,
+    litiholo_names,
+    pack_litiholo_sweep,
     pause_quilt,
     resume_quilt,
     save_and_cast_quilt,
@@ -34,6 +37,7 @@ from quiltwright.lfd import (
     scene_depths,
     stop_quilt,
     sweep_spec,
+    view_angles,
     view_disparity,
     view_offsets,
 )
@@ -82,6 +86,28 @@ class TestSweepSpec:
         assert LITIHOLO_SWEEP.n_views == 23
         assert LITIHOLO_SWEEP.view_cone == 45.0
 
+    def test_tool_sweep_matches_the_vendor_capture_tool(self):
+        """LitiHolo's own web renderer at its factory defaults.
+
+        Its ``captureHPOSequence()`` steps ``delta * ((23 - 1) / 2 + 1)``
+        degrees left, then captures after each of 23 steps back right, so
+        at the default 2.5 deg/move the stops are -27.5 to +27.5.  That is
+        55 degrees, not the 45 on the specification sheet.
+        """
+        assert LITIHOLO_TOOL_SWEEP.n_views == 23
+        assert LITIHOLO_TOOL_SWEEP.view_cone == 55.0
+        assert (LITIHOLO_TOOL_SWEEP.tile_width, LITIHOLO_TOOL_SWEEP.tile_height) == (400, 400)
+
+        angles = view_angles(LITIHOLO_TOOL_SWEEP)
+        assert angles[0] == pytest.approx(-27.5)
+        assert angles[-1] == pytest.approx(27.5)
+        # One stop per 2.5-degree move of the tool's camera.
+        assert np.diff(angles) == pytest.approx(np.full(22, 2.5))
+
+    def test_tool_and_spec_sweeps_disagree_on_the_cone(self):
+        """Kept apart deliberately: one is the spec sheet, one is the machine."""
+        assert LITIHOLO_TOOL_SWEEP.view_cone != LITIHOLO_SWEEP.view_cone
+
     def test_sweep_offsets_symmetric_about_centre(self):
         """An odd view count puts one camera exactly on axis."""
         offsets = view_offsets(LITIHOLO_SWEEP, 38.64)
@@ -90,6 +116,93 @@ class TestSweepSpec:
         assert offsets[0] == pytest.approx(-offsets[-1])
         # Monotonic left to right, so view 0 is leftmost.
         assert np.all(np.diff(offsets) > 0)
+
+
+class TestLitiholoDelivery:
+    """The delivery format: what the vendor's tool hands the printer."""
+
+    @staticmethod
+    def _frames(tmp_path, n, size=(40, 40)):
+        """*n* distinguishable PNGs standing in for a rendered sweep."""
+        from PIL import Image
+
+        paths = []
+        for i in range(n):
+            path = tmp_path / f"view{i:03d}.png"
+            Image.new("RGB", size, (i * 10 % 256, 0, 0)).save(path)
+            paths.append(path)
+        return paths
+
+    def test_names_match_the_vendor_convention(self):
+        """One-indexed, zero-padded to two, capture size in the stem."""
+        names = litiholo_names(LITIHOLO_TOOL_SWEEP)
+        assert len(names) == 23
+        assert names[0] == "render-400x400-HPO-01.jpg"
+        assert names[9] == "render-400x400-HPO-10.jpg"
+        assert names[-1] == "render-400x400-HPO-23.jpg"
+
+    def test_names_track_the_capture_size(self):
+        spec = sweep_spec(n_views=23, view_cone=55.0, tile_width=1600, tile_height=1600)
+        assert litiholo_names(spec)[0] == "render-1600x1600-HPO-01.jpg"
+
+    def test_full_parallax_mode_rejected(self):
+        """Quiltwright renders no vertical sweep, so it must not name an FP grid."""
+        with pytest.raises(ValueError, match="FP grid"):
+            litiholo_names(LITIHOLO_TOOL_SWEEP, mode="FP")
+
+    def test_pack_writes_named_jpegs_in_view_order(self, tmp_path):
+        spec = sweep_spec(n_views=3, view_cone=55.0, tile_width=40, tile_height=40)
+        views = self._frames(tmp_path, 3)
+        out = pack_litiholo_sweep(views, tmp_path / "litiholo", spec)
+
+        assert [p.name for p in out] == [
+            "render-40x40-HPO-01.jpg",
+            "render-40x40-HPO-02.jpg",
+            "render-40x40-HPO-03.jpg",
+        ]
+        assert all(p.is_file() for p in out)
+
+    def test_pack_preserves_the_sweep_order(self, tmp_path):
+        """View 0 must stay view 0: a reversed sequence inverts the depth."""
+        from PIL import Image
+
+        spec = sweep_spec(n_views=3, view_cone=55.0, tile_width=40, tile_height=40)
+        views = self._frames(tmp_path, 3)
+        out = pack_litiholo_sweep(views, tmp_path / "litiholo", spec)
+        reds = [np.asarray(Image.open(p).convert("RGB"))[0, 0, 0] for p in out]
+        assert reds == sorted(reds)
+        assert reds[0] < reds[-1]
+
+    def test_pack_flattens_transparency_to_black(self, tmp_path):
+        """JPEG has no alpha, and black is the ground a hologram wants."""
+        from PIL import Image
+
+        spec = sweep_spec(n_views=2, view_cone=55.0, tile_width=8, tile_height=8)
+        views = []
+        for i in range(2):
+            path = tmp_path / f"rgba{i}.png"
+            Image.new("RGBA", (8, 8), (255, 255, 255, 0)).save(path)
+            views.append(path)
+        out = pack_litiholo_sweep(views, tmp_path / "litiholo", spec)
+        assert np.asarray(Image.open(out[0]).convert("RGB")).max() == 0
+
+    def test_pack_writes_the_zip_the_tool_downloads(self, tmp_path):
+        import zipfile
+
+        spec = sweep_spec(n_views=3, view_cone=55.0, tile_width=40, tile_height=40)
+        views = self._frames(tmp_path, 3)
+        pack_litiholo_sweep(views, tmp_path / "litiholo", spec, zip_output=True)
+
+        archive = tmp_path / "litiholo" / "render-40x40-HPO-captures.zip"
+        assert archive.is_file()
+        with zipfile.ZipFile(archive) as zf:
+            assert zf.namelist() == litiholo_names(spec)
+
+    def test_pack_rejects_a_short_sweep(self, tmp_path):
+        """A missing view is a silently wrong hologram, not a shorter one."""
+        spec = sweep_spec(n_views=23, view_cone=55.0, tile_width=40, tile_height=40)
+        with pytest.raises(ValueError, match="23 views"):
+            pack_litiholo_sweep(self._frames(tmp_path, 22), tmp_path / "out", spec)
 
 
 # ---------------------------------------------------------------------------

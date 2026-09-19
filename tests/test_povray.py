@@ -9,13 +9,14 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from quiltwright.lfd import QUILT_PRESETS, QuiltSpec, view_offsets
+from quiltwright.lfd import QUILT_PRESETS, QuiltSpec, view_angles, view_offsets
 from quiltwright.povray import (
     APPEARANCE_SUN,
     Clearance,
     PovCamera,
     _find_povray,
     _orbit_camera,
+    _view_frames,
     camera_block,
     depth_budget,
     format_depth_budget,
@@ -24,6 +25,7 @@ from quiltwright.povray import (
     summarise_depth_sweep,
     sun_direction,
     sweep_extent,
+    toe_in_cameras,
 )
 
 
@@ -387,14 +389,112 @@ class TestFindPovray:
 # ---------------------------------------------------------------------------
 
 
+class TestToeInCameras:
+    """The compatibility geometry: an arc, each view re-aimed at the subject.
+
+    Wrong for a lens sheet by construction, so these assert that it is
+    faithfully wrong -- a real arc, really re-aimed -- rather than that it
+    resembles the off-axis sweep.
+    """
+
+    def test_one_camera_per_view(self, camera):
+        spec = QuiltSpec(columns=23, rows=1, quilt_width=23 * 40, quilt_height=40, aspect=1.0)
+        assert len(toe_in_cameras(camera, spec)) == 23
+
+    def test_eye_stays_on_the_arc(self, camera):
+        """Constant radius about the aim point -- that is what makes it an orbit."""
+        spec = QuiltSpec(columns=9, rows=1, quilt_width=9 * 40, quilt_height=40, aspect=1.0)
+        radii = [cam.focal_distance for cam in toe_in_cameras(camera, spec)]
+        assert radii == pytest.approx([camera.focal_distance] * 9)
+
+    def test_every_view_still_aims_at_the_subject(self, camera):
+        """The defining difference from off-axis: look_at never moves."""
+        spec = QuiltSpec(columns=9, rows=1, quilt_width=9 * 40, quilt_height=40, aspect=1.0)
+        assert all(cam.look_at == camera.look_at for cam in toe_in_cameras(camera, spec))
+
+    def test_centre_view_is_the_base_camera(self, camera):
+        """An odd view count puts one camera exactly where the caller framed it."""
+        spec = QuiltSpec(columns=23, rows=1, quilt_width=23 * 40, quilt_height=40, aspect=1.0)
+        centre = toe_in_cameras(camera, spec)[11]
+        assert centre.location == pytest.approx(camera.location)
+
+    def test_arc_runs_left_to_right(self, camera):
+        """View 0 leftmost, same ordering as view_offsets -- a mirrored sweep
+        inverts the hologram's depth, so the sign is load-bearing."""
+        spec = QuiltSpec(columns=9, rows=1, quilt_width=9 * 40, quilt_height=40, aspect=1.0)
+        _, right, _ = camera.basis()
+        base = np.asarray(camera.location, dtype="d")
+        lateral = [
+            float(np.dot(np.asarray(cam.location, dtype="d") - base, right))
+            for cam in toe_in_cameras(camera, spec)
+        ]
+        assert lateral[0] < 0 < lateral[-1]
+        assert np.all(np.diff(lateral) > 0)
+        # Same side as the off-axis sweep it stands in for.
+        assert lateral[0] * view_offsets(spec, camera.focal_distance)[0] > 0
+
+    def test_subtends_the_requested_angles(self, camera):
+        """Same angular sampling as off-axis, so a depth budget still reads."""
+        spec = QuiltSpec(
+            columns=23, rows=1, quilt_width=23 * 40, quilt_height=40, aspect=1.0, view_cone=55.0
+        )
+        pivot = np.asarray(camera.look_at, dtype="d")
+        base = np.asarray(camera.location, dtype="d") - pivot
+        measured = []
+        for cam in toe_in_cameras(camera, spec):
+            v = np.asarray(cam.location, dtype="d") - pivot
+            cos = np.dot(base, v) / (np.linalg.norm(base) * np.linalg.norm(v))
+            measured.append(math.degrees(math.acos(np.clip(cos, -1.0, 1.0))))
+        assert measured[0] == pytest.approx(27.5)
+        assert measured[-1] == pytest.approx(27.5)
+        assert measured[11] == pytest.approx(0.0, abs=1e-9)
+
+    def test_emitted_camera_has_no_shear(self, camera):
+        """A toe-in view is a plain symmetric frustum: direction perpendicular
+        to right, and pointed at the aim point."""
+        spec = QuiltSpec(columns=9, rows=1, quilt_width=9 * 40, quilt_height=40, aspect=1.0)
+        frame = _view_frames(spec, camera, "toe-in")[0]
+        vectors = parse_vectors(camera_block(frame.camera, frame.offset, 1.0))
+        assert float(np.dot(vectors["direction"], vectors["right"])) == pytest.approx(0.0, abs=1e-9)
+        aim = np.asarray(camera.look_at, dtype="d") - vectors["location"]
+        cross = np.cross(vectors["direction"], aim)
+        assert float(np.linalg.norm(cross)) == pytest.approx(0.0, abs=1e-9)
+
+    def test_off_axis_frames_keep_the_base_camera(self, camera):
+        """The other half of the switch: shear, one eye position per offset."""
+        spec = QuiltSpec(columns=9, rows=1, quilt_width=9 * 40, quilt_height=40, aspect=1.0)
+        frames = _view_frames(spec, camera, "off-axis")
+        assert all(f.camera is camera for f in frames)
+        assert [f.offset for f in frames] == pytest.approx(
+            list(view_offsets(spec, camera.focal_distance))
+        )
+
+    def test_unknown_geometry_rejected(self, camera):
+        with pytest.raises(ValueError, match="off-axis"):
+            _view_frames(QUILT_PRESETS["portrait"], camera, "toein")
+
+    def test_wrapper_comment_names_the_move(self, camera):
+        """A kept wrapper is the only record of which geometry produced it."""
+        spec = QuiltSpec(columns=9, rows=1, quilt_width=9 * 40, quilt_height=40, aspect=1.0)
+        assert "toe-in" in _view_frames(spec, camera, "toe-in")[0].note
+        assert "eye offset" in _view_frames(spec, camera, "off-axis")[0].note
+
+    def test_angles_match_view_angles(self, camera):
+        """toe_in_cameras() and view_offsets() sample one angle list."""
+        spec = QuiltSpec(columns=5, rows=1, quilt_width=200, quilt_height=40, aspect=1.0)
+        assert list(view_angles(spec)) == pytest.approx([-17.5, -8.75, 0.0, 8.75, 17.5])
+
+
 requires_povray = pytest.mark.skipif(
     shutil.which("povray") is None, reason="povray binary unavailable"
 )
 
 # ffprobe ships with a system ffmpeg install but not with imageio-ffmpeg's
-# bundled binary (the `video` extra covers encoding only), so CI -- which
-# has neither a system ffmpeg nor a reason to install one -- does not have
-# it on PATH.
+# bundled binary (the `video` extra covers encoding only), so a machine that
+# installed only the extra can encode but cannot read a codec back.  CI does
+# install a system ffmpeg, for this test and only this test -- it is the one
+# check that an `encode_args` override reaches ffmpeg rather than being
+# dropped silently.  The guard stays for local runs without one.
 requires_ffprobe = pytest.mark.skipif(
     shutil.which("ffprobe") is None, reason="ffprobe binary unavailable"
 )
@@ -562,6 +662,55 @@ class TestRenderPovViews:
         spec = replace(LITIHOLO_SWEEP, quilt_width=23 * 48, quilt_height=60)
         paths = render_pov_views(scene, spec, camera, tmp_path / "sweep", progress=False)
         assert len(paths) == 23
+
+    def test_toe_in_renders_and_differs_from_off_axis(self, scene, camera, tmp_path):
+        """The geometry switch reaches POV-Ray: same frames, different pictures.
+
+        If these came out identical the flag would be decorative, which is
+        the failure mode that matters -- a sweep silently sent to the
+        printer in the wrong projection looks plausible frame by frame.
+        """
+        from PIL import Image
+
+        from quiltwright.lfd import sweep_spec
+        from quiltwright.povray import render_pov_views
+
+        spec = sweep_spec(n_views=3, view_cone=55.0, tile_width=48, tile_height=48)
+        off = render_pov_views(scene, spec, camera, tmp_path / "off", progress=False)
+        toe = render_pov_views(
+            scene, spec, camera, tmp_path / "toe", geometry="toe-in", progress=False
+        )
+
+        assert [p.name for p in toe] == [p.name for p in off]
+        # The centre view is the same camera under either geometry.
+        assert np.array_equal(
+            np.asarray(Image.open(off[1]).convert("RGB")),
+            np.asarray(Image.open(toe[1]).convert("RGB")),
+        )
+        # The outer views are not.
+        assert not np.array_equal(
+            np.asarray(Image.open(off[0]).convert("RGB")),
+            np.asarray(Image.open(toe[0]).convert("RGB")),
+        )
+
+    def test_toe_in_wrapper_records_the_geometry(self, scene, camera, tmp_path):
+        from quiltwright.lfd import sweep_spec
+        from quiltwright.povray import render_pov_views
+
+        spec = sweep_spec(n_views=3, view_cone=55.0, tile_width=48, tile_height=48)
+        out = tmp_path / "toe"
+        render_pov_views(
+            scene, spec, camera, out, geometry="toe-in", keep_wrappers=True, progress=False
+        )
+        assert "toe-in -27.5 deg" in (out / "view000.pov").read_text()
+
+    def test_bad_geometry_rejected_before_rendering(self, scene, tiny_spec, camera, tmp_path):
+        from quiltwright.povray import render_pov_views
+
+        with pytest.raises(ValueError, match="off-axis"):
+            render_pov_views(
+                scene, tiny_spec, camera, tmp_path / "x", geometry="toein", progress=False
+            )
 
     def test_parallax_matches_the_quilt_path(self, scene, tiny_spec, camera, tmp_path):
         """Same camera geometry as render_pov_quilt, only the packing differs."""

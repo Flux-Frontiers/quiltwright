@@ -30,6 +30,11 @@ exactly the projection a light-field display needs.  Using ``look_at``
 instead would *rotate* the camera ("toe-in"), which introduces vertical
 parallax and keystone distortion and prevents the views from fusing.
 
+:func:`render_pov_views` can nevertheless be asked for toe-in, because a
+hologram printer is not a lens sheet and at least one of them is fed toe-in
+view sets by its vendor's own tool.  :func:`toe_in_cameras` documents that
+case and no other; a quilt is always off-axis.
+
 For an eye offset ``s`` along the unit right vector ``r``, with focal
 distance ``Z`` and image-plane distance ``D``:
 
@@ -93,6 +98,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, replace
 from pathlib import Path
+from typing import Literal
 
 import numpy as np
 
@@ -102,6 +108,7 @@ from quiltwright.quilt import (
     QuiltSpec,
     assemble_quilt,
     sweep_extent,
+    view_angles,
     view_disparity,
     view_offsets,
     window_shear,
@@ -310,6 +317,92 @@ def _orbit_camera(camera: PovCamera, angle_deg: float) -> PovCamera:
     return replace(camera, location=_triple(pivot + v_rot))
 
 
+#: Which sweep geometry a renderer should use.  ``"off-axis"`` slides the eye
+#: along a straight rail and shears each frustum back onto the original view
+#: axis; ``"toe-in"`` swings the eye around the aim point and keeps every
+#: camera pointed at it.  See :func:`toe_in_cameras` for when the second is
+#: the right answer, which on a light-field panel is never.
+SweepGeometry = Literal["off-axis", "toe-in"]
+
+
+def toe_in_cameras(camera: PovCamera, spec: QuiltSpec) -> list[PovCamera]:
+    """Per-view cameras for a *toe-in* sweep: an arc, each view re-aimed.
+
+    The eye travels a circular arc of radius ``camera.focal_distance``
+    centred on ``look_at``, sampling the same angles an off-axis sweep
+    samples (:func:`~quiltwright.lfd.view_angles`), and every camera keeps
+    aiming at that point.  Each view is then a plain symmetric frustum, so
+    the subject sits dead centre in all of them.
+
+    **This is the projection the module docstring tells you not to use.**
+    It introduces vertical parallax and keystone distortion, a lenticular
+    panel cannot fuse the result, and it is the single most common way a
+    light-field render goes wrong.  It is here because not every consumer of
+    a view sweep is a panel:
+
+    - **LitiHolo's own capture tool does exactly this.**  Its web renderer
+      orbits a Sketchfab camera around a pinned aim point and screenshots 23
+      stops, which is toe-in with no shear anywhere in it.  If the printer's
+      slicer has only ever been fed toe-in view sets, an off-axis set is an
+      unlabelled change of input, not a fix.
+    - **The 2003 Liti submission was toe-in too** -- a 180-frame circular
+      sweep with the camera pinned to the molecule -- and it printed.
+
+    So this is a *compatibility* geometry, chosen deliberately to match a
+    consumer, and never the default.  Render off-axis for anything that
+    fuses views optically.
+
+    Rotation happens in the camera's own forward/right plane, which keeps
+    the horizon level regardless of how ``sky`` is specified, and the arc
+    runs left to right: view 0 sits on the same side as off-axis view 0.
+
+    :param camera: Base (centre-view) camera.  ``look_at`` is the pivot and
+      stays the focal plane; ``sky`` and ``fov`` are carried unchanged.
+    :param spec: Sweep or quilt specification (view count + cone angle).
+    :return: ``spec.n_views`` cameras, in view order, view 0 leftmost.
+    :raises ValueError: If *camera* is degenerate (see :meth:`PovCamera.basis`).
+    """
+    forward, right, _ = camera.basis()
+    pivot = np.asarray(camera.look_at, dtype="d")
+    radius = camera.focal_distance
+    cameras = []
+    for angle in view_angles(spec):
+        theta = math.radians(float(angle))
+        eye = pivot + radius * (-forward * math.cos(theta) + right * math.sin(theta))
+        cameras.append(replace(camera, location=_triple(eye)))
+    return cameras
+
+
+@dataclass(frozen=True)
+class _ViewFrame:
+    """One view's camera, its eye offset, and the comment naming both.
+
+    The two geometries differ only in where the per-view camera comes from
+    and whether :func:`camera_block` is asked to shear: an off-axis frame
+    carries the base camera plus a non-zero *offset*, a toe-in frame carries
+    an already-rotated camera and an offset of zero.
+    """
+
+    camera: PovCamera
+    offset: float
+    note: str
+
+
+def _view_frames(spec: QuiltSpec, camera: PovCamera, geometry: str) -> list[_ViewFrame]:
+    """Build the per-view cameras for *geometry*, in view order."""
+    if geometry == "off-axis":
+        return [
+            _ViewFrame(camera, float(offset), f"eye offset {offset:+.6g} scene units")
+            for offset in view_offsets(spec, camera.focal_distance)
+        ]
+    if geometry == "toe-in":
+        return [
+            _ViewFrame(rotated, 0.0, f"toe-in {angle:+.6g} deg about the aim point")
+            for rotated, angle in zip(toe_in_cameras(camera, spec), view_angles(spec), strict=True)
+        ]
+    raise ValueError(f"geometry must be 'off-axis' or 'toe-in', got {geometry!r}")
+
+
 def _vec(v: Iterable[float]) -> str:
     """Format a vector as POV-Ray ``<x, y, z>`` syntax.
 
@@ -483,19 +576,22 @@ def _wrapper_source(
     scene_path: Path,
     index: int,
     n_views: int,
-    offset: float,
-    camera: PovCamera,
+    frame: _ViewFrame,
     aspect: float,
     *,
     lighting_prefix: str = "",
     lighting_suffix: str = "",
 ) -> str:
-    """One per-view wrapper: optional lighting declares, include, camera, sun."""
+    """One per-view wrapper: optional lighting declares, include, camera, sun.
+
+    *frame* carries the view's camera and eye offset; its ``note`` names the
+    move in the emitted comment, which is the only place a kept wrapper says
+    whether it was sheared or swung.
+    """
     return (
         lighting_prefix + f'#include "{scene_path}"\n'
-        f"// view {index + 1}/{n_views}, "
-        f"eye offset {offset:+.6g} scene units\n"
-        + camera_block(camera, offset, aspect)
+        f"// view {index + 1}/{n_views}, {frame.note}\n"
+        + camera_block(frame.camera, frame.offset, aspect)
         + lighting_suffix
     )
 
@@ -1050,7 +1146,9 @@ def render_pov_quilt(
     render_aspect = render_w / render_h
 
     library_paths = [scene_path.parent, *(Path(p).expanduser().resolve() for p in include_paths)]
-    offsets = view_offsets(spec, camera.focal_distance)
+    # A quilt is fused optically by a lens sheet, so its geometry is not a
+    # choice: off-axis, always.  render_pov_views() is where toe-in lives.
+    frames = _view_frames(spec, camera, "off-axis")
 
     with tempfile.TemporaryDirectory(prefix="pov_quilt_") as tmp:
         workdir = Path(tmp)
@@ -1059,7 +1157,7 @@ def render_pov_quilt(
             scene_path,
             spec,
             camera,
-            offsets,
+            frames,
             workdir,
             render_w,
             render_h,
@@ -1109,7 +1207,7 @@ def _sweep(
     scene_path: Path,
     spec: QuiltSpec,
     camera: PovCamera,
-    offsets,
+    frames: Sequence[_ViewFrame],
     workdir: Path,
     render_w: int,
     render_h: int,
@@ -1128,6 +1226,10 @@ def _sweep(
     Shared by :func:`render_pov_quilt` and :func:`render_pov_views`, which
     differ only in what they do with the frames afterwards.
 
+    *camera* is the centre-view camera and is used only to place the
+    optional sun; the per-view geometry comes from *frames*, so this is
+    indifferent to whether the sweep is off-axis or toe-in.
+
     :return: ``(wrapper, png)`` pairs in view order, view 0 leftmost.
     """
     # POV-Ray resolves #include against its working directory and the
@@ -1137,15 +1239,14 @@ def _sweep(
     prefix = lighting_declares(appearance=lighting, sun=sun)
     suffix = lighting_block(camera, appearance=lighting, sun=sun)
     views = []
-    for i, offset in enumerate(offsets):
+    for i, frame in enumerate(frames):
         wrapper = workdir / f"view{i:03d}.pov"
         wrapper.write_text(
             _wrapper_source(
                 scene_path,
                 i,
                 spec.n_views,
-                float(offset),
-                camera,
+                frame,
                 render_aspect,
                 lighting_prefix=prefix,
                 lighting_suffix=suffix,
@@ -1195,6 +1296,7 @@ def render_pov_views(
     *,
     include_paths: Sequence[str | Path] = (),
     view_cone: float | None = None,
+    geometry: SweepGeometry = "off-axis",
     antialias: float | None = 0.3,
     quality: int = 9,
     jobs: int = 1,
@@ -1208,11 +1310,12 @@ def render_pov_views(
 ) -> list[Path]:
     """Render a POV-Ray scene as a sweep of separate view images.
 
-    Identical camera geometry to :func:`render_pov_quilt` -- the same off-axis
-    sheared frustum, the same focal plane on the ``look_at`` point -- but the
-    frames are written out individually instead of being tiled into a quilt.
-    That is the form consumers other than a light-field panel ask for: a
-    hologram printer slicing views into hogels, or a lenticular interlacer.
+    By default, identical camera geometry to :func:`render_pov_quilt` -- the
+    same off-axis sheared frustum, the same focal plane on the ``look_at``
+    point -- but the frames are written out individually instead of being
+    tiled into a quilt.  That is the form consumers other than a light-field
+    panel ask for: a hologram printer slicing views into hogels, or a
+    lenticular interlacer.
 
     Pair it with :func:`~quiltwright.lfd.sweep_spec` when the view count is
     not a convenient rectangle::
@@ -1221,11 +1324,25 @@ def render_pov_views(
         render_pov_views("risedronate.pov", LITIHOLO_SWEEP, camera, "sweep/")
         # -> sweep/view000.png ... sweep/view022.png
 
+    Because those consumers are not all lens sheets, *geometry* can select a
+    toe-in arc instead.  To reproduce what LitiHolo's own capture tool
+    emits, take both from the vendor rather than the specification sheet::
+
+        from quiltwright.quilt import LITIHOLO_TOOL_SWEEP, pack_litiholo_sweep
+
+        views = render_pov_views("risedronate.pov", LITIHOLO_TOOL_SWEEP,
+                                 camera, "raw/", geometry="toe-in")
+        pack_litiholo_sweep(views, "litiholo/", LITIHOLO_TOOL_SWEEP,
+                            zip_output=True)
+        # -> litiholo/render-400x400-HPO-01.jpg ... -23.jpg
+
     The depth-budget arithmetic in :func:`format_depth_budget` still applies
     and is still worth running first: a sweep that would ghost on a
     lenticular panel is a sweep whose parallax exceeds what the medium can
     resolve, and there is no evidence that a hologram's hogels are more
-    forgiving than a lens sheet.
+    forgiving than a lens sheet.  It is derived for the off-axis projection;
+    under toe-in it reads as the disparity the same angular sampling would
+    give, with the keystone term left out, so treat it as a floor.
 
     :param scene: Path to the ``.pov`` scene.  Not modified.
     :param spec: Sweep or quilt specification supplying view count, view
@@ -1234,6 +1351,11 @@ def render_pov_views(
     :param out_dir: Directory to write the frames into; created if absent.
     :param include_paths: Extra directories searched for ``#include`` files.
     :param view_cone: Override the spec's view cone in degrees.
+    :param geometry: ``"off-axis"`` (default) shears each frustum back onto
+        the view axis, which is what a lens sheet needs.  ``"toe-in"``
+        swings the eye around the aim point instead and keeps every camera
+        pointed at it -- wrong for a panel, and what LitiHolo's capture tool
+        does.  See :func:`toe_in_cameras`.
     :param antialias: POV-Ray ``+A`` threshold; ``None`` disables it.
     :param quality: POV-Ray ``+Q`` quality level, 0-11.
     :param jobs: Number of POV-Ray processes to run concurrently.
@@ -1249,7 +1371,14 @@ def render_pov_views(
     :param lighting: See :func:`render_pov_quilt`.
     :param sun: See :func:`render_pov_quilt`.
     :return: Paths to the written frames, in view order -- view 0 leftmost.
+    :raises ValueError: If *geometry* is neither ``"off-axis"`` nor
+        ``"toe-in"``.
     """
+    # Checked before the binary hunt and the file probe so a misspelt
+    # geometry fails identically whether or not POV-Ray is installed.
+    if geometry not in ("off-axis", "toe-in"):
+        raise ValueError(f"geometry must be 'off-axis' or 'toe-in', got {geometry!r}")
+
     povray = _find_povray(binary)
     scene_path = Path(scene).expanduser().resolve()
     if not scene_path.is_file():
@@ -1270,7 +1399,7 @@ def render_pov_views(
     render_w = round(render_h * spec.aspect)
 
     library_paths = [scene_path.parent, *(Path(p).expanduser().resolve() for p in include_paths)]
-    offsets = view_offsets(spec, camera.focal_distance)
+    frames = _view_frames(spec, camera, geometry)
 
     with tempfile.TemporaryDirectory(prefix="pov_sweep_") as tmp:
         views = _sweep(
@@ -1278,7 +1407,7 @@ def render_pov_views(
             scene_path,
             spec,
             camera,
-            offsets,
+            frames,
             Path(tmp),
             render_w,
             render_h,
@@ -1455,8 +1584,10 @@ def render_pov_hld_video(
                     scene_path,
                     i,
                     n_frames,
-                    0.0,
-                    frame_camera,
+                    # An HLD frame is a turntable position, not a parallax
+                    # view: the eye has already been orbited, so the camera
+                    # is emitted unsheared at offset zero.
+                    _ViewFrame(frame_camera, 0.0, f"turntable {angles[i]:+.6g} deg"),
                     render_aspect,
                     lighting_prefix=frame_prefix,
                     lighting_suffix=lighting_suffix,
