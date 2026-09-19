@@ -117,8 +117,12 @@ plain `.pov` file on disk all feed the same path.
 need dark-field styling rather than parallax; that is `quiltwright.hld`.
 
 A third output is in development: `render_pov_views()` plus `LITIHOLO_SWEEP`
-write a 23-view single-row sweep for LitiHolo's desktop hologram printer. Nothing
-has yet passed through a printer's software;
+write a 23-view single-row sweep for LitiHolo's desktop hologram printer.
+`LITIHOLO_TOOL_SWEEP` with `geometry="toe-in"` matches what LitiHolo's own
+capture tool emits instead of what its specification sheet says -- a 55-degree
+toe-in arc, not a 45-degree off-axis one -- and `pack_litiholo_sweep()` writes
+the JPEG sequence under the vendor's own filenames. Nothing has yet passed
+through a printer's software;
 [docs/lfd.md](docs/lfd.md#view-sweeps--when-the-consumer-is-not-a-panel)
 records what remains open.
 

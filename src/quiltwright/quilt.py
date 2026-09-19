@@ -265,6 +265,31 @@ LITIHOLO_SWEEP: QuiltSpec = sweep_spec(
     n_views=23, view_cone=45.0, tile_width=1600, tile_height=2000
 )
 
+#: Sweep matching what LitiHolo's own web capture tool -- the "3DHP Render
+#: Tool", nicknamed the renderizer -- emits at its factory defaults, rather
+#: than what the printer's specification sheet says.
+#:
+#: The tool orbits a Sketchfab viewer camera around a pinned aim point in
+#: steps of ``Set Delta Angle`` degrees and screenshots 23 stops.  At the
+#: default 2.5 degrees per move those stops land at -27.5 to +27.5 degrees:
+#: **55 degrees**, not the 45 of :data:`LITIHOLO_SWEEP`.  Read its
+#: ``captureHPOSequence()`` if you want to check the arithmetic -- it steps
+#: left by ``delta * ((23 - 1) / 2 + 1)`` first, then captures *after* each
+#: of 23 steps back to the right.
+#:
+#: The default capture size is 400x400, square.  Both numbers are fields in
+#: the tool's own UI, so neither is a specification; call
+#: :func:`sweep_spec` yourself to render finer.  What this preset is *for*
+#: is matching the geometry the printer has actually been fed, which is the
+#: part a caller cannot discover from the spec sheet.
+#:
+#: Pair it with ``geometry="toe-in"``: the tool's camera stays aimed at the
+#: subject throughout, so an off-axis sweep at these angles is a different
+#: view set (see :func:`~quiltwright.povray.toe_in_cameras`).
+LITIHOLO_TOOL_SWEEP: QuiltSpec = sweep_spec(
+    n_views=23, view_cone=55.0, tile_width=400, tile_height=400
+)
+
 
 # ---------------------------------------------------------------------------
 # Off-axis camera math
@@ -343,6 +368,29 @@ def window_shear(offset: float, focal_distance: float, fov: float, aspect: float
     return -offset / (focal_distance * math.tan(math.radians(fov) / 2.0) * aspect)
 
 
+def view_angles(spec: QuiltSpec) -> np.ndarray:
+    """Signed angle of every view about the focal point, in degrees.
+
+    The sweep's angular sampling, independent of how a backend realises it.
+    An off-axis sweep converts these to lateral eye offsets with
+    :func:`view_offsets`; a toe-in sweep
+    (:func:`~quiltwright.povray.toe_in_cameras`) swings the eye around the
+    focal point by these angles directly.  Both sample the same angles, so
+    the sampling interval quoted in a depth budget means the same thing
+    either way.
+
+    Ordered to match quilt view order: view 0 is the leftmost camera, so
+    angles run from ``-view_cone/2`` to ``+view_cone/2``.
+
+    :param spec: Quilt or sweep specification (view count + cone angle).
+    :return: Array of shape ``(n_views,)`` of degrees, ascending.
+    """
+    if spec.n_views == 1:
+        return np.zeros(1)
+    half_cone = spec.view_cone / 2.0
+    return np.linspace(-half_cone, half_cone, spec.n_views)
+
+
 def view_offsets(spec: QuiltSpec, distance: float) -> np.ndarray:
     """Horizontal camera offsets (world units) for every view in the quilt.
 
@@ -350,19 +398,22 @@ def view_offsets(spec: QuiltSpec, distance: float) -> np.ndarray:
     camera position, at constant distance from the focal plane.  Offsets are
     ordered to match quilt view order: view 0 is the leftmost camera.
 
+    The eye travels along a *straight line* perpendicular to the view axis,
+    which is what an off-axis sweep wants -- the image planes stay parallel
+    and the frustum shear does the rest.  A toe-in sweep moves the eye along
+    a circular arc instead; see :func:`~quiltwright.povray.toe_in_cameras`.
+
     :param spec: Quilt specification (view count + cone angle).
     :param distance: Distance from camera to the focal plane.
     :return: Array of shape ``(n_views,)`` with signed offsets along the
         camera's right vector.
     """
-    half_cone = math.radians(spec.view_cone) / 2.0
     n = spec.n_views
     if n == 1:
         return np.zeros(1)
     # Even angular spacing across the cone; tan() converts angle to lateral
     # shift so the focal plane is sampled like the physical display does.
-    angles = np.linspace(-half_cone, half_cone, n)
-    return distance * np.tan(angles)
+    return distance * np.tan(np.radians(view_angles(spec)))
 
 
 def view_disparity(spec: QuiltSpec, fov: float, focal_distance: float, depth: float) -> float:
@@ -516,3 +567,133 @@ def save_quilt(quilt: np.ndarray, stem: str | Path, spec: QuiltSpec) -> Path:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     Image.fromarray(quilt).save(out_path)
     return out_path
+
+
+# ---------------------------------------------------------------------------
+# LitiHolo delivery format
+# ---------------------------------------------------------------------------
+
+
+def litiholo_names(spec: QuiltSpec, *, mode: str = "HPO") -> list[str]:
+    """Filenames LitiHolo's own capture tool gives a sweep, in view order.
+
+    The printer consumes a *numbered sequence*, so the names carry the view
+    ordering and nothing else may.  Matching the vendor tool's convention
+    costs nothing and removes one variable from a first print: its
+    ``captureHPOSequence()`` writes ``render-{W}x{H}-HPO-01.jpg`` through
+    ``-23.jpg``, **one**-indexed and zero-padded to two digits, leftmost
+    camera first.  Quiltwright's own ``view000.png`` ordering is the same
+    sweep under a different name, which is exactly the kind of difference
+    that is invisible until a plate comes back mirrored.
+
+    :param spec: Sweep specification; supplies the view count and the
+        capture size that appears in the name.
+    :param mode: ``"HPO"``, horizontal parallax only.  The tool also has a
+        full-parallax mode writing ``FP-h{col}v{row}``; quiltwright does not
+        render a vertical sweep, so that mode is rejected here rather than
+        named for a view set it cannot produce.
+    :return: ``n_views`` filenames, in view order, view 0 leftmost.
+    :raises ValueError: If *mode* is not ``"HPO"``.
+    """
+    if mode != "HPO":
+        raise ValueError(
+            f"litiholo_names() supports mode='HPO', got {mode!r}; "
+            "quiltwright renders no vertical sweep, so it cannot fill an FP grid"
+        )
+    stem = f"render-{spec.tile_width}x{spec.tile_height}-HPO-"
+    return [f"{stem}{i:02d}.jpg" for i in range(1, spec.n_views + 1)]
+
+
+def _flatten_to_black(img, image_module):
+    """Composite *img* onto black and return an RGB copy.
+
+    :param img: A pillow image in any mode.
+    :param image_module: The ``PIL.Image`` module, passed in so the import
+        stays local to the caller.
+    :return: An RGB image; transparent pixels become black.
+    """
+    has_alpha = img.mode in ("RGBA", "LA") or (img.mode == "P" and "transparency" in img.info)
+    if not has_alpha:
+        return img.convert("RGB")
+    rgba = img.convert("RGBA")
+    flat = image_module.new("RGB", rgba.size, (0, 0, 0))
+    flat.paste(rgba, mask=rgba.getchannel("A"))
+    return flat
+
+
+def pack_litiholo_sweep(
+    views: Iterable[str | Path],
+    dest: str | Path,
+    spec: QuiltSpec,
+    *,
+    zip_output: bool = False,
+    jpeg_quality: int = 95,
+) -> list[Path]:
+    """Re-encode a rendered sweep into what the LitiHolo tool hands the printer.
+
+    The renderer-agnostic delivery step, the same role :func:`assemble_quilt`
+    plays for a panel: take views some backend already rendered -- POV-Ray
+    via :func:`~quiltwright.povray.render_pov_views`, anything else that
+    writes ordered frames -- and emit JPEGs named and ordered the way the
+    vendor's own tool emits them (see :func:`litiholo_names`).
+
+    Nothing here changes the *geometry*, which is set at render time and is
+    the part that actually decides whether a plate comes out right; render
+    with ``geometry="toe-in"`` if you are matching the tool rather than the
+    specification sheet.
+
+    :param views: Rendered view images, in view order, view 0 leftmost.
+        Any format pillow reads; each is converted to RGB, so a transparent
+        background flattens to black -- which is the background the tool's
+        own capture offers and the one a hologram wants.
+    :param dest: Output directory; created if absent.
+    :param spec: Sweep specification.  Its view count must match *views*,
+        and its tile size names the files.
+    :param zip_output: Also write ``render-{W}x{H}-HPO-captures.zip``
+        alongside the frames, which is the single file the tool downloads.
+    :param jpeg_quality: Pillow JPEG quality, 1-95.  The vendor tool takes
+        whatever its browser's canvas encoder gives it; 95 is pillow's
+        practical ceiling and errs toward not adding artefacts of our own to
+        an image that is about to be sliced into hogels.
+    :return: The JPEG paths written, in view order.
+    :raises ValueError: If the number of views does not match *spec*.
+    """
+    try:
+        from PIL import Image
+    except ImportError as exc:
+        raise ImportError(
+            "pack_litiholo_sweep() requires pillow.\nInstall with:  poetry install --with viz"
+        ) from exc
+
+    frames = [Path(v) for v in views]
+    if len(frames) != spec.n_views:
+        raise ValueError(
+            f"spec asks for {spec.n_views} views, got {len(frames)}; "
+            "the printer reads the sequence as given and cannot detect a gap"
+        )
+
+    out = Path(dest).expanduser()
+    out.mkdir(parents=True, exist_ok=True)
+    written = []
+    for src, name in zip(frames, litiholo_names(spec), strict=True):
+        target = out / name
+        with Image.open(src) as img:
+            # JPEG has no alpha.  convert("RGB") would *discard* it rather
+            # than composite, so a transparent background would keep
+            # whatever colour happened to sit under it -- white, for a
+            # POV-Ray alpha render, which is the one background a hologram
+            # must not have.  Paste onto black, the ground the vendor
+            # tool's own transparent capture ends up with.
+            flat = _flatten_to_black(img, Image)
+            flat.save(target, "JPEG", quality=jpeg_quality)
+        written.append(target)
+
+    if zip_output:
+        import zipfile
+
+        archive = out / f"render-{spec.tile_width}x{spec.tile_height}-HPO-captures.zip"
+        with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as zf:
+            for path in written:
+                zf.write(path, path.name)
+
+    return written
