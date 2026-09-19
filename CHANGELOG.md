@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-09-19
+
 ### Added
 
 - **`geometry="toe-in"` on `render_pov_views()`, and `toe_in_cameras()`

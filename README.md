@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Flux-Frontiers/quiltwright/v0.14.1/assets/logo_pack/quiltwright_logo_512.png" alt="Quiltwright" width="512"/>
+  <img src="https://raw.githubusercontent.com/Flux-Frontiers/quiltwright/v0.15.0/assets/logo_pack/quiltwright_logo_512.png" alt="Quiltwright" width="512"/>
 </p>
 
 [![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](LICENSE)
 [![PyPI](https://img.shields.io/pypi/v/quiltwright.svg)](https://pypi.org/project/quiltwright/)
-[![Version](https://img.shields.io/badge/version-0.14.1-blue.svg)](https://github.com/Flux-Frontiers/quiltwright/releases)
+[![Version](https://img.shields.io/badge/version-0.15.0-blue.svg)](https://github.com/Flux-Frontiers/quiltwright/releases)
 [![Tests](https://github.com/Flux-Frontiers/quiltwright/actions/workflows/tests.yml/badge.svg)](https://github.com/Flux-Frontiers/quiltwright/actions/workflows/tests.yml)
 [![Docs](https://img.shields.io/badge/docs-flux--frontiers.github.io-blue.svg)](https://flux-frontiers.github.io/quiltwright/)
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.21798503-blue.svg)](https://doi.org/10.5281/zenodo.21798503)
@@ -29,7 +29,7 @@ for geometric ML manifolds and by
 [pypdb2pov](https://github.com/Flux-Frontiers/pypdb2pov) for molecular
 structures, but neither is a prerequisite. If you can render it, you can hang it in the air.
 
-![Eric's Science Museum, the canonical POV-Ray render](https://raw.githubusercontent.com/Flux-Frontiers/quiltwright/v0.14.1/gallery/museum.png)
+![Eric's Science Museum, the canonical POV-Ray render](https://raw.githubusercontent.com/Flux-Frontiers/quiltwright/v0.15.0/gallery/museum.png)
 
 *A career in structural biophysics, arranged as exhibits: B-DNA and Z-DNA
 under bell jars, Ras and my original **DNA Under Glass** on the walls. The molecular
@@ -42,6 +42,17 @@ panels, or into 2-D video for Hololuminescent displays. A third output -- a
 ---
 
 ## Latest news
+
+**v0.15.0 (2026-09-19).** LitiHolo's own capture tool orbits a camera around
+a pinned aim point and screenshots 23 stops, with no frustum shear anywhere
+in it, so `render_pov_views()` now takes `geometry="toe-in"` to match it.
+That is the projection this project's docstrings tell you not to use, and it
+is here because a hogel slicer is not a lens sheet: if it has only ever been
+fed toe-in sweeps, an off-axis set is an unlabelled change of input rather
+than a fix. `LITIHOLO_TOOL_SWEEP` records what the tool actually emits -- a
+55-degree cone at 400x400, not the specification sheet's 45 degrees and
+1600x2000 -- and `pack_litiholo_sweep()` re-encodes a rendered sweep under
+the vendor's own filenames. Off-axis remains the default everywhere.
 
 **v0.14.1 (2026-09-17).** A fix for PyVista framing that put the focal
 plane in the wrong place. `frame_and_focus()` framed at whatever window
@@ -300,7 +311,7 @@ on Zenodo.
   title   = {Quiltwright: Holographic Output for Looking Glass Displays},
   url     = {https://github.com/Flux-Frontiers/quiltwright},
   doi     = {10.5281/zenodo.21798503},
-  version = {0.14.1},
+  version = {0.15.0},
   year    = {2026}
 }
 ```

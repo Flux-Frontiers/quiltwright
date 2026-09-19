@@ -17,8 +17,8 @@ authors:
     orcid: "https://orcid.org/0009-0009-0891-1507"
     email: suchanek@flux-frontiers.com
     affiliation: "Flux-Frontiers"
-version: "0.14.1"
-date-released: "2026-09-17"
+version: "0.15.0"
+date-released: "2026-09-19"
 # Concept DOI: version-independent, always resolves to the newest archived
 # release. Do not replace it with a version-specific DOI at release time.
 doi: "10.5281/zenodo.21798503"
