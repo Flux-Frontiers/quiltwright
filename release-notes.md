@@ -61,3 +61,22 @@ interval means the same thing either way.
 not.** The answered question and the three still open are now written down
 next to the evidence for each, so the next person to look does not have to
 re-derive which is which.
+
+## Release assets
+
+Two LitiHolo sweeps of the porin scene ship with this release, one for each
+shape described above. `porin-litiholo_qs23x1a0.8.png` is `LITIHOLO_SWEEP`,
+the specification sheet: 23 views over 45 degrees at 1600x2000.
+`porin-litiholo-tool_qs23x1a1.png` is `LITIHOLO_TOOL_SWEEP`, the tool at its
+factory defaults: 23 views over 55 degrees at 400x400. Having both attached
+to the same release is the point -- the disagreement between them is what
+this release documents.
+
+The tool-shape quilt was rendered after the tag was cut, through a
+`--sweep tool` option on `scripts/render_still_life_hologram.py` that lands
+in the next release. Only that script convenience is newer. The library is
+byte-identical to this tag, and the quilt is the output of
+`render_pov_quilt()` driven by `LITIHOLO_TOOL_SWEEP`, both of which ship in
+0.15.0. Re-rendered from the published PyPI wheel in a clean environment, it
+matches to within POV-Ray's own antialiasing jitter: 2.88% of pixels differ,
+against 2.83% between two consecutive runs of that same wheel.
