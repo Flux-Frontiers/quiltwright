@@ -1584,8 +1584,10 @@ def render_pov_hld_video(
                     scene_path,
                     i,
                     n_frames,
-                    0.0,
-                    frame_camera,
+                    # An HLD frame is a turntable position, not a parallax
+                    # view: the eye has already been orbited, so the camera
+                    # is emitted unsheared at offset zero.
+                    _ViewFrame(frame_camera, 0.0, f"turntable {angles[i]:+.6g} deg"),
                     render_aspect,
                     lighting_prefix=frame_prefix,
                     lighting_suffix=lighting_suffix,
