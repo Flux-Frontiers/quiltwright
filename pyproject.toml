@@ -164,7 +164,7 @@ optional = true
 [tool.poetry.group.dev.dependencies]
 pytest = ">=9.0.3"
 pytest-cov = ">=5.0"
-ruff = ">=0.6"
+ruff = ">=0.15"
 imageio-ffmpeg = ">=0.4"
 pillow-heif = ">=0.16"
 ty = ">=0.0.41"
@@ -193,8 +193,8 @@ pre-commit = ">=4.5.1"
 optional = true
 
 [tool.poetry.group.kg.dependencies]
-pycode-kg = ">=0.24.1"
-doc-kg = ">=0.22.0"
+pycode-kg = ">=0.27.1"
+doc-kg = ">=0.26.0"
 
 # The GitHub Pages site: mkdocs-material renders docs/*.md as-is, and
 # mkdocstrings adds an API reference generated from the package's own

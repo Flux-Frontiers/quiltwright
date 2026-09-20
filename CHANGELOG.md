@@ -18,6 +18,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   sweep's filenames and destroying them, and `porin-litiholo-tool` joins the
   release bundle alongside `porin-litiholo`.
 
+### Changed
+
+- **Fleet dependencies relocked and their floors raised** (`kgrag_priv` sweep
+  item 49, tier 1): `pycode-kg` to 0.27.1 and `doc-kg` to 0.26.0 in the
+  optional `kg` maintainer group, which carries `kgmodule-utils` 0.22.0 up
+  with them -- it was installed here from a local wheel path
+  (`KG_utils/dist/kgmodule_utils-0.21.0-py3-none-any.whl`) and now resolves
+  from PyPI like everything else. The `ruff` floor moves from `>=0.6` to
+  `>=0.15`, the line every fleet lock already installs. Nothing under `src/`
+  imports any of these, so no published behaviour changes.
+
 ## [0.15.0] - 2026-09-19
 
 ### Added
