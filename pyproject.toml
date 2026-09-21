@@ -170,35 +170,6 @@ pillow-heif = ">=0.16"
 ty = ">=0.0.41"
 pre-commit = ">=4.5.1"
 
-# Maintainer tooling, not a dependency of this package.  Both CLIs index this
-# repo for agents -- `pycodekg` the package source, `dockg` the prose -- and
-# `.grok/config.toml` serves each as an MCP server.  Nothing under src/ imports
-# either one.
-#
-# A Poetry group, not an extra: an extra is a feature of the package and lands
-# in the published wheel metadata, which would hand every `pip install
-# quiltwright` a torch and sentence-transformers install for tooling it will
-# never run.  A group is locked and installable but stays out of that metadata.
-#
-#   poetry install --with kg      # pycodekg and dockg into .venv/bin
-#   poetry install                # default -- the group is optional, skipped
-#
-# `kg` is the fleet-wide name for this group so there is one command to
-# remember; contents are per-repo and cover only what this repo invokes.  Safe
-# to lock despite quiltwright being layer 2 of the visualization stack: the
-# only path back to this package is `kgmodule-utils[viz3d-qt]`, and pycode-kg
-# asks for `kgmodule-utils[semantic,viz3d]`, which does not pull it in.  Should
-# that change, `poetry lock` fails here rather than downstream.
-[tool.poetry.group.kg]
-optional = true
-
-[tool.poetry.group.kg.dependencies]
-pycode-kg = ">=0.27.1"
-doc-kg = ">=0.26.0"
-
-# The GitHub Pages site: mkdocs-material renders docs/*.md as-is, and
-# mkdocstrings adds an API reference generated from the package's own
-# docstrings so it can't drift from the code.
 [tool.poetry.group.docs]
 optional = true
 
