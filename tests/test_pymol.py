@@ -10,6 +10,7 @@ gated on PyMOL being reachable.
 from __future__ import annotations
 
 import math
+import re
 import shutil
 
 import pytest
@@ -272,6 +273,125 @@ def test_coalescing_is_what_makes_the_export_usable(tmp_path):
     assert plain.path.read_text().count("mesh2 {") > 100
     # Same object either way.
     assert merged.enclosing_radius == pytest.approx(plain.enclosing_radius, rel=1e-6)
+
+
+def _crambin_ca() -> list[tuple[float, float, float]]:
+    """CA coordinates of crambin, straight from the PDB file."""
+    with open(CRAMBIN) as fh:
+        return [
+            (float(line[30:38]), float(line[38:46]), float(line[46:54]))
+            for line in fh
+            if line.startswith("ATOM") and line[12:16].strip() == "CA"
+        ]
+
+
+def _model_centre(result_centre) -> tuple[float, float, float]:
+    """The model-space point a crambin export was recentred on.
+
+    The export script centres PyMOL's view on the atoms' bounding box, so the
+    raw mesh arrives already offset by it; ``centre`` is measured after that.
+    """
+    with open(CRAMBIN) as fh:
+        atoms = [
+            (float(line[30:38]), float(line[38:46]), float(line[46:54]))
+            for line in fh
+            if line.startswith("ATOM")
+        ]
+    box = [(min(a[i] for a in atoms) + max(a[i] for a in atoms)) / 2 for i in range(3)]
+    return tuple(b + c for b, c in zip(box, result_centre, strict=True))
+
+
+def _placed_vertices(include: str) -> list[tuple[float, float, float]]:
+    """Mesh vertices of *include* after its own transforms, in POV-Ray space.
+
+    Applies every ``translate`` and ``scale`` the wrapper declares, in order,
+    so the test sees the geometry where POV-Ray will put it -- not where the
+    implementation says it should be.
+    """
+    from quiltwright.pymol import _VEC, _VERTEX_BLOCK
+
+    points = [
+        [float(x), float(y), float(z)]
+        for block in _VERTEX_BLOCK.finditer(include)
+        for x, y, z in _VEC.findall(block.group(1))
+    ]
+    # The wrapper's transforms follow the mesh; the mesh itself carries none.
+    tail = include[include.rindex("face_indices") :]
+    for op, x, y, z in re.findall(r"(translate|scale)\s*<\s*([^,]+),\s*([^,]+),\s*([^>]+)>", tail):
+        v = (float(x), float(y), float(z))
+        for p in points:
+            for i in range(3):
+                p[i] = p[i] + v[i] if op == "translate" else p[i] * v[i]
+    return [tuple(p) for p in points]
+
+
+def _mean_ca_to_mesh(ca, centre, mesh, *, mirror_z: bool) -> float:
+    """Mean distance from each CA (recentred, optionally z-mirrored) to its nearest mesh vertex."""
+    import numpy as np
+
+    pts = np.asarray(mesh)
+    atoms = np.asarray(ca) - np.asarray(centre)
+    if mirror_z:
+        atoms[:, 2] = -atoms[:, 2]
+    return float(np.mean([np.min(np.linalg.norm(pts - a, axis=1)) for a in atoms]))
+
+
+def test_the_include_mirrors_z_after_recentring():
+    """POV-Ray is left-handed and PyMOL's export is right-handed model space,
+    so the include reflects z -- the same flip pypdb2pov applies to atoms --
+    and does it last, after the recentring translations.
+    """
+    text = wrapped()
+    assert text.index("translate <-3, 4, -5>") < text.index("scale <1, 1, -1>")
+
+
+@pytest.mark.slow
+@pymol_only
+def test_a_cartoon_include_is_not_the_enantiomer(tmp_path):
+    """The ribbon runs through its own CA atoms.  Mapped into POV-Ray's world
+    with the flip every other POV scene here uses (``to_pov``: negate z), each
+    crambin CA lies a fraction of an angstrom from the mesh; its mirror image
+    lies ten times further off.  A cartoon that renders left-handed helices fails
+    this, where every string check above would still pass.
+    """
+    if not __import__("os").path.exists(CRAMBIN):
+        pytest.skip("crambin not available on this machine")
+    result = cartoon_inc(CRAMBIN, tmp_path / "crambin.inc", assembly="")
+    mesh = _placed_vertices(result.path.read_text())
+    ca = _crambin_ca()
+
+    centre = _model_centre(result.centre)
+    right = _mean_ca_to_mesh(ca, centre, mesh, mirror_z=True)
+    mirrored = _mean_ca_to_mesh(ca, centre, mesh, mirror_z=False)
+    # Measured: 0.27 A against 2.80 A for the mirror image.
+    assert right < 1.0
+    assert mirrored > 5 * right
+
+
+@pytest.mark.slow
+@pymol_only
+def test_a_cartoon_obj_is_not_the_enantiomer(tmp_path):
+    """Cycles is right-handed like the PDB, so the OBJ is the model itself,
+    recentred: each CA lies close to the mesh unmirrored.
+    """
+    if not __import__("os").path.exists(CRAMBIN):
+        pytest.skip("crambin not available on this machine")
+    from quiltwright.pymol import cartoon_obj
+
+    centre = _model_centre(cartoon_inc(CRAMBIN, tmp_path / "crambin.inc", assembly="").centre)
+    out = cartoon_obj(CRAMBIN, tmp_path / "crambin.obj", assembly="").path
+    mesh = [
+        tuple(float(v) for v in line.split()[1:4])
+        for line in out.read_text().splitlines()
+        if line.startswith("v ")
+    ]
+    ca = _crambin_ca()
+
+    right = _mean_ca_to_mesh(ca, centre, mesh, mirror_z=False)
+    mirrored = _mean_ca_to_mesh(ca, centre, mesh, mirror_z=True)
+    # Measured: 0.27 A against 2.80 A for the mirror image.
+    assert right < 1.0
+    assert mirrored > 5 * right
 
 
 def test_a_missing_pymol_says_how_to_get_one(monkeypatch, tmp_path):

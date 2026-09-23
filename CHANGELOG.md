@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **PyMOL cartoons rendered as their mirror image, on both backends.**
+  `cartoon_inc()` and `cartoon_obj()` treated `cmd.get_povray()`'s output as
+  left-handed. It is the model's own right-handed coordinates, offset by the
+  view centre and camera pull-back. So the POV-Ray include skipped the z flip
+  that pypdb2pov applies to atoms, and the Cycles OBJ added one it did not
+  need. Every structure came out correctly folded but with left-handed
+  helices, and a cartoon would not have lined up with a pypdb2pov atom scene
+  of the same structure in the same vitrine. The include now ends with
+  `scale <1, 1, -1>`, and the OBJ keeps PyMOL's coordinates and winding.
+  New tests measure the export against crambin's own CA atoms: 0.27 A to the
+  ribbon, against 2.80 A for the mirror image. Existing cartoon renders
+  (the F1-ATPase quilts and the GFP and OmpF vitrine cartoons) show the
+  enantiomer and need re-rendering; a camera placed for the old geometry now
+  sees the molecule from its other side.
+
 ### Added
 
 - **`--sweep tool` on `scripts/render_still_life_hologram.py`,** which renders
