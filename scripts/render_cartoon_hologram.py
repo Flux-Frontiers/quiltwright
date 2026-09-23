@@ -25,14 +25,13 @@ modelled scenes:
 **Requires PyMOL** (see ``quiltwright cartoon --check`` for install routes)
 and either a ``povray`` or ``blender`` binary depending on ``--backend``.
 
-``--backend povray`` (``cartoon_inc()``) has now been run end to end against
-a real PyMOL export -- 1BMF, F1-ATP synthase, 154668 vertices / 307824 faces
--- and the output is a correctly folded, correctly coloured cartoon, so its
-own coordinate handling can be trusted. ``--backend cycles``
-(``cartoon_obj()``) has not been exercised the same way; treat a first real
-render from it with the scrutiny unverified code deserves, most of all the
-coordinate flip its docstring documents (negate *z*, reverse each face's
-winding).
+Both backends have been run end to end against real PyMOL exports (1BMF,
+F1-ATP synthase, 154668 vertices / 307824 faces, for ``--backend povray``).
+Through 0.15.0 both rendered every structure as its **mirror image** --
+correctly folded and coloured, with left-handed helices -- because each
+treated PyMOL's right-handed export as already left-handed.  Handedness is
+now checked in ``tests/test_pymol.py`` against the structure's own CA atoms,
+and was confirmed on a lit alpha-helix against PyMOL's own ray trace.
 
 Usage::
 
@@ -60,11 +59,11 @@ from quiltwright.lfd import QUILT_PRESETS, QuiltSpec, save_quilt
 from quiltwright.pymol import REPRESENTATIONS
 from quiltwright.quilt import resolve_view_cone
 
-#: A fixed 3/4-elevated viewing direction, in the right-handed convention
-#: this script frames both cameras from.  Arbitrary but consistent -- the
-#: same direction feeds both backends (see the module docstring on how the
-#: POV-Ray camera reaches the same view of the mirror-image geometry
-#: cartoon_inc() mounts).
+#: A fixed 3/4-elevated viewing direction, in the structure's own right-handed
+#: frame, which both cameras are framed from.  Arbitrary but consistent -- the
+#: same direction feeds both backends: the Cycles camera takes it as is, the
+#: POV-Ray camera through ``to_pov``, matching the z flip cartoon_inc() bakes
+#: into its include.
 VIEW_DIRECTION = np.array([0.55, -1.0, 0.4])
 VIEW_DIRECTION = VIEW_DIRECTION / np.linalg.norm(VIEW_DIRECTION)
 

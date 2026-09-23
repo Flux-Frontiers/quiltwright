@@ -233,14 +233,13 @@ python scripts/render_cartoon_hologram.py 2omf.cif.gz --backend povray --still #
 identical PyMOL export and coalescing, written as a plain OBJ instead of a
 POV-Ray include -- geometry only, no per-vertex color, since OBJ carries
 none reliably -- so a "which backend wins on a mesh this size" comparison
-starts from one triangulation, not two independently modeled scenes. It
-carries the same coordinate flip as everywhere else meshes cross from
-PyMOL's POV-Ray-native output into this package's right-handed convention:
-negate *z*, reverse each face's winding to compensate -- worth rereading its
-docstring before trusting a first render, since this path has not yet been
-exercised against a real PyMOL export in this codebase's own development
-environment (no PyMOL here) and the fix for a mesh that renders "inside out"
-is almost always exactly that flip.
+starts from one triangulation, not two independently modeled scenes. PyMOL's
+export is the model's own right-handed coordinates, the same convention as
+Cycles, so the OBJ needs no coordinate flip; it is `cartoon_inc()`, bound for
+left-handed POV-Ray, that reflects *z*. Through 0.15.0 this was the other way
+round, and both backends drew every structure as its mirror image.
+`tests/test_pymol.py` now checks each export against the structure's own CA
+atoms.
 
 ## What stays with POV-Ray
 

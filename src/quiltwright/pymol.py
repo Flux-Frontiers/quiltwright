@@ -567,8 +567,7 @@ class CartoonMeshResult:
     :param enclosing_radius: Radius of the sphere about the origin that
         contains the geometry, in angstroms -- identical to what
         :func:`cartoon_inc` would report for the same PyMOL export, since
-        both are measured from the same mesh before either the POV
-        ``translate`` trick or this function's coordinate flip is applied.
+        both are measured from the same mesh before either is recentred.
     :param vertices: Vertices in the emitted mesh, after deduplication.
     :param faces: Triangles in the emitted mesh.
     :param backend: ``"module"`` or ``"subprocess"``.
@@ -607,20 +606,20 @@ def cartoon_obj(
     recentring), so the enclosing radius here matches what that function
     would report for the same export.
 
-    **The coordinate flip.**  ``cmd.get_povray()`` emits directly in
-    POV-Ray's left-handed convention -- :func:`cartoon_inc` passes it through
-    unchanged, because POV-Ray is exactly where it is going.  An OBJ headed
-    for :mod:`quiltwright.cycles` (right-handed, +z up, same as everything
-    else in this package) needs the same reflection :func:`to_pov` applies in
-    the other direction: negate *z*, and reverse each face's winding to
-    compensate, or the mesh imports with its normals -- and every backface
-    culling decision Cycles makes -- turned inside out.  This mirrors
-    :class:`~quiltwright.povgen.Mesh2`'s own ``wind()`` step exactly, just
-    run backwards.  Verified against a real PyMOL export: also see
-    ``quiltwright.cycles``'s ``obj`` importer, which must be told the file is
-    already in this package's +z-up convention, or Blender's default
-    Y-up-to-Z-up remap for Wavefront files turns this mesh 90 degrees against
-    a camera framed for it.
+    **No coordinate flip.**  With the identity view the export script sets,
+    ``cmd.get_povray()`` emits the model's own right-handed coordinates,
+    offset only by the view centre and the camera pull-back -- PyMOL's POV
+    header compensates with a right-handed camera rather than by reflecting
+    the geometry.  :mod:`quiltwright.cycles` is right-handed too, so the OBJ
+    is the model, recentred, with PyMOL's winding kept.  (It is
+    :func:`cartoon_inc`, bound for left-handed POV-Ray, that reflects *z*.)
+    An earlier version negated *z* here on the belief that the export was
+    already left-handed, and so rendered every structure as its enantiomer;
+    ``tests/test_pymol.py`` now checks the mesh against the structure's own
+    CA atoms.  Also see ``quiltwright.cycles``'s ``obj`` importer, which must
+    be told the file is already in this package's +z-up convention, or
+    Blender's default Y-up-to-Z-up remap for Wavefront files turns this mesh
+    90 degrees against a camera framed for it.
 
     **Colour.**  Plain OBJ carries none, so by default (``color=None``) this
     writes geometry only, exactly as before.  Passing a colour bakes it into
@@ -709,12 +708,12 @@ def cartoon_obj(
     centre, radius, _ = _measure(mesh, meta["pull_back"])
     cx, cy, cz = centre
     vertices = [
-        (float(x) - cx, float(y) - cy, -(float(z) + meta["pull_back"] - cz))
+        (float(x) - cx, float(y) - cy, float(z) + meta["pull_back"] - cz)
         for block in _VERTEX_BLOCK.finditer(mesh)
         for x, y, z in _VEC.findall(block.group(1))
     ]
     faces = [
-        (int(a), int(c), int(b))  # winding reversed to match the z flip above
+        (int(a), int(b), int(c))
         for block in _FACE_BLOCK.finditer(mesh)
         for a, b, c in _VEC.findall(block.group(1))
     ]
@@ -802,6 +801,10 @@ def _wrap(
   // Undo PyMOL's camera pull-back, then centre the geometry on the origin.
   translate <0, 0, {z_shift:.6g}>
   translate <{-cx:.6g}, {-cy:.6g}, {-cz:.6g}>
+  // PyMOL exports right-handed model space; POV-Ray is left-handed.  The
+  // same flip pypdb2pov applies to atoms -- without it every helix is
+  // rendered as its mirror image.
+  scale <1, 1, -1>
 }}
 
 #declare {identifier} = object {{ {identifier}_obj }}
