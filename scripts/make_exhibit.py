@@ -169,8 +169,12 @@ def convert(
     return out, radius
 
 
-def compose(stem: str, include: Path, label: str, fill: float) -> Path:
-    """Write the exhibit scene, unless one is already there to keep."""
+def compose(stem: str, include: Path, label: str, fill: float, command: str) -> Path:
+    """Write the exhibit scene, unless one is already there to keep.
+
+    :param command: The make_exhibit.py arguments that regenerate this
+        exhibit, recorded in the scene header.
+    """
     scene = VITRINE / f"exhibit_{stem}.pov"
     if scene.exists():
         say("3/5 compose", f"{scene.name} exists, keeping it")
@@ -186,7 +190,7 @@ def compose(stem: str, include: Path, label: str, fill: float) -> Path:
         f'''// {label} in the standard vitrine.  Written by scripts/make_exhibit.py.
 //
 // Regenerate the geometry with:
-//   python scripts/make_exhibit.py {stem.upper()}
+//   python scripts/make_exhibit.py {command}
 
 #version 3.7;
 global_settings {{ assumed_gamma 1.0 }}
@@ -306,7 +310,12 @@ def main(argv: list[str] | None = None) -> int:
         fill_args["surface_quality"] = quality
 
     include, _ = convert(source, stem, rep=args.rep, color=args.color, fill_args=fill_args)
-    scene = compose(stem, include, label, args.fill)
+    command = args.pdb_id.upper()
+    if args.name:
+        command += f" --name {args.name}"
+    if args.label:
+        command += f' --label "{args.label}"'
+    scene = compose(stem, include, label, args.fill, command)
     still = render(scene, stem, args.width, args.height)
     print(f"\n      {still}")
 

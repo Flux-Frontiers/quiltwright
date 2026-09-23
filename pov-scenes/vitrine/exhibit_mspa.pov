@@ -1,7 +1,7 @@
 // MSPA PORIN in the standard vitrine.  Written by scripts/make_exhibit.py.
 //
 // Regenerate the geometry with:
-//   python scripts/make_exhibit.py MSPA
+//   python scripts/make_exhibit.py 1UUN --name mspa --label "MSPA PORIN"
 
 #version 3.7;
 global_settings { assumed_gamma 1.0 }
