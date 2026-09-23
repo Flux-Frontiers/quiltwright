@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.15.1] - 2026-09-22
+
 ### Fixed
 
 - **PyMOL cartoons rendered as their mirror image, on both backends.**
@@ -22,7 +24,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   ribbon, against 2.80 A for the mirror image. Existing cartoon renders
   (the F1-ATPase quilts and the GFP and OmpF vitrine cartoons) show the
   enantiomer and need re-rendering; a camera placed for the old geometry now
-  sees the molecule from its other side.
+  sees the molecule from its other side. `gallery/vitrine_ompf_cartoon.png`
+  is re-rendered with the fix.
+
+- **`scripts/make_exhibit.py` recorded a regenerate command that failed.**
+  The scene header said `make_exhibit.py {stem.upper()}`, which is the PDB
+  ID only when `--name` was not given, so `exhibit_mspa.pov` (made from 1UUN
+  with `--name mspa`) said `make_exhibit.py MSPA`, which the RCSB rejects.
+  The header now records the ID plus any `--name` and `--label`.
 
 ### Added
 

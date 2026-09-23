@@ -1,82 +1,48 @@
-# Release Notes -- v0.15.0
+# Release Notes -- v0.15.1
 
-> Released: 2026-09-19
+> Released: 2026-09-22
 
-Off-axis versus toe-in was the first of four questions put to Liti
-Holographics in August, and this release answers it the way such questions
-usually get answered: not by a reply, but by watching what the machine is
-actually fed. LitiHolo's own capture tool is a web renderer that orbits a
-Sketchfab camera around a pinned aim point and screenshots 23 stops. There
-is no frustum shear anywhere in it. It is toe-in, the projection every
-docstring in this library tells you not to use.
+Every PyMOL cartoon this library has produced was the mirror image of the
+molecule it claimed to be. The folds were right, the colours were right,
+and the secondary structure read cleanly, so nothing looked wrong. But every
+alpha-helix turned the wrong way. A mirrored protein still looks like a
+protein, which is why this survived an end-to-end render of F1-ATP synthase
+that was written up at the time as proof the coordinate handling could be
+trusted.
 
-That matters because a hogel slicer is not a lens sheet. Quiltwright's
-insistence on off-axis projection is a statement about Looking Glass
-lenticular optics, where a toe-in sweep produces keystone distortion the
-display cannot fuse. A holographic printer resamples the view set into
-hogels by its own rules, and if it has only ever been given toe-in captures,
-handing it an off-axis set is an unlabelled change of input rather than a
-correction. So toe-in is now available, deliberately, with the geometry that
-produced a sweep named in the emitted wrapper comment. Off-axis remains the
-default, and `render_pov_quilt()` does not take the option at all.
+It came to light while rendering fibrinogen for a disulfide chemist, where
+a left-handed helix would have been the first thing noticed. A lit
+alpha-helix, rendered through both backends and compared with PyMOL's own
+ray trace of the same export, showed the enantiomer every time. This release
+fixes both backends and adds tests that would have caught it.
 
 ## What changed
 
-**`geometry="toe-in"` on `render_pov_views()`, and `toe_in_cameras()`
-behind it.** The eye travels a circular arc of constant radius about
-`look_at`, and every view is re-aimed at that point, so each frame is a
-plain symmetric frustum. This is the shape the vendor tool emits, and the
-2003 submission of one of these same scenes was toe-in too, and printed.
-What remains unknown is whether the slicer requires toe-in or merely
-tolerates it, and whether it resamples a denser source set. The option
-exists so that question can be tested rather than assumed.
+**PyMOL cartoons now have the handedness of the molecule.** With the
+identity view the export script sets, `cmd.get_povray()` writes the model's
+own right-handed coordinates, offset only by the view centre and camera
+pull-back; PyMOL's POV header compensates with a right-handed camera rather
+than by reflecting the geometry. `cartoon_inc()` and `cartoon_obj()` both
+assumed the opposite. The POV-Ray include therefore skipped the z flip
+pypdb2pov has always applied to atoms, and the Cycles OBJ negated a z that
+needed no conversion. The include now ends with `scale <1, 1, -1>`, and the
+OBJ keeps PyMOL's coordinates and winding. Atom scenes from pypdb2pov were
+never affected.
 
-**`LITIHOLO_TOOL_SWEEP`, kept separate from `LITIHOLO_SWEEP`.** One is the
-specification sheet, the other is the tool at its factory defaults, and they
-disagree. The tool steps 2.5 degrees per move and captures 23 stops from
--27.5 to +27.5, which is a 55-degree cone, not 45. Its default capture is
-400x400 square rather than the 1600x2000 this project had guessed. Neither
-number is a specification -- both are editable fields in the tool's UI --
-but they are what the hardware has actually received, and that is worth
-recording under its own name instead of quietly amending the other.
+**Tests that measure geometry, not strings.** A cartoon ribbon runs through
+its own CA atoms, so the new tests export crambin through each backend, put
+the mesh where the renderer will put it, and measure how far each CA sits
+from it. Correct handedness gives 0.27 A on average; the mirror image gives
+2.80 A. Every earlier test of this module checked the shape of the include
+and would have passed either way.
 
-**`pack_litiholo_sweep()` and `litiholo_names()`, the delivery step.** A
-rendered sweep re-encoded as JPEG under the vendor tool's own names,
-`render-400x400-HPO-01.jpg` through `-23.jpg`, one-indexed with view 0
-leftmost, optionally zipped as the tool's `-HPO-captures.zip`. It is
-renderer-agnostic and changes no geometry -- the same role `assemble_quilt()`
-plays for a panel. Transparent frames are composited onto black rather than
-having their alpha discarded, since black is the ground the tool's own
-transparent capture ends up on, and it is the one background a hologram
-must not get wrong. Full-parallax mode is documented as a gap:
-`litiholo_names(mode="FP")` raises rather than name a 23x17 grid that
-quiltwright cannot yet fill.
+**What upgrading changes.** Any camera placed for the old cartoon geometry
+now sees the molecule from its other face. That view is the correct one, and
+it now matches a pypdb2pov atom scene of the same structure in the same
+vitrine, but a composition tuned against the mirrored render may want
+re-aiming. The gallery's OmpF cartoon is re-rendered with the fix.
 
-**`view_angles()`, the angle list both geometries sample.** `view_offsets()`
-is now derived from it, so an off-axis sweep and a toe-in sweep of the same
-spec provably sample the same angles, and a depth budget's quoted sampling
-interval means the same thing either way.
-
-**[docs/lfd.md](docs/lfd.md) records what the tool settles and what it does
-not.** The answered question and the three still open are now written down
-next to the evidence for each, so the next person to look does not have to
-re-derive which is which.
-
-## Release assets
-
-Two LitiHolo sweeps of the porin scene ship with this release, one for each
-shape described above. `porin-litiholo_qs23x1a0.8.png` is `LITIHOLO_SWEEP`,
-the specification sheet: 23 views over 45 degrees at 1600x2000.
-`porin-litiholo-tool_qs23x1a1.png` is `LITIHOLO_TOOL_SWEEP`, the tool at its
-factory defaults: 23 views over 55 degrees at 400x400. Having both attached
-to the same release is the point -- the disagreement between them is what
-this release documents.
-
-The tool-shape quilt was rendered after the tag was cut, through a
-`--sweep tool` option on `scripts/render_still_life_hologram.py` that lands
-in the next release. Only that script convenience is newer. The library is
-byte-identical to this tag, and the quilt is the output of
-`render_pov_quilt()` driven by `LITIHOLO_TOOL_SWEEP`, both of which ship in
-0.15.0. Re-rendered from the published PyPI wheel in a clean environment, it
-matches to within POV-Ray's own antialiasing jitter: 2.88% of pixels differ,
-against 2.83% between two consecutive runs of that same wheel.
+**`make_exhibit.py` records a command that works.** The scene header it
+writes named the file stem where the PDB ID belongs, so an exhibit made with
+`--name` recorded a regenerate command the RCSB rejects. The header now
+carries the ID plus any `--name` and `--label`.
