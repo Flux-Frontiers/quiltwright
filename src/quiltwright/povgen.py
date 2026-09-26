@@ -461,14 +461,14 @@ class Mesh2(Primitive):
         through *faces*, which are rewound in step.
     """
 
-    vertices: Sequence[Sequence[float]]
-    faces: Sequence[Sequence[int]]
-    normals: Sequence[Sequence[float]] | None = None
+    vertices: Sequence[Sequence[float]] | np.ndarray
+    faces: Sequence[Sequence[int]] | np.ndarray
+    normals: Sequence[Sequence[float]] | np.ndarray | None = None
     normal_indices: Sequence[Sequence[int]] | None = None
     textures: Sequence[Texture | str] = ()
     face_textures: Sequence[Sequence[int]] | None = None
     texture: Texture | ImageTexture | str | None = None
-    uv: Sequence[Sequence[float]] | None = None
+    uv: Sequence[Sequence[float]] | np.ndarray | None = None
 
     def __post_init__(self) -> None:
         if self.uv is not None and len(self.uv) != len(self.vertices):
