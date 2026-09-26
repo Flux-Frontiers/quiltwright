@@ -1262,3 +1262,11 @@ def test_an_image_lands_the_right_way_round_and_the_tint_multiplies(tmp_path):
     assert tuple(plain[40, 56]) == (0, 0, 255), "the image is mirrored left to right"
     red, green, blue = shots["tinted"][40, 8]
     assert abs(red - 128) <= 10 and green <= 10 and blue <= 10
+
+
+def test_scene_declares_no_version_unless_asked():
+    """Declaring one changes how every existing scene is lit, so it is opt-in."""
+    assert "#version" not in PovScene().sdl()
+    text = PovScene(version="3.7").sdl()
+    assert "#version 3.7;" in text
+    assert text.index("#version") < text.index("assumed_gamma")

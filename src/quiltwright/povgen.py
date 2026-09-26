@@ -1066,6 +1066,12 @@ class PovScene:
         coordinates, ``"none"`` to author directly in POV-Ray's.
     :param ambient_light: Global ``ambient_light`` colour, or ``None``.
     :param comment: Free text written into the file header.
+    :param version: ``#version`` to declare, e.g. ``"3.7"``, or ``None`` for
+        none.  With none, POV-Ray 3.7 parses the scene in its pre-3.7 mode,
+        which lights it flatter: a photographed texture reads washed out, and
+        declaring ``"3.7"`` restores its contrast.  Off by default because
+        every scene tuned so far was tuned without it, and declaring it
+        changes how they are lit.
     """
 
     background: str | Vec | None = None
@@ -1073,6 +1079,7 @@ class PovScene:
     handedness: str = "flip-z"
     ambient_light: str | Vec | None = None
     comment: str = ""
+    version: str | None = None
     _declares: list[tuple[str, str]] = field(default_factory=list, repr=False)
     _lights: list[LightSource] = field(default_factory=list, repr=False)
     _objects: list[Primitive] = field(default_factory=list, repr=False)
@@ -1156,6 +1163,9 @@ class PovScene:
         )
         out.append("// No camera: render_pov_quilt appends one off-axis camera per view.")
         out.append("")
+        if self.version is not None:
+            out.append(f"#version {self.version};")
+            out.append("")
 
         for name in self.includes:
             out.append(f'#include "{name}"')

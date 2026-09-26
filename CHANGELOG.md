@@ -28,6 +28,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   `render_pov_quilt` already searches that directory, so a written scene
   renders wherever it is moved. Two different images with one file name
   are refused rather than overwriting each other.
+- **`PovScene(version=...)` declares a `#version`.** povgen scenes carry
+  none, so POV-Ray 3.7 parses them in its pre-3.7 mode, which lights them
+  flatter. A bark photograph on a tree reads washed out that way and keeps
+  its contrast under `#version 3.7`. Off by default, because every scene
+  tuned so far was tuned without it.
 
 ### Changed
 
