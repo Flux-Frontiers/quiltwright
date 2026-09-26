@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **Image textures for POV-Ray scenes, so swept wood can wear bark.**
+  `povgen.ImageTexture(image, tint=, bump=, finish=)` is a texture whose
+  pigment is a picture laid on by UV. `tint` multiplies the image, as a
+  fully filtering second layer, the way three.js tints a colour map by a
+  vertex colour. `bump` takes relief from the image's own brightness,
+  because POV-Ray 3.7 reads no tangent-space normal maps. `Mesh2` gains
+  `uv`, one texture coordinate per vertex, emitted as `uv_vectors`.
+  `swept_scene` now takes a `Mesh2` in place of the swept paths, and a
+  `sweep_texture`. A `sphere_sweep` carries no texture coordinates, so the
+  mesh is the only way to put an image on the wood.
+  `kg_utils.viz3d.bark_sweep` produces one. A render test lays an
+  asymmetric image on a quad authored right-handed and checks it is not
+  mirrored. On one book's tree the mesh also rendered in 0.9 s against
+  72 s as sweeps, and it has no seams where limbs fork.
+- **`PovScene.write` copies the images a scene's textures use** next to
+  the `.pov`, because the SDL names each by file name only.
+  `render_pov_quilt` already searches that directory, so a written scene
+  renders wherever it is moved. Two different images with one file name
+  are refused rather than overwriting each other.
+
+### Changed
+
+- **`PovScene.bounds()` measures a `Mesh2`.** It used to skip meshes, so a
+  scene whose subject was a mesh sized its light rig and ground slab from
+  whatever else was in it.
+- **`coalesce_mesh2` leaves a mesh with `uv_vectors` whole.** Merging it
+  would drop the coordinates and smear any image on it.
+
 ## [0.15.1] - 2026-09-22
 
 ### Fixed

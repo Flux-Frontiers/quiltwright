@@ -25,6 +25,11 @@ VTK, so this module reaches for the analytic form first and leaves ``mesh2``
 as the fallback for geometry that has no analytic description (volumes,
 isosurfaces, imported meshes).
 
+The other exception is a picture.  A ``sphere_sweep`` carries no texture
+coordinates, so swept wood that wears a bark image (:class:`ImageTexture`)
+goes out as a :class:`Mesh2` with ``uv`` instead; :func:`swept_scene` takes
+either.
+
 **Handedness.**  PyVista, VTK and NumPy are right-handed; POV-Ray is
 left-handed.  Everything here is authored in right-handed world coordinates
 and converted on emission by negating *z* (:func:`to_pov`), which is the same
@@ -77,6 +82,7 @@ Author: Eric G. Suchanek, PhD
 from __future__ import annotations
 
 import math
+import shutil
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field, replace
 from pathlib import Path
@@ -248,7 +254,79 @@ class Texture:
         return f"texture {{ pigment {{ {pigment} }} {self.finish.sdl()} }}"
 
 
-def _texture_suffix(texture: Texture | str | None) -> str:
+#: POV-Ray's ``image_map`` keyword for each image format it reads, by suffix.
+IMAGE_TYPES: dict[str, str] = {
+    ".jpg": "jpeg",
+    ".jpeg": "jpeg",
+    ".png": "png",
+    ".tga": "tga",
+    ".tif": "tiff",
+    ".tiff": "tiff",
+    ".ppm": "ppm",
+    ".gif": "gif",
+    ".exr": "exr",
+    ".hdr": "hdr",
+}
+
+
+@dataclass(frozen=True)
+class ImageTexture:
+    """A POV-Ray ``texture`` whose pigment is a picture, placed by UV.
+
+    Made for a :class:`Mesh2` that carries *uv*: the image is laid on by the
+    mesh's texture coordinates (``uv_mapping``, inside the pigment and the
+    normal), ``u = 0`` at the image's left edge and ``v = 1`` at its top, and
+    it tiles outside ``0..1``.  On a mesh with no *uv* POV-Ray has nothing to
+    map by, and the picture smears into streaks.
+
+    The SDL names the image by **file name only**.  :meth:`PovScene.write`
+    copies the file next to the ``.pov``, and
+    :func:`~quiltwright.povray.render_pov_quilt` puts that directory on
+    POV-Ray's library path, so a written scene renders wherever it is moved.
+
+    :param image: Path to the image; the suffix picks the format
+        (:data:`IMAGE_TYPES`).
+    :param tint: Colour the image is multiplied by, or ``None`` -- as three.js
+        tints a colour map by a vertex colour.  Emitted as a second, fully
+        filtering texture layer.
+    :param bump: ``bump_size`` for relief taken from the image's own
+        brightness, or ``None`` for a smooth surface.  POV-Ray 3.7 reads no
+        tangent-space normal maps, so this is the stand-in for one.
+    :param finish: Shading parameters.
+    :raises ValueError: If POV-Ray cannot read the image's format.
+    """
+
+    image: str | Path
+    tint: str | Vec | None = None
+    bump: float | None = None
+    finish: Finish = field(default_factory=Finish)
+
+    def __post_init__(self) -> None:
+        suffix = Path(self.image).suffix.lower()
+        if suffix not in IMAGE_TYPES:
+            raise ValueError(
+                f"POV-Ray cannot read {Path(self.image).name!r} as an image_map; "
+                f"use one of {', '.join(sorted(IMAGE_TYPES))}"
+            )
+
+    def sdl(self) -> str:
+        """:return: The ``texture { ... }`` block, plus the tint layer if any."""
+        path = Path(self.image)
+        source = f'{IMAGE_TYPES[path.suffix.lower()]} "{path.name}" interpolate 2'
+        body = f"pigment {{ uv_mapping image_map {{ {source} }} }}"
+        if self.bump is not None:
+            body += f" normal {{ uv_mapping bump_map {{ {source} bump_size {self.bump:.4g} }} }}"
+        out = f"texture {{ {body} {self.finish.sdl()} }}"
+        if self.tint is not None:
+            # POV-Ray refuses to layer over a texture that carries uv_mapping
+            # itself ("Cannot layer over a patterned texture"), which is why
+            # the mapping sits inside the pigment and the normal above.
+            r, g, b = parse_color(self.tint)
+            out += f" texture {{ pigment {{ color rgbf <{r:.5g}, {g:.5g}, {b:.5g}, 1> }} }}"
+        return out
+
+
+def _texture_suffix(texture: Texture | ImageTexture | str | None) -> str:
     """Render a texture, a bare ``#declare``d texture name, or nothing."""
     if texture is None:
         return ""
@@ -378,6 +456,9 @@ class Mesh2(Primitive):
         corner, parallel to *faces*.
     :param texture: A texture for the whole mesh.  Independent of *textures*;
         POV-Ray applies it where the per-vertex list does not reach.
+    :param uv: ``(N, 2)`` texture coordinates, one per vertex, for an
+        :class:`ImageTexture`.  Untouched by the handedness flip: they index
+        through *faces*, which are rewound in step.
     """
 
     vertices: Sequence[Sequence[float]]
@@ -386,9 +467,12 @@ class Mesh2(Primitive):
     normal_indices: Sequence[Sequence[int]] | None = None
     textures: Sequence[Texture | str] = ()
     face_textures: Sequence[Sequence[int]] | None = None
-    texture: Texture | str | None = None
+    texture: Texture | ImageTexture | str | None = None
+    uv: Sequence[Sequence[float]] | None = None
 
     def __post_init__(self) -> None:
+        if self.uv is not None and len(self.uv) != len(self.vertices):
+            raise ValueError(f"uv has {len(self.uv)} entries, vertices has {len(self.vertices)}")
         if self.normal_indices is not None and self.normals is None:
             raise ValueError("normal_indices given without normals")
         if self.face_textures is not None and not self.textures:
@@ -414,6 +498,11 @@ class Mesh2(Primitive):
             # A normal is a direction, not a position, but the reflection acts
             # on it the same way -- mirroring the world mirrors its normals.
             out.append(block("normal_vectors", [_vec(to_pov(n, handedness)) for n in self.normals]))
+
+        if self.uv is not None:
+            out.append(
+                block("uv_vectors", [f"<{float(u):.6g}, {float(v):.6g}>" for u, v in self.uv])
+            )
 
         if self.textures:
             out.append(block("texture_list", [_texture_suffix(t).strip() for t in self.textures]))
@@ -506,7 +595,8 @@ def coalesce_mesh2(text: str) -> str:
     Text that is not a ``mesh2`` is left exactly where it was; the merged mesh
     replaces the first one and the rest are dropped.  A block that does not
     parse is left alone rather than discarded, so a scene never loses geometry
-    to this function.
+    to this function; so is one with ``uv_vectors``, which the merge would
+    lose.
 
     :param text: POV-Ray source.
     :return: The same source with its meshes merged.
@@ -547,7 +637,9 @@ def coalesce_mesh2(text: str) -> str:
     for start, end, body in blocks:
         v_raw = _named_list(body, "vertex_vectors")
         f_raw = _named_list(body, "face_indices")
-        if v_raw is None or f_raw is None:
+        # A mesh with texture coordinates is kept whole: merging it would drop
+        # them, and an image texture on it would smear.
+        if v_raw is None or f_raw is None or _named_list(body, "uv_vectors") is not None:
             kept.append((start, end))
             continue
         n_raw = _named_list(body, "normal_vectors")
@@ -984,6 +1076,25 @@ class PovScene:
     _declares: list[tuple[str, str]] = field(default_factory=list, repr=False)
     _lights: list[LightSource] = field(default_factory=list, repr=False)
     _objects: list[Primitive] = field(default_factory=list, repr=False)
+    _images: dict[str, Path] = field(default_factory=dict, repr=False)
+
+    def _note_image(self, texture: object) -> None:
+        """Remember an :class:`ImageTexture`'s file, for :meth:`write` to copy."""
+        if not isinstance(texture, ImageTexture):
+            return
+        source = Path(texture.image).expanduser().resolve()
+        held = self._images.setdefault(source.name, source)
+        if held != source:
+            raise ValueError(
+                f"two images named {source.name!r} ({held} and {source}) would "
+                "overwrite each other beside the .pov; rename one"
+            )
+
+    def _note_images(self, obj: Primitive) -> None:
+        self._note_image(getattr(obj, "texture", None))
+        if isinstance(obj, Union):
+            for member in obj.members:
+                self._note_images(member)
 
     def add(self, item: Primitive | Iterable[Primitive]) -> PovScene:
         """Add one primitive, or an iterable of them.
@@ -991,10 +1102,10 @@ class PovScene:
         :param item: A :class:`Primitive` or any iterable of them.
         :return: ``self``, so calls chain.
         """
-        if isinstance(item, Primitive):
-            self._objects.append(item)
-        else:
-            self._objects.extend(item)
+        items = [item] if isinstance(item, Primitive) else list(item)
+        for obj in items:
+            self._note_images(obj)
+        self._objects.extend(items)
         return self
 
     def add_light(self, light: LightSource) -> PovScene:
@@ -1013,17 +1124,20 @@ class PovScene:
         :param body: A primitive, or raw SDL such as a texture block.
         :return: ``self``, so calls chain.
         """
+        if isinstance(body, Primitive):
+            self._note_images(body)
         text = body.sdl(self.handedness) if isinstance(body, Primitive) else str(body)
         self._declares.append((name, text))
         return self
 
-    def declare_texture(self, name: str, texture: Texture) -> PovScene:
+    def declare_texture(self, name: str, texture: Texture | ImageTexture) -> PovScene:
         """Declare a named texture, so many objects can share one definition.
 
         :param name: Identifier, e.g. ``"Bark"``.
         :param texture: The texture to declare.
         :return: ``self``, so calls chain.
         """
+        self._note_image(texture)
         return self.declare(name, texture.sdl())
 
     def __len__(self) -> int:
@@ -1090,14 +1204,23 @@ class PovScene:
         return "\n".join(out) + "\n"
 
     def write(self, path: str | Path) -> Path:
-        """Write the scene to *path*.
+        """Write the scene to *path*, with the images its textures use.
+
+        Every :class:`ImageTexture` image is copied next to the ``.pov``,
+        because the SDL names it by file name alone; :meth:`sdl` on its own
+        writes the names and copies nothing.
 
         :param path: Destination ``.pov`` file; parent directories are created.
         :return: The resolved path written.
+        :raises FileNotFoundError: If a texture's image does not exist.
         """
         target = Path(path).expanduser()
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(self.sdl(), encoding="utf-8")
+        for name, source in self._images.items():
+            dest = target.parent / name
+            if not (dest.exists() and dest.samefile(source)):
+                shutil.copy2(source, dest)
         return target.resolve()
 
     def bounds(self) -> tuple[np.ndarray, np.ndarray] | None:
@@ -1105,7 +1228,8 @@ class PovScene:
 
         Only the primitives with an obvious extent contribute
         (:class:`Sphere`, :class:`Cylinder`, :class:`Box`,
-        :class:`SphereSweep`, and the members of a :class:`Union`);
+        :class:`SphereSweep`, :class:`Mesh2`, and the members of a
+        :class:`Union`);
         :class:`Instance` cannot be measured without resolving its prototype
         and is skipped.  Useful for placing lights and for handing
         ``focal_distance_for_range`` a real depth range.
@@ -1152,6 +1276,11 @@ class PovScene:
                 pad = float(rad.max()) if rad.size else 0.0
                 los.append(pts.min(axis=0) - pad)
                 his.append(pts.max(axis=0) + pad)
+            elif isinstance(obj, Mesh2):
+                pts = np.asarray(obj.vertices, dtype=float).reshape(-1, 3)
+                if pts.size:
+                    los.append(pts.min(axis=0))
+                    his.append(pts.max(axis=0))
             elif isinstance(obj, Union):
                 for member in obj.members:
                     visit(member)
@@ -1542,10 +1671,11 @@ def instances_by_color(
 
 
 def swept_scene(
-    sweeps: Iterable[tuple[np.ndarray, np.ndarray]],
+    sweeps: Iterable[tuple[np.ndarray, np.ndarray]] | Mesh2,
     *,
     sweep_color: str | Vec = "#6b4a2f",
     sweep_finish: Finish | None = None,
+    sweep_texture: Texture | ImageTexture | None = None,
     instances: tuple[np.ndarray, np.ndarray | None] | None = None,
     instance_shape: Sequence[float] = (1.0, 1.0, 1.0),
     instance_radius: float = 1.0,
@@ -1587,9 +1717,18 @@ def swept_scene(
     shadow to nothing.  Getting that order wrong is silent; the scene is
     structurally perfect and looks dead.
 
-    :param sweeps: ``[(points, radii), ...]`` swept paths.
+    :param sweeps: ``[(points, radii), ...]`` swept paths, drawn as
+        ``sphere_sweep`` paths -- or a :class:`Mesh2` of wood already swept, such
+        as ``kg_utils.viz3d.bark_sweep``'s arrays.  A ``sphere_sweep`` has no
+        texture coordinates, so the mesh is the only way to wrap the sweeps in
+        an :class:`ImageTexture`.  It is also far quicker to trace: one book's
+        tree rendered in 0.9 s as a mesh against 72 s as sweeps, and the mesh
+        has no seams where limbs fork.
     :param sweep_color: Colour for every sweep.
     :param sweep_finish: Finish for the sweeps.
+    :param sweep_texture: Texture for the sweeps, replacing *sweep_color* and
+        *sweep_finish*.  An :class:`ImageTexture` needs *sweeps* to be a
+        :class:`Mesh2` with ``uv``.
     :param instances: ``(points, directions)``; *directions* may be ``None``.
     :param instance_shape: Per-axis shape of the instanced prototype, before
         *instance_radius* scales it.  ``(1, 1, 1)`` is a ball.
@@ -1623,11 +1762,17 @@ def swept_scene(
     """
     scene = PovScene(background=sky, ambient_light=ambient, comment=comment)
 
-    bark = Texture(color=sweep_color, finish=Finish() if sweep_finish is None else sweep_finish)
+    bark = sweep_texture or Texture(
+        color=sweep_color, finish=Finish() if sweep_finish is None else sweep_finish
+    )
     scene.declare_texture("SweptTex", bark)
-    swept = sphere_sweeps_from_paths(sweeps, texture="SweptTex")
-    if swept:
-        scene.add(Union(swept))
+    if isinstance(sweeps, Mesh2):
+        if len(sweeps.faces):
+            scene.add(replace(sweeps, texture="SweptTex"))
+    else:
+        swept = sphere_sweeps_from_paths(sweeps, texture="SweptTex")
+        if swept:
+            scene.add(Union(swept))
 
     if instances is not None:
         points, directions = instances
