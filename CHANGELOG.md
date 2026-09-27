@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-09-26
+
 ### Added
 
 - **Image textures for POV-Ray scenes, so swept wood can wear bark.**
@@ -41,6 +43,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   whatever else was in it.
 - **`coalesce_mesh2` leaves a mesh with `uv_vectors` whole.** Merging it
   would drop the coordinates and smear any image on it.
+- **`Mesh2` accepts NumPy arrays for its geometry.** `vertices`, `faces`,
+  `normals` and `uv` were typed as nested sequences, so a type checker
+  rejected the arrays `kg_utils.viz3d.bark_sweep` returns, though they
+  worked. The rest of povgen already took arrays.
 
 ## [0.15.1] - 2026-09-22
 
