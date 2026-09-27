@@ -13,6 +13,7 @@ from quiltwright.povgen import (
     Box,
     Cylinder,
     Finish,
+    ImageTexture,
     Instance,
     LightSource,
     Mesh2,
@@ -1096,3 +1097,176 @@ def test_coalescing_does_not_change_what_the_ray_tracer_draws(tmp_path):
     assert differing < 0.005 * shots[0].shape[0] * shots[0].shape[1], (
         f"{differing} pixels changed; the merge is meant to be invisible"
     )
+
+
+# ---------------------------------------------------------------------------
+# Image textures
+# ---------------------------------------------------------------------------
+
+QUAD = dict(
+    vertices=[(-1, -1, 0), (1, -1, 0), (1, 1, 0), (-1, 1, 0)],
+    faces=[(0, 1, 2), (0, 2, 3)],
+    uv=[(0, 0), (1, 0), (1, 1), (0, 1)],
+)
+
+
+def test_image_texture_names_the_file_and_maps_by_uv():
+    text = ImageTexture("/some/where/oak_color.jpg").sdl()
+    assert 'jpeg "oak_color.jpg"' in text
+    assert "/some/where" not in text
+    assert "pigment { uv_mapping image_map" in text
+    assert "normal" not in text
+    assert "rgbf" not in text
+
+
+def test_image_texture_bump_reads_the_same_image_by_uv():
+    text = ImageTexture("bark.png", bump=0.4).sdl()
+    assert 'normal { uv_mapping bump_map { png "bark.png" interpolate 2 bump_size 0.4 } }' in text
+
+
+def test_image_texture_tint_is_a_fully_filtering_layer():
+    text = ImageTexture("bark.png", tint=(0.5, 0.25, 1.0)).sdl()
+    assert text.count("texture {") == 2
+    assert text.endswith("texture { pigment { color rgbf <0.5, 0.25, 1, 1> } }")
+
+
+def test_image_texture_refuses_a_format_povray_cannot_read():
+    with pytest.raises(ValueError, match="webp"):
+        ImageTexture("bark.webp")
+
+
+def test_mesh_uv_is_emitted_once_per_vertex_and_not_flipped():
+    text = Mesh2(**QUAD).sdl("flip-z")
+    uv = text.split("uv_vectors")[1].split("}")[0]
+    assert uv.lstrip(" {").startswith("4,")
+    assert "<1, 1>" in uv
+    # uv_vectors must come before face_indices, or POV-Ray will not parse it.
+    assert text.index("uv_vectors") < text.index("face_indices")
+
+
+def test_mesh_uv_count_must_match_the_vertices():
+    with pytest.raises(ValueError, match="uv has 2 entries"):
+        Mesh2(vertices=[(0, 0, 0)] * 3, faces=[(0, 1, 2)], uv=[(0, 0), (1, 0)])
+
+
+def test_coalescing_keeps_a_mesh_with_uvs_whole():
+    """Merging would drop its uv_vectors and smear any image on it."""
+    one = Mesh2(**QUAD).sdl("none")
+    two = _single_face_mesh([(0, 0, 0), (1, 0, 0), (0, 1, 0)], "<1,0,0>")
+    merged = coalesce_mesh2(one + "\n" + two + two)
+    assert one in merged
+
+
+def test_scene_bounds_include_a_mesh():
+    scene = PovScene().add(Mesh2(**QUAD))
+    lo, hi = scene.bounds()
+    assert np.allclose(lo, (-1, -1, 0)) and np.allclose(hi, (1, 1, 0))
+
+
+def _image(path, size=8):
+    Image = pytest.importorskip("PIL.Image")
+    Image.new("RGB", (size, size), (200, 100, 50)).save(path)
+    return path
+
+
+def test_write_copies_every_image_beside_the_scene(tmp_path):
+    src = tmp_path / "assets"
+    src.mkdir()
+    bark = _image(src / "bark.png")
+    leaf = _image(src / "leaf.png")
+    scene = PovScene()
+    scene.declare_texture("Bark", ImageTexture(bark))
+    scene.add(Union([Mesh2(**QUAD, texture=ImageTexture(leaf))]))
+    written = scene.write(tmp_path / "out" / "tree.pov")
+    assert (written.parent / "bark.png").read_bytes() == bark.read_bytes()
+    assert (written.parent / "leaf.png").read_bytes() == leaf.read_bytes()
+    # Writing beside the images themselves must not try to copy a file onto itself.
+    scene.write(src / "tree.pov")
+
+
+def test_two_images_with_one_name_are_refused(tmp_path):
+    a, b = tmp_path / "a", tmp_path / "b"
+    a.mkdir()
+    b.mkdir()
+    scene = PovScene().declare_texture("A", ImageTexture(a / "bark.png"))
+    with pytest.raises(ValueError, match="overwrite each other"):
+        scene.declare_texture("B", ImageTexture(b / "bark.png"))
+
+
+def test_writing_a_missing_image_fails_loudly(tmp_path):
+    scene = PovScene().declare_texture("Bark", ImageTexture(tmp_path / "nope.jpg"))
+    with pytest.raises(FileNotFoundError):
+        scene.write(tmp_path / "tree.pov")
+
+
+def test_swept_scene_takes_a_textured_mesh_in_place_of_sweeps():
+    mesh = Mesh2(
+        vertices=[(0, 0, 0), (1, 0, 0), (0, 0, 10), (1, 0, 10)],
+        faces=[(0, 1, 2), (1, 3, 2)],
+        uv=[(0, 0), (1, 0), (0, 5), (1, 5)],
+    )
+    scene = swept_scene(mesh, sweep_texture=ImageTexture("bark.jpg", tint="#808080"))
+    text = scene.sdl()
+    assert "sphere_sweep" not in text
+    assert "uv_vectors" in text
+    assert "texture { SweptTex }" in text
+    assert '#declare SweptTex = texture { pigment { uv_mapping image_map { jpeg "bark.jpg"' in text
+    # The light rig is sized from the mesh, so it has to be measurable.
+    assert "light_source" in text
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(__import__("shutil").which("povray") is None, reason="no povray binary on PATH")
+def test_an_image_lands_the_right_way_round_and_the_tint_multiplies(tmp_path):
+    """The reason this is rendered and not read: after the cartoon chirality
+    bug, a mirrored picture is the failure worth proving absent.  An image with
+    a green top strip, a red left and a blue right is laid on a quad authored
+    right-handed, and viewed from +z as the right-handed author sees it.
+
+    A mid-grey tint should bring full red down to about sRGB 128.  Not
+    exactly: povgen scenes carry no ``#version``, so POV-Ray parses them in its
+    pre-3.7 mode, where the filtering layer lets a trace of its own grey
+    through (134, 6, 6 on POV-Ray 3.7.0.10).
+    """
+    Image = pytest.importorskip("PIL.Image")
+    picture = np.zeros((64, 64, 3), dtype=np.uint8)
+    picture[:, :32] = (255, 0, 0)
+    picture[:, 32:] = (0, 0, 255)
+    picture[:16] = (0, 255, 0)  # row 0 is the top of the image
+    Image.fromarray(picture).save(tmp_path / "f.png")
+    flat = Finish(ambient=1.0, diffuse=0.0, phong=None)
+
+    shots = {}
+    for name, tint in (("plain", None), ("tinted", "#808080")):
+        scene = PovScene()
+        scene.declare_texture("T", ImageTexture(tmp_path / "f.png", tint=tint, finish=flat))
+        scene.add(Mesh2(**QUAD, texture="T"))
+        pov = scene.write(tmp_path / name / "quad.pov")
+        # Right-handed eye at +z looking down -z, up +y; that is POV-Ray's -z.
+        pov.write_text(
+            pov.read_text()
+            + "camera { orthographic location <0, 0, -5> look_at <0, 0, 0> right x*2 up y*2 }\n"
+        )
+        out = tmp_path / f"{name}.png"
+        subprocess.run(
+            ["povray", f"+I{pov}", f"+O{out}", "+W64", "+H64", "-D", "+FN", "-A"],
+            check=True,
+            capture_output=True,
+            cwd=pov.parent,
+        )
+        shots[name] = np.asarray(Image.open(out).convert("RGB"), dtype=int)
+
+    plain = shots["plain"]
+    assert tuple(plain[6, 32]) == (0, 255, 0), "the image's top is not at the top"
+    assert tuple(plain[40, 8]) == (255, 0, 0), "the image is mirrored left to right"
+    assert tuple(plain[40, 56]) == (0, 0, 255), "the image is mirrored left to right"
+    red, green, blue = shots["tinted"][40, 8]
+    assert abs(red - 128) <= 10 and green <= 10 and blue <= 10
+
+
+def test_scene_declares_no_version_unless_asked():
+    """Declaring one changes how every existing scene is lit, so it is opt-in."""
+    assert "#version" not in PovScene().sdl()
+    text = PovScene(version="3.7").sdl()
+    assert "#version 3.7;" in text
+    assert text.index("#version") < text.index("assumed_gamma")

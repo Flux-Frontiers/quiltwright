@@ -50,8 +50,9 @@ reaches for the analytic form first.
 
 The rule of thumb: if the producer knows *why* the geometry has its shape,
 re-emit the description. `mesh2` is the fallback for geometry that has no
-analytic description -- volumes, isosurfaces, imported meshes -- and is not yet
-implemented.
+analytic description -- volumes, isosurfaces, imported meshes -- and for
+anything that wears an image, since only a mesh carries texture coordinates
+(see [Bark](#bark-image-textures-on-swept-wood)).
 
 ### Where the pieces live
 
@@ -222,6 +223,38 @@ raised to `min_radius`, because a zero-radius sweep end produces artifacts
 rather than a sharp tip. The `tolerance` default of 0.05 is deliberate too --
 POV-Ray's own default of 1e-6 makes the solver miss thin sweeps at scene scale
 and drop segments.
+
+### Bark: image textures on swept wood
+
+A `sphere_sweep` has no texture coordinates, so it cannot wear a picture. For
+bark, sweep the wood into a mesh with UVs -- `kg_utils.viz3d.bark_sweep` does
+this, NumPy only -- and hand it to `swept_scene` as a `Mesh2` with an
+`ImageTexture`:
+
+```python
+from kg_utils.viz3d import bark_sweep
+from quiltwright.povgen import Finish, ImageTexture, Mesh2, swept_scene
+
+wood = bark_sweep(skeleton, aspect=height / width, tile=0.9)
+scene = swept_scene(
+    Mesh2(vertices=wood.points, faces=wood.faces, normals=wood.normals, uv=wood.uv),
+    sweep_texture=ImageTexture("oak_color.jpg", tint="#c9b8a6", bump=0.4,
+                               finish=Finish(ambient=0.12, diffuse=0.85, phong=None)),
+    up=(0, 0, 1),
+)
+scene.write("tree.pov")  # copies oak_color.jpg next to tree.pov
+```
+
+- **The image travels with the scene.** The SDL names it by file name only, and
+  `PovScene.write` copies it beside the `.pov`, where `render_pov_quilt`
+  already looks.
+- **`tint` multiplies the image**, as a fully filtering second texture layer --
+  what three.js does when a vertex colour tints a map.
+- **`bump` is relief from the image's own brightness.** POV-Ray 3.7 reads no
+  tangent-space normal maps, so a web material's `_normal.jpg` has no direct
+  equivalent.
+- **The mesh is also quicker to trace.** One book's tree rendered in 0.9 s as
+  a mesh against 72 s as sweeps, and the mesh has no seams at the forks.
 
 ## 6. Instancing a crown
 
