@@ -35,6 +35,7 @@ from quiltwright.cycles import (
     autoframe_camera,
     frame_camera,
     mesh_bounds,
+    render_cycles_path,
     render_cycles_quilt,
     render_cycles_views,
     view_shift_x,
@@ -373,7 +374,7 @@ if mode == "crash":
     sys.exit(11)
 
 print("QW_DEVICE STUB", flush=True)
-n = len(job["angles"])
+n = len(job["angles"]) * len(job.get("path") or [None])
 last = n - 1 if mode == "missing-view" else n
 for i in range(last):
     # Encode the view index in the red channel so tile placement is checkable.
@@ -454,6 +455,50 @@ class TestOrchestration:
         for i in range(tiny_spec.n_views):
             x, y = tiny_spec.tile_origin(i)
             assert quilt[y, x, 0] == i * 20, f"view {i} misplaced"
+
+    def test_path_frames_take_their_views_frame_major(
+        self, blend_scene, camera, stub_blender, tiny_spec, tmp_path
+    ):
+        from PIL import Image
+
+        cameras = [camera, replace(camera, fov=20.0), replace(camera, fov=10.0)]
+        frames = render_cycles_path(
+            blend_scene,
+            tiny_spec,
+            cameras,
+            tmp_path / "path",
+            binary=str(stub_blender),
+            progress=False,
+        )
+        assert [p.name for p in frames] == [f"frame_{f:04d}.png" for f in range(3)]
+        n = tiny_spec.n_views
+        for f, p in enumerate(frames):
+            quilt = np.asarray(Image.open(p))
+            assert quilt.shape == (256, 256, 3)
+            for i in range(n):
+                x, y = tiny_spec.tile_origin(i)
+                assert quilt[y, x, 0] == (f * n + i) * 20, f"frame {f} view {i} misplaced"
+
+    def test_empty_path_rejected(self, blend_scene, stub_blender, tiny_spec, tmp_path):
+        with pytest.raises(ValueError, match="at least one camera"):
+            render_cycles_path(
+                blend_scene, tiny_spec, [], tmp_path, binary=str(stub_blender), progress=False
+            )
+
+    def test_degenerate_path_camera_rejected_before_blender_runs(
+        self, blend_scene, camera, stub_blender, tiny_spec, tmp_path
+    ):
+        bad = CyclesCamera(location=(1, 1, 1), look_at=(1, 1, 1))
+        with pytest.raises(ValueError, match="identical"):
+            render_cycles_path(
+                blend_scene,
+                tiny_spec,
+                [camera, bad],
+                tmp_path / "path",
+                binary=str(stub_blender),
+                progress=False,
+            )
+        assert not (tmp_path / "path").exists()
 
     def test_job_carries_the_camera_and_geometry(
         self, blend_scene, camera, stub_blender, tiny_spec, tmp_path
@@ -866,6 +911,25 @@ class TestRenderCyclesQuilt:
             render_cycles_quilt(
                 bad, tiny_spec, camera, device="cpu", binary=blender_binary, progress=False
             )
+
+
+class TestRenderCyclesPath:
+    def test_each_frame_matches_a_single_camera_render(
+        self, depth_blend, tiny_spec, camera, blender_binary, tmp_path
+    ):
+        """Re-aiming one camera per frame must leave no state behind: every
+        frame equals the quilt rendered from its camera alone.  The second
+        camera moves the eye, the focal plane and the lens at once."""
+        from PIL import Image
+
+        moved = CyclesCamera(location=(3.0, -8.0, 1.0), look_at=(0.0, 1.0, 0.0), fov=40.0)
+        kw = dict(samples=8, denoise=False, device="cpu", binary=blender_binary, progress=False)
+        frames = render_cycles_path(depth_blend, tiny_spec, [camera, moved], tmp_path, **kw)
+        got = [np.asarray(Image.open(p).convert("RGB")).astype(float) for p in frames]
+        for frame, cam in zip(got, [camera, moved], strict=True):
+            want = render_cycles_quilt(depth_blend, tiny_spec, cam, **kw).astype(float)
+            assert np.abs(frame - want).mean() < 1.0
+        assert np.abs(got[0] - got[1]).mean() > 1.0, "the path did not move the camera"
 
 
 class TestRenderCyclesViews:
