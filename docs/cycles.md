@@ -189,6 +189,30 @@ Knobs that matter:
   (`cpu_count - 2`, Blender's `-t`); `0` takes every core.
 - `keep_views` -- retain the per-view PNGs and the job JSON for inspection.
 
+### Camera paths: movies in one Blender session
+
+`render_cycles_path()` renders one frame per camera and writes them as
+`frame_0000.png`, `frame_0001.png`, ... The whole path runs in one Blender
+process, so the scene imports once and Cycles keeps its BVH across frames.
+Calling `render_cycles_quilt()` once per frame pays Blender's start-up and
+the import every time: about 1 s per frame on a 6 MB city GLB.
+
+```python
+from quiltwright.cycles import CyclesCamera, render_cycles_path
+
+cameras = [CyclesCamera(location=eye, look_at=target, fov=fov) for eye, target, fov in path]
+render_cycles_path("city.glb", QUILT_PRESETS["16-landscape"].still(), cameras, "frames/")
+```
+
+```bash
+ffmpeg -framerate 30 -i frames/frame_%04d.png -c:v libx264 -pix_fmt yuv420p movie.mp4
+```
+
+With `spec.still()` each frame is one flat image; with a device preset each
+frame is a full quilt, for a quilt video. The lighting rig is placed once,
+from the first camera, and stays fixed in the world while the camera moves.
+Every view is held in a temporary directory until Blender exits.
+
 **Requirements**: a `blender` binary -- `brew install --cask blender` on
 macOS (the standard `/Applications` install is found automatically), or
 `BLENDER_BINARY` pointing anywhere else. Blender 4.x or later.

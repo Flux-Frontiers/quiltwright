@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- **`render_cycles_path()` renders a camera path in one Blender session.**
+  It takes one `CyclesCamera` per frame and writes `frame_0000.png`,
+  `frame_0001.png`, ... for ffmpeg. The scene imports once and Cycles keeps
+  its BVH across frames. On a fly-in over a 6 MB satprint city GLB,
+  1956x1100 stills at 64 samples, that took a frame from 4.3 s with one
+  `render_cycles_quilt` call per frame to 3.4 s. With `spec.still()` each frame is
+  a flat image; with a device preset, a quilt. The lighting rig is placed
+  from the first camera and stays fixed in the world. A test pins every
+  frame of a path to the quilt its camera renders alone.
+
 ## [0.16.0] - 2026-09-26
 
 ### Added

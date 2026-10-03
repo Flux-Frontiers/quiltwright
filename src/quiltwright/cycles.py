@@ -425,12 +425,27 @@ def build_camera(scene, cam, aspect):
     with the sensor cut to the render aspect makes shift_x a fraction of the
     frame width and angle_y the true vertical FOV at once.
     """
-    fov = math.radians(cam["fov"])
     data = bpy.data.cameras.new("quiltwright")
     data.sensor_fit = "HORIZONTAL"
     data.sensor_width = 36.0
     data.sensor_height = 36.0 / aspect
+    obj = bpy.data.objects.new("quiltwright", data)
+    scene.collection.objects.link(obj)
+    scene.camera = obj
+    focal, tan_half_x = aim_camera(obj, cam, aspect)
+    return obj, focal, tan_half_x, 1.0
+
+
+def aim_camera(obj, cam, aspect):
+    """Place a camera made by build_camera at a CyclesCamera job entry.
+
+    Separate from build_camera so a camera path re-aims one object per
+    frame instead of creating one per frame.
+    """
+    fov = math.radians(cam["fov"])
+    data = obj.data
     data.angle_y = fov
+    data.shift_x = 0.0
 
     eye = Vector(cam["location"])
     forward = Vector(cam["look_at"]) - eye
@@ -444,9 +459,6 @@ def build_camera(scene, cam, aspect):
     right.normalize()
     up = right.cross(forward)
 
-    obj = bpy.data.objects.new("quiltwright", data)
-    scene.collection.objects.link(obj)
-    scene.camera = obj
     # Blender cameras look down local -Z with +Y up: columns are the world
     # right / up / backward axes, plus the eye.
     obj.matrix_world = Matrix(
@@ -461,8 +473,7 @@ def build_camera(scene, cam, aspect):
     # scales; tie them to the focal geometry instead.
     data.clip_start = focal * 1e-3
     data.clip_end = focal * 1e3
-    tan_half_x = math.tan(fov / 2.0) * aspect
-    return obj, focal, tan_half_x, 1.0
+    return focal, math.tan(fov / 2.0) * aspect
 
 
 def scene_camera(scene, aspect):
@@ -636,23 +647,32 @@ def main():
     else:
         cam, focal, tan_half_x, shift_scale = scene_camera(scene, aspect)
 
-    base = cam.matrix_world.copy()
-    right = base.col[0].to_3d().normalized()
-    base_shift = cam.data.shift_x
-
+    # The rig is placed once, from the first camera, and stays put in the
+    # world while a camera path moves through it.
     if job["format"] != "blend":
-        apply_lighting(scene, job["lighting"], base, focal)
+        apply_lighting(scene, job["lighting"], cam.matrix_world.copy(), focal)
 
+    # A camera path renders the whole view sweep at each of its cameras;
+    # views are numbered frame-major, frame * n_views + view.
+    path = job.get("path") or [None]
     n = len(job["angles"])
-    for i, angle in enumerate(job["angles"]):
-        offset = focal * math.tan(angle)
-        view = base.copy()
-        view.translation = base.translation + right * offset
-        cam.matrix_world = view
-        cam.data.shift_x = base_shift - shift_scale * offset / (2.0 * focal * tan_half_x)
-        scene.render.filepath = os.path.join(job["out_dir"], "view%03d.png" % i)
-        bpy.ops.render.render(write_still=True)
-        print("QW_VIEW %d/%d" % (i + 1, n), flush=True)
+    total = n * len(path)
+    for f, entry in enumerate(path):
+        if entry is not None:
+            focal, tan_half_x = aim_camera(cam, entry, aspect)
+        base = cam.matrix_world.copy()
+        right = base.col[0].to_3d().normalized()
+        base_shift = cam.data.shift_x
+        for i, angle in enumerate(job["angles"]):
+            k = f * n + i
+            offset = focal * math.tan(angle)
+            view = base.copy()
+            view.translation = base.translation + right * offset
+            cam.matrix_world = view
+            cam.data.shift_x = base_shift - shift_scale * offset / (2.0 * focal * tan_half_x)
+            scene.render.filepath = os.path.join(job["out_dir"], "view%03d.png" % k)
+            bpy.ops.render.render(write_still=True)
+            print("QW_VIEW %d/%d" % (k + 1, total), flush=True)
 
     print("QW_DONE", flush=True)
 
@@ -775,7 +795,7 @@ def _run_blender(
         str(job_file),
     ]
 
-    n = len(job["angles"])
+    n = len(job["angles"]) * len(job.get("path") or [None])
     tail: deque[str] = deque(maxlen=400)
     error: str | None = None
     proc = subprocess.Popen(
@@ -1024,6 +1044,103 @@ def render_cycles_views(
         if keep_job:
             shutil.copy2(workdir / "job.json", out / "job.json")
         return [Path(shutil.copy2(png, out / png.name)) for png in views]
+
+
+def render_cycles_path(
+    scene: str | Path,
+    spec: QuiltSpec,
+    cameras: Sequence[CyclesCamera],
+    out_dir: str | Path,
+    *,
+    view_cone: float | None = None,
+    samples: int = 64,
+    denoise: bool = True,
+    view_transform: str = "Standard",
+    device: str = "auto",
+    lighting: str | Path | None = "soft",
+    threads: int | None = None,
+    binary: str | None = None,
+    extra_args: Sequence[str] = (),
+    progress: bool = True,
+) -> list[Path]:
+    """Render a mesh scene from each camera of a path, as numbered frames.
+
+    One frame per camera, each the quilt :func:`render_cycles_quilt` would
+    make from that camera -- or, with :meth:`.QuiltSpec.still`, one flat
+    image -- written as ``frame_0000.png``, ``frame_0001.png``, ... for an
+    encoder such as ``ffmpeg -i frame_%04d.png``.  The whole path renders
+    in **one** Blender process, so the scene imports once and Cycles keeps
+    its BVH across frames; calling :func:`render_cycles_quilt` per frame
+    pays Blender's start-up and the import every time.
+
+    The lighting rig is placed once, from the first camera, and stays fixed
+    in the world as the camera moves.  Each camera's ``look_at`` sets that
+    frame's focal plane and clip range.
+
+    Every view of the path is held in a temporary directory until Blender
+    exits, so disk use is about frames x views x one PNG.
+
+    :param scene: Path to the scene, as for :func:`render_cycles_quilt`.
+    :param spec: Quilt specification for every frame.
+    :param cameras: One camera per frame, in order.  At least one.
+    :param out_dir: Directory to write the frames into; created if absent.
+    :param view_cone: Override the spec's view cone in degrees.
+    :param samples: Cycles samples per pixel.
+    :param denoise: Run Cycles' denoiser on each view.
+    :param view_transform: Color management; see :func:`render_cycles_quilt`.
+    :param device: ``"auto"``, ``"gpu"`` or ``"cpu"``, as for
+        :func:`render_cycles_quilt`.
+    :param lighting: Rig for an unlit *imported* scene; see
+        :func:`render_cycles_quilt`.
+    :param threads: Blender ``-t`` thread count; see
+        :func:`render_cycles_quilt`.
+    :param binary: Blender executable override.
+    :param extra_args: Extra Blender command-line arguments.
+    :param progress: Print a progress line while rendering.
+    :return: Paths to the written frames, in path order.
+    :raises ValueError: If *cameras* is empty or any camera is degenerate.
+    """
+    from PIL import Image
+
+    cameras = list(cameras)
+    if not cameras:
+        raise ValueError("render_cycles_path needs at least one camera")
+    blender, scene_path, kind, spec = _prepare(scene, spec, cameras[0], view_cone, binary)
+    path = [_camera_job(c) for c in cameras]
+
+    render_h = spec.tile_height
+    render_w = round(render_h * spec.aspect)
+
+    job = {
+        "scene": str(scene_path),
+        "format": kind,
+        "width": render_w,
+        "height": render_h,
+        "angles": _view_angles(spec),
+        "camera": path[0],
+        "path": path,
+        "samples": int(samples),
+        "denoise": bool(denoise),
+        "view_transform": view_transform,
+        "device": device,
+        "lighting": _lighting_job(lighting),
+    }
+
+    n = spec.n_views
+    out = Path(out_dir).expanduser()
+    out.mkdir(parents=True, exist_ok=True)
+    frames = []
+    with tempfile.TemporaryDirectory(prefix="cycles_path_") as tmp:
+        views = _run_blender(blender, Path(tmp), job, extra_args, threads, progress)
+        for f in range(len(cameras)):
+            quilt = assemble_quilt(
+                (np.asarray(Image.open(png).convert("RGB")) for png in views[f * n : (f + 1) * n]),
+                spec,
+            )
+            frame = out / f"frame_{f:04d}.png"
+            Image.fromarray(quilt).save(frame)
+            frames.append(frame)
+    return frames
 
 
 # ---------------------------------------------------------------------------
