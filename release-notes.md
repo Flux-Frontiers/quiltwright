@@ -1,53 +1,40 @@
-# Release Notes -- v0.16.0
+# Release Notes -- v0.17.0
 
-> Released: 2026-09-26
+> Released: 2026-11-02
 
-The Knowledge Press trees wear bark now in the web forest and in the PyVista
-quilt path, each limb wrapped in a photograph of its species' bark. The
-POV-Ray path could not follow. It draws limbs as `sphere_sweep`s, which are
-exact and small but carry no texture coordinates, so a POV-Ray tree could only
-ever be one flat colour. This release gives povgen what it was missing: a
-mesh that carries UVs, a texture that is a picture, and a way to make the
-picture travel with the scene.
+A camera that moves needs one render per frame, and until now the Cycles
+backend could only make them one call at a time. Each `render_cycles_quilt()`
+call starts Blender, imports the scene and rebuilds Cycles' BVH before it
+traces a single ray. For a fly-in over a satprint city that start-up was
+about a quarter of every frame. This release renders the whole path in one
+Blender session.
 
-Getting the bark to show also turned up something older. povgen scenes declare
-no `#version`, so POV-Ray 3.7 has been parsing every one of them in its
-pre-3.7 compatibility mode, which lights a scene flatter. Flat colours hide
-that. A bark photograph does not: it came out washed out until the scene
-declared `#version 3.7`.
+It is also a security release. quiltwright now requires Pillow 13.0.0, so a
+fresh install can no longer resolve the 12.x line and its 41 advisories.
 
 ## What changed
 
-**`ImageTexture` lays a picture on a mesh by UV.** It takes the image, an
-optional tint and an optional bump. The tint is a second, fully filtering
-texture layer, so it multiplies the picture the way three.js tints a colour map
-by a vertex colour. The bump takes relief from the picture's own brightness,
-because POV-Ray 3.7 reads no tangent-space normal maps. `uv_mapping` sits
-inside the pigment and the normal rather than on the texture, since POV-Ray
-refuses to layer a tint over a texture that carries it there.
+**`render_cycles_path()` renders a camera path in one Blender session.** It
+takes one `CyclesCamera` per frame and writes `frame_0000.png`,
+`frame_0001.png`, and so on, ready for ffmpeg. The scene imports once and
+Cycles keeps its BVH across frames, so on a 6 MB city GLB at 64 samples a
+1956x1100 frame went from 4.3 s to 3.4 s. With `spec.still()` each frame is a
+flat image; with a device preset each frame is a full quilt, for a quilt
+video. The lighting rig is placed from the first camera and stays fixed in
+the world while the camera moves, so the light does not swing with the view.
+A test pins every frame of a path to the quilt its camera renders alone.
 
-**`Mesh2` carries texture coordinates, and `swept_scene` takes a mesh.** A
-`Mesh2(uv=...)` emits `uv_vectors`, one per vertex, and `swept_scene` accepts
-a `Mesh2` in place of the swept paths along with a `sweep_texture`. That is
-the shape `kg_utils.viz3d.bark_sweep` produces, so a tree's bark goes straight
-in. A render test lays an image with a green top, a red left and a blue right
-on a quad authored right-handed, and checks all three land where they should:
-after the cartoon chirality bug in 0.15.1, a mirrored picture was the failure
-worth ruling out. On one book's tree the mesh also traced a 900x1200 view in
-0.9 s against 72 s as sweeps, and it has no seams where limbs fork.
+**Pillow 13.0.0 is the floor.** quiltwright reads and writes every quilt
+through Pillow, and its old range, `pillow>=10.0`, allowed Pillow 12.3.0.
+Raising the floor puts the fix in the package metadata, so every fleet repo
+that installs quiltwright gets it too. Two lock refreshes also moved certifi,
+filelock, urllib3 and virtualenv to patched releases.
 
-**Images travel with the scene.** The SDL names each image by file name alone,
-and `PovScene.write` copies it next to the `.pov`, where `render_pov_quilt`
-already looks. A written scene renders wherever its folder goes. Two different
-images with the same file name are refused rather than left to overwrite each
-other.
+## Upgrading
 
-**`PovScene(version=...)` declares a `#version`.** Declaring `"3.7"` takes a
-scene out of POV-Ray's pre-3.7 mode and gives a photograph back its contrast.
-It is off by default: every scene tuned so far was tuned without it, and
-declaring it changes how they are lit.
+`pip install -U quiltwright`. pip moves Pillow to 13.x if needed. No existing
+call changes; `render_cycles_path()` is new.
 
-**Smaller fixes.** `PovScene.bounds()` now measures a `Mesh2`, so a scene
-whose subject is a mesh sizes its lights and ground slab from that subject.
-`coalesce_mesh2` leaves a mesh with UVs whole instead of dropping its
-coordinates, and `Mesh2` accepts NumPy arrays for its geometry.
+---
+
+_Full changelog: [CHANGELOG.md](CHANGELOG.md)_

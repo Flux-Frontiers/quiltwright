@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-11-02
+
 ### Added
 
 - **`render_cycles_path()` renders a camera path in one Blender session.**

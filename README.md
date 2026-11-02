@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/Flux-Frontiers/quiltwright/v0.16.0/assets/logo_pack/quiltwright_logo_512.png" alt="Quiltwright" width="512"/>
+  <img src="https://raw.githubusercontent.com/Flux-Frontiers/quiltwright/v0.17.0/assets/logo_pack/quiltwright_logo_512.png" alt="Quiltwright" width="512"/>
 </p>
 
 [![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](LICENSE)
 [![PyPI](https://img.shields.io/pypi/v/quiltwright.svg)](https://pypi.org/project/quiltwright/)
-[![Version](https://img.shields.io/badge/version-0.16.0-blue.svg)](https://github.com/Flux-Frontiers/quiltwright/releases)
+[![Version](https://img.shields.io/badge/version-0.17.0-blue.svg)](https://github.com/Flux-Frontiers/quiltwright/releases)
 [![Tests](https://github.com/Flux-Frontiers/quiltwright/actions/workflows/tests.yml/badge.svg)](https://github.com/Flux-Frontiers/quiltwright/actions/workflows/tests.yml)
 [![Docs](https://img.shields.io/badge/docs-flux--frontiers.github.io-blue.svg)](https://flux-frontiers.github.io/quiltwright/)
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.21798503-blue.svg)](https://doi.org/10.5281/zenodo.21798503)
@@ -29,7 +29,7 @@ for geometric ML manifolds and by
 [pypdb2pov](https://github.com/Flux-Frontiers/pypdb2pov) for molecular
 structures, but neither is a prerequisite. If you can render it, you can hang it in the air.
 
-![Eric's Science Museum, the canonical POV-Ray render](https://raw.githubusercontent.com/Flux-Frontiers/quiltwright/v0.16.0/gallery/museum.png)
+![Eric's Science Museum, the canonical POV-Ray render](https://raw.githubusercontent.com/Flux-Frontiers/quiltwright/v0.17.0/gallery/museum.png)
 
 *A career in structural biophysics, arranged as exhibits: B-DNA and Z-DNA
 under bell jars, Ras and my original **DNA Under Glass** on the walls. The molecular
@@ -42,6 +42,13 @@ panels, or into 2-D video for Hololuminescent displays. A third output -- a
 ---
 
 ## Latest news
+
+**v0.17.0 (2026-11-02).** Cycles renders movies. `render_cycles_path()` takes
+one camera per frame and renders the whole path in one Blender session, so
+the scene imports once and Cycles keeps its BVH between frames: a fly-in over
+a 6 MB city took 3.4 s a frame instead of 4.3 s. Each frame is a still or a
+full quilt. Pillow 13.0.0 is now the floor, closing 41 advisories in the 12.x
+line.
 
 **v0.16.0 (2026-09-26).** POV-Ray trees can wear bark. A `sphere_sweep` has no
 texture coordinates, so the analytic wood could only ever be one flat colour
@@ -128,6 +135,10 @@ Four backends share one assembler:
 `render_quilt()` does and path-traces it instead. WaveRider, [The Virtual
 Brain](docs/tvb-data.md), PyVista example datasets, `quiltwright.povgen`, and a
 plain `.pov` file on disk all feed the same path.
+
+`render_cycles_path()` renders a camera path, one frame per camera, in a
+single Blender session, for movies and quilt videos; see
+[docs/cycles.md](docs/cycles.md).
 
 **Two display technologies.** *Light-field displays* (LFD -- Portrait, Go,
 16"/27"/32"/65") consume **quilts**: N views tiled into one image.
@@ -319,7 +330,7 @@ on Zenodo.
   title   = {Quiltwright: Holographic Output for Looking Glass Displays},
   url     = {https://github.com/Flux-Frontiers/quiltwright},
   doi     = {10.5281/zenodo.21798503},
-  version = {0.16.0},
+  version = {0.17.0},
   year    = {2026}
 }
 ```
