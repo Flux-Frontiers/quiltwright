@@ -2179,4 +2179,4 @@ viz = ["pyvista"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12,<3.14"
-content-hash = "3d7986ed139b96a2ba51c46b6fffb785a47d9eb3ef0c42fd15c7234d655d7fd7"
+content-hash = "0584a7b468fff829f58b0f900ed8e8eafb9574560f22d86cea43340291a001c5"

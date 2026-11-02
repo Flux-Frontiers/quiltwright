@@ -1,0 +1,64 @@
+{
+    "configVersion": "3.0",
+    "serial": "LKG-J00332",
+    "pitch": {
+        "value": 44.75058319896644
+    },
+    "slope": {
+        "value": -6.874565686767793
+    },
+    "center": {
+        "value": 0.16935753461833172
+    },
+    "fringe": {
+        "value": 0.0
+    },
+    "viewCone": {
+        "value": 50.0
+    },
+    "invView": {
+        "value": 0.0
+    },
+    "verticalAngle": {
+        "value": 0.0
+    },
+    "DPI": {
+        "value": 283.0
+    },
+    "screenW": {
+        "value": 3840.0
+    },
+    "screenH": {
+        "value": 2160.0
+    },
+    "flipImageX": {
+        "value": 0.0
+    },
+    "flipImageY": {
+        "value": 0.0
+    },
+    "flipSubp": {
+        "value": 0.0
+    },
+    "CellPatternMode": {
+        "value": 2.0
+    },
+    "subpixelCells": [
+        {
+            "ROffsetX": -0.3100000023841858,
+            "ROffsetY": 0.25,
+            "GOffsetX": 0.2800000011920929,
+            "GOffsetY": 0.25,
+            "BOffsetX": 0.0,
+            "BOffsetY": -0.25
+        },
+        {
+            "ROffsetX": -0.3100000023841858,
+            "ROffsetY": -0.25,
+            "GOffsetX": 0.2800000011920929,
+            "GOffsetY": -0.25,
+            "BOffsetX": 0.0,
+            "BOffsetY": 0.25
+        }
+    ]
+}
