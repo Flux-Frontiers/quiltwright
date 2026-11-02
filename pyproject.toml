@@ -84,7 +84,7 @@ requires-python = ">=3.12,<3.14"
 # Bridge HTTP client and the `quiltwright` CLI need nothing but numpy, pillow
 # and click.  The renderers are extras so a machine that only casts
 # pre-rendered quilts stays lean.
-dependencies = ["numpy>=1.26", "pillow>=10.0", "click>=8.1.0,<9"]
+dependencies = ["numpy>=1.26", "pillow>=13.0.0", "click>=8.1.0,<9"]
 
 [project.optional-dependencies]
 viz = ["pyvista>=0.44"]

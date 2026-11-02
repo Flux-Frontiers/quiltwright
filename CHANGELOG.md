@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
   from the first camera and stays fixed in the world. A test pins every
   frame of a path to the quilt its camera renders alone.
 
+### Security
+
+- **Pillow 13.0.0 is the floor.** The `pillow>=10.0` range let a fresh
+  install resolve Pillow 12.3.0, which carries 41 advisories fixed in
+  13.0.0, some of them critical. Two lock refreshes also move certifi to
+  2026.10.23, filelock to 4.2.7, urllib3 to 2.8.0 and virtualenv to
+  21.15.2, clearing every open Dependabot alert.
+
 ## [0.16.0] - 2026-09-26
 
 ### Added
