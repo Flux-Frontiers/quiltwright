@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- **An Art Techno logo replaces the indigo one.** The quilt: the grid of
+  views Quiltwright writes, four columns by three rows, with the subject
+  shifting a little from each view to the next, and the tagline HANG IT IN
+  THE AIR. `scripts/build_logo.py` draws the mark, a 64 px icon and a banner
+  as SVG under `assets/` and writes the PNGs. The README shows the banner at
+  the top, by absolute raw URL so PyPI shows it too, and the docs site shows
+  the icon as its header logo and favicon (`docs/assets/`), on a black
+  header in place of the indigo one. The old `assets/logo_pack/` is removed.
+  No code changes.
+
 ## [0.17.0] - 2026-11-02
 
 ### Added
