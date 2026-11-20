@@ -702,7 +702,7 @@ def _nearest_labels(
     try:
         # SciPy arrives only with the ``viz`` extras, and the fallback below
         # exists for when it is absent.  An unresolvable import is expected.
-        from scipy.spatial import cKDTree  # ty: ignore[unresolved-import]
+        from scipy.spatial import cKDTree  # ty: ignore[import-not-found]
 
         _, index = cKDTree(source_points).query(target_points, k=1)
         return labels[index]
