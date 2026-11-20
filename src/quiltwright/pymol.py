@@ -167,7 +167,7 @@ def available() -> str | None:
         the import does not.
     """
     try:
-        import pymol  # noqa: F401  # ty: ignore[unresolved-import]
+        import pymol  # noqa: F401  # ty: ignore[import-not-found]
     except ImportError:
         pass
     else:
